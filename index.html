@@ -10,11 +10,8 @@
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
-    body {
-      font-family: 'Inter', sans-serif;
-      margin: 0;
-      padding: 0;
-    }
+    body { font-family: 'Inter', sans-serif; margin: 0; padding: 0; }
+    .emoji-picker { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; }
   </style>
 </head>
 <body>
@@ -23,7 +20,6 @@
   <script type="text/babel">
     const { useState, useEffect } = React;
 
-    // Lucide Icons (упрощенная версия)
     const Icon = ({ name, className = "w-5 h-5", ...props }) => {
       const icons = {
         search: <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>,
@@ -37,12 +33,17 @@
         message: <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>,
         x: <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>,
         grip: <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="9" cy="5" r="1"/><circle cx="9" cy="12" r="1"/><circle cx="9" cy="19" r="1"/><circle cx="15" cy="5" r="1"/><circle cx="15" cy="12" r="1"/><circle cx="15" cy="19" r="1"/></svg>,
-        loader: <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24"><line x1="12" y1="2" x2="12" y2="6"/><line x1="12" y1="18" x2="12" y2="22"/><line x1="4.93" y1="4.93" x2="7.76" y2="7.76"/><line x1="16.24" y1="16.24" x2="19.07" y2="19.07"/><line x1="2" y1="12" x2="6" y2="12"/><line x1="18" y1="12" x2="22" y2="12"/><line x1="4.93" y1="19.07" x2="7.76" y2="16.24"/><line x1="16.24" y1="7.76" x2="19.07" y2="4.93"/></svg>
+        loader: <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24"><line x1="12" y1="2" x2="12" y2="6"/><line x1="12" y1="18" x2="12" y2="22"/><line x1="4.93" y1="4.93" x2="7.76" y2="7.76"/><line x1="16.24" y1="16.24" x2="19.07" y2="19.07"/><line x1="2" y1="12" x2="6" y2="12"/><line x1="18" y1="12" x2="22" y2="12"/><line x1="4.93" y1="19.07" x2="7.76" y2="16.24"/><line x1="16.24" y1="7.76" x2="19.07" y2="4.93"/></svg>,
+        edit: <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>,
+        heart: <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
       };
       return icons[name] || null;
     };
 
     const API_URL = 'https://gametracker-backend-production.up.railway.app';
+
+    const AVATARS = ['🎮', '🎯', '🔥', '⚡', '🌟', '👾', '🎲', '🦉', '🐉', '🚀', '💎', '🎪', '🎨', '🎭', '🎬'];
+    const REACTION_EMOJIS = ['😍', '🔥', '👍', '😮', '😂'];
 
     const GameKanban = () => {
       const [user, setUser] = useState(null);
@@ -56,11 +57,24 @@
       const [searching, setSearching] = useState(false);
       const [draggedCard, setDraggedCard] = useState(null);
       const [draggedFrom, setDraggedFrom] = useState(null);
+      const [showProfile, setShowProfile] = useState(false);
+      const [showFriends, setShowFriends] = useState(false);
+      const [friends, setFriends] = useState([]);
+      const [selectedGame, setSelectedGame] = useState(null);
+      const [viewingUser, setViewingUser] = useState(null);
       
       const [formData, setFormData] = useState({
         username: '',
         email: '',
-        password: ''
+        password: '',
+        avatar: '🎮'
+      });
+
+      const [profileData, setProfileData] = useState({
+        avatar: '',
+        bio: '',
+        currentPassword: '',
+        newPassword: ''
       });
 
       const [boards, setBoards] = useState({
@@ -70,30 +84,28 @@
         dropped: { id: 'dropped', title: 'Брошено', emoji: '❌', color: 'from-red-500/20 to-orange-500/20', borderColor: 'border-red-500/30', cards: [] }
       });
 
-      const friends = [
-        { id: 1, username: 'PlayerOne', avatar: '🎯', online: true },
-        { id: 2, username: 'GamerPro', avatar: '🔥', online: false },
-        { id: 3, username: 'NightOwl', avatar: '🦉', online: true }
-      ];
-
       useEffect(() => {
         const token = localStorage.getItem('token');
         const savedUser = localStorage.getItem('user');
-        
         if (token && savedUser) {
           setUser(JSON.parse(savedUser));
           setShowAuth(false);
           loadBoards(token);
+          loadFriends(token);
         }
       }, []);
 
-      const loadBoards = async (token) => {
+      const loadBoards = async (token, userId = null) => {
         try {
-          const response = await fetch(`${API_URL}/api/user/boards`, {
+          const url = userId ? `${API_URL}/api/user/${userId}/boards` : `${API_URL}/api/user/boards`;
+          const response = await fetch(url, {
             headers: { 'Authorization': `Bearer ${token}` }
           });
           if (response.ok) {
             const data = await response.json();
+            if (userId) {
+              setViewingUser(data.user);
+            }
             if (data.boards) {
               setBoards(prev => ({
                 backlog: { ...prev.backlog, cards: data.boards.backlog || [] },
@@ -108,26 +120,17 @@
         }
       };
 
-      const saveBoards = async () => {
-        const token = localStorage.getItem('token');
-        if (!token) return;
+      const loadFriends = async (token) => {
         try {
-          const boardsData = {
-            backlog: boards.backlog.cards,
-            playing: boards.playing.cards,
-            completed: boards.completed.cards,
-            dropped: boards.dropped.cards
-          };
-          await fetch(`${API_URL}/api/user/boards`, {
-            method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${token}`,
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ boards: boardsData })
+          const response = await fetch(`${API_URL}/api/friends`, {
+            headers: { 'Authorization': `Bearer ${token}` }
           });
+          if (response.ok) {
+            const data = await response.json();
+            setFriends(data.friends || []);
+          }
         } catch (err) {
-          console.error('Ошибка сохранения:', err);
+          console.error('Ошибка загрузки друзей:', err);
         }
       };
 
@@ -152,6 +155,7 @@
             setUser(data.user);
             setShowAuth(false);
             loadBoards(data.token);
+            loadFriends(data.token);
           } else {
             setError(data.error || 'Ошибка авторизации');
           }
@@ -186,34 +190,72 @@
       };
 
       const addGameToBoard = async (game, boardId) => {
-        const newCard = {
-          id: `game-${Date.now()}`,
-          gameId: game.id,
-          name: game.name,
-          cover: game.cover,
-          rating: null,
-          notes: '',
-          addedDate: new Date().toISOString()
-        };
-        setBoards(prev => ({
-          ...prev,
-          [boardId]: { ...prev[boardId], cards: [...prev[boardId].cards, newCard] }
-        }));
-        setShowSearch(false);
-        setSearchQuery('');
-        setSearchResults([]);
-        setTimeout(() => saveBoards(), 100);
+        const token = localStorage.getItem('token');
+        try {
+          const response = await fetch(`${API_URL}/api/user/boards/${boardId}/games`, {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ game })
+          });
+          if (response.ok) {
+            loadBoards(token);
+            setShowSearch(false);
+            setSearchQuery('');
+            setSearchResults([]);
+          }
+        } catch (err) {
+          console.error('Ошибка добавления:', err);
+        }
       };
 
       const deleteCard = async (boardId, cardId) => {
-        setBoards(prev => ({
-          ...prev,
-          [boardId]: {
-            ...prev[boardId],
-            cards: prev[boardId].cards.filter(card => card.id !== cardId)
-          }
-        }));
-        setTimeout(() => saveBoards(), 100);
+        const token = localStorage.getItem('token');
+        try {
+          await fetch(`${API_URL}/api/user/games/${cardId}`, {
+            method: 'DELETE',
+            headers: { 'Authorization': `Bearer ${token}` }
+          });
+          loadBoards(token);
+        } catch (err) {
+          console.error('Ошибка удаления:', err);
+        }
+      };
+
+      const updateGame = async (gameId, updates) => {
+        const token = localStorage.getItem('token');
+        try {
+          await fetch(`${API_URL}/api/user/games/${gameId}`, {
+            method: 'PUT',
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(updates)
+          });
+          loadBoards(token);
+        } catch (err) {
+          console.error('Ошибка обновления:', err);
+        }
+      };
+
+      const addReaction = async (gameId, emoji) => {
+        const token = localStorage.getItem('token');
+        try {
+          await fetch(`${API_URL}/api/games/${gameId}/reactions`, {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ emoji })
+          });
+          loadBoards(token);
+        } catch (err) {
+          console.error('Ошибка реакции:', err);
+        }
       };
 
       const handleDragStart = (e, card, boardId) => {
@@ -232,18 +274,9 @@
           setDraggedFrom(null);
           return;
         }
-        setBoards(prev => {
-          const sourceCards = prev[draggedFrom].cards.filter(c => c.id !== draggedCard.id);
-          const targetCards = [...prev[targetBoardId].cards, draggedCard];
-          return {
-            ...prev,
-            [draggedFrom]: { ...prev[draggedFrom], cards: sourceCards },
-            [targetBoardId]: { ...prev[targetBoardId], cards: targetCards }
-          };
-        });
+        await updateGame(draggedCard.id, { board: targetBoardId });
         setDraggedCard(null);
         setDraggedFrom(null);
-        setTimeout(() => saveBoards(), 100);
       };
 
       const handleLogout = () => {
@@ -251,6 +284,46 @@
         localStorage.removeItem('user');
         setUser(null);
         setShowAuth(true);
+        setViewingUser(null);
+      };
+
+      const updateProfile = async () => {
+        const token = localStorage.getItem('token');
+        try {
+          const response = await fetch(`${API_URL}/api/profile`, {
+            method: 'PUT',
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(profileData)
+          });
+          if (response.ok) {
+            const data = await response.json();
+            setUser(data.user);
+            localStorage.setItem('user', JSON.stringify(data.user));
+            setShowProfile(false);
+            setProfileData({ avatar: '', bio: '', currentPassword: '', newPassword: '' });
+          }
+        } catch (err) {
+          console.error('Ошибка обновления профиля:', err);
+        }
+      };
+
+      const searchUsers = async (query) => {
+        const token = localStorage.getItem('token');
+        try {
+          const response = await fetch(`${API_URL}/api/users/search?q=${encodeURIComponent(query)}`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+          });
+          if (response.ok) {
+            const data = await response.json();
+            return data.users || [];
+          }
+        } catch (err) {
+          console.error('Ошибка поиска пользователей:', err);
+        }
+        return [];
       };
 
       if (showAuth) {
@@ -260,13 +333,23 @@
               <div className="text-center mb-8">
                 <div className="text-6xl mb-4 animate-pulse">🎮</div>
                 <h1 className="text-5xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 via-pink-400 to-blue-400 mb-2">GameTracker</h1>
-                <p className="text-gray-400 text-lg">Твой игровой прогресс под контролем</p>
+                <p className="text-gray-400 text-lg">Твой игровой прогресс</p>
               </div>
               <div className="flex gap-2 mb-6">
                 <button onClick={() => { setAuthMode('login'); setError(''); }} className={`flex-1 py-3 rounded-lg font-semibold transition-all ${authMode === 'login' ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-lg' : 'bg-gray-800 text-gray-400 hover:bg-gray-700'}`}>Вход</button>
                 <button onClick={() => { setAuthMode('register'); setError(''); }} className={`flex-1 py-3 rounded-lg font-semibold transition-all ${authMode === 'register' ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-lg' : 'bg-gray-800 text-gray-400 hover:bg-gray-700'}`}>Регистрация</button>
               </div>
               {error && <div className="mb-4 p-3 bg-red-500/20 border border-red-500/50 rounded-lg text-red-300 text-sm">{error}</div>}
+              {authMode === 'register' && (
+                <div className="mb-4">
+                  <p className="text-gray-400 text-sm mb-2">Выбери аватар:</p>
+                  <div className="grid grid-cols-5 gap-2">
+                    {AVATARS.map(avatar => (
+                      <button key={avatar} onClick={() => setFormData({ ...formData, avatar })} className={`text-3xl p-2 rounded-lg transition-all ${formData.avatar === avatar ? 'bg-purple-500 scale-110' : 'bg-gray-800 hover:bg-gray-700'}`}>{avatar}</button>
+                    ))}
+                  </div>
+                </div>
+              )}
               <div className="space-y-4">
                 <input type="text" placeholder="Логин" value={formData.username} onChange={(e) => setFormData({ ...formData, username: e.target.value })} className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg focus:border-purple-500 focus:outline-none text-white placeholder-gray-500" />
                 <input type="password" placeholder="Пароль" value={formData.password} onChange={(e) => setFormData({ ...formData, password: e.target.value })} className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg focus:border-purple-500 focus:outline-none text-white placeholder-gray-500" />
@@ -274,10 +357,6 @@
                 <button onClick={handleAuth} disabled={loading} className="w-full py-3 bg-gradient-to-r from-purple-500 via-pink-500 to-blue-500 text-white font-bold rounded-lg hover:from-purple-600 hover:via-pink-600 hover:to-blue-600 transition-all transform hover:scale-105 shadow-xl disabled:opacity-50 flex items-center justify-center gap-2">
                   {loading ? <><Icon name="loader" className="w-5 h-5 animate-spin" />Загрузка...</> : (authMode === 'login' ? '🚀 Войти' : '✨ Зарегистрироваться')}
                 </button>
-              </div>
-              <div className="mt-6 text-center text-sm text-gray-500">
-                <p>🔒 Все данные защищены</p>
-                <p className="mt-2">🎮 Twitch API активен</p>
               </div>
             </div>
           </div>
@@ -290,7 +369,7 @@
             <div className="container mx-auto px-4 py-4">
               <div className="flex items-center justify-between flex-wrap gap-4">
                 <div className="flex items-center gap-4 flex-wrap">
-                  <h1 className="text-2xl md:text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 via-pink-400 to-blue-400">🎮 GameTracker</h1>
+                  <h1 onClick={() => { setViewingUser(null); loadBoards(localStorage.getItem('token')); }} className="text-2xl md:text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 via-pink-400 to-blue-400 cursor-pointer">🎮 GameTracker</h1>
                   <div className="relative">
                     <button onClick={() => setShowSearch(!showSearch)} className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-500/20 to-pink-500/20 hover:from-purple-500/30 hover:to-pink-500/30 rounded-lg transition-all border border-purple-500/30">
                       <Icon name="search" className="w-4 h-4 text-purple-400" />
@@ -308,7 +387,6 @@
                           {searching ? (
                             <div className="flex items-center justify-center py-8">
                               <Icon name="loader" className="w-6 h-6 animate-spin text-purple-400" />
-                              <span className="ml-2 text-gray-400">Поиск...</span>
                             </div>
                           ) : searchResults.length > 0 ? (
                             searchResults.map(game => (
@@ -339,15 +417,19 @@
                 </div>
                 <div className="flex items-center gap-2 md:gap-3">
                   <div className="flex items-center gap-2 px-3 md:px-4 py-2 bg-gradient-to-r from-purple-500/20 to-pink-500/20 rounded-lg border border-purple-500/30">
-                    <Icon name="user" className="w-4 h-4 md:w-5 md:h-5 text-purple-400" />
-                    <span className="text-white font-semibold text-sm md:text-base">{user?.username}</span>
+                    <span className="text-2xl">{user?.avatar}</span>
+                    <span className="text-white font-semibold text-sm md:text-base">{viewingUser ? viewingUser.username : user?.username}</span>
                   </div>
-                  <button className="p-2 hover:bg-gray-800 rounded-lg border border-purple-500/30">
-                    <Icon name="users" className="w-4 h-4 md:w-5 md:h-5 text-purple-400" />
-                  </button>
-                  <button className="p-2 hover:bg-gray-800 rounded-lg border border-purple-500/30">
-                    <Icon name="settings" className="w-4 h-4 md:w-5 md:h-5 text-purple-400" />
-                  </button>
+                  {!viewingUser && (
+                    <>
+                      <button onClick={() => setShowFriends(true)} className="p-2 hover:bg-gray-800 rounded-lg border border-purple-500/30">
+                        <Icon name="users" className="w-4 h-4 md:w-5 md:h-5 text-purple-400" />
+                      </button>
+                      <button onClick={() => setShowProfile(true)} className="p-2 hover:bg-gray-800 rounded-lg border border-purple-500/30">
+                        <Icon name="settings" className="w-4 h-4 md:w-5 md:h-5 text-purple-400" />
+                      </button>
+                    </>
+                  )}
                   <button onClick={handleLogout} className="p-2 hover:bg-red-900/50 rounded-lg border border-red-500/30">
                     <Icon name="logout" className="w-4 h-4 md:w-5 md:h-5 text-red-400" />
                   </button>
@@ -356,80 +438,12 @@
             </div>
           </header>
 
-          <div className="container mx-auto px-4 py-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
-              {Object.values(boards).map(board => (
-                <div key={board.id} onDragOver={handleDragOver} onDrop={(e) => handleDrop(e, board.id)} className={`bg-gradient-to-br ${board.color} backdrop-blur-xl rounded-xl p-4 border ${board.borderColor}`}>
-                  <div className="flex items-center justify-between mb-4">
-                    <h2 className="text-lg md:text-xl font-bold text-white flex items-center gap-2">
-                      <span className="text-xl md:text-2xl">{board.emoji}</span>
-                      <span className="hidden sm:inline">{board.title}</span>
-                    </h2>
-                    <span className="bg-white/10 text-white px-2 md:px-3 py-1 rounded-full text-xs md:text-sm font-bold">{board.cards.length}</span>
-                  </div>
-                  <div className="space-y-3 min-h-[400px] md:min-h-[500px]">
-                    {board.cards.map(card => (
-                      <div key={card.id} draggable onDragStart={(e) => handleDragStart(e, card, board.id)} className="bg-gray-800/90 rounded-lg overflow-hidden border border-gray-700 hover:border-purple-500 transition-all cursor-move hover:scale-105">
-                        <div className="relative group">
-                          {card.cover ? <img src={card.cover} alt={card.name} className="w-full h-40 md:h-48 object-cover" /> : <div className="w-full h-40 md:h-48 bg-gray-700 flex items-center justify-center text-4xl md:text-6xl">🎮</div>}
-                          <button onClick={() => deleteCard(board.id, card.id)} className="absolute top-2 right-2 p-2 bg-red-500/90 hover:bg-red-600 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity">
-                            <Icon name="trash" className="w-3 h-3 md:w-4 md:h-4 text-white" />
-                          </button>
-                          <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-3">
-                            <Icon name="grip" className="w-4 h-4 md:w-5 md:h-5 text-white/60" />
-                          </div>
-                        </div>
-                        <div className="p-3">
-                          <h3 className="text-white font-bold text-sm md:text-base mb-2 truncate">{card.name}</h3>
-                          {card.rating && (
-                            <div className="flex gap-1 mb-2">
-                              {[...Array(5)].map((_, i) => (
-                                <Icon key={i} name="star" className={`w-3 h-3 md:w-4 md:h-4 ${i < card.rating ? 'text-yellow-400 fill-yellow-400' : 'text-gray-600'}`} />
-                              ))}
-                            </div>
-                          )}
-                          {card.notes && (
-                            <div className="flex items-start gap-2 mt-2 p-2 bg-gray-900/70 rounded text-sm border border-gray-700">
-                              <Icon name="message" className="w-3 h-3 md:w-4 md:h-4 text-purple-400 flex-shrink-0 mt-0.5" />
-                              <p className="text-gray-300 text-xs italic line-clamp-2">{card.notes}</p>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            <div className="mt-6 md:mt-8 grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
-              <div className="bg-gradient-to-br from-blue-500/20 to-cyan-500/20 backdrop-blur-xl rounded-xl p-4 md:p-6 border border-blue-500/30">
-                <div className="text-2xl md:text-4xl mb-2">📊</div>
-                <h3 className="text-xs md:text-sm font-semibold text-gray-300 mb-1">Всего</h3>
-                <p className="text-2xl md:text-3xl font-bold text-white">{Object.values(boards).reduce((acc, board) => acc + board.cards.length, 0)}</p>
-              </div>
-              <div className="bg-gradient-to-br from-green-500/20 to-emerald-500/20 backdrop-blur-xl rounded-xl p-4 md:p-6 border border-green-500/30">
-                <div className="text-2xl md:text-4xl mb-2">✅</div>
-                <h3 className="text-xs md:text-sm font-semibold text-gray-300 mb-1">Пройдено</h3>
-                <p className="text-2xl md:text-3xl font-bold text-white">{boards.completed.cards.length}</p>
-              </div>
-              <div className="bg-gradient-to-br from-purple-500/20 to-pink-500/20 backdrop-blur-xl rounded-xl p-4 md:p-6 border border-purple-500/30">
-                <div className="text-2xl md:text-4xl mb-2">🎮</div>
-                <h3 className="text-xs md:text-sm font-semibold text-gray-300 mb-1">Играю</h3>
-                <p className="text-2xl md:text-3xl font-bold text-white">{boards.playing.cards.length}</p>
-              </div>
-              <div className="bg-gradient-to-br from-orange-500/20 to-red-500/20 backdrop-blur-xl rounded-xl p-4 md:p-6 border border-orange-500/30">
-                <div className="text-2xl md:text-4xl mb-2">📋</div>
-                <h3 className="text-xs md:text-sm font-semibold text-gray-300 mb-1">Беклог</h3>
-                <p className="text-2xl md:text-3xl font-bold text-white">{boards.backlog.cards.length}</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      );
-    };
-
-    ReactDOM.render(<GameKanban />, document.getElementById('root'));
-  </script>
-</body>
-</html>
+          {showProfile && (
+            <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
+              <div className="bg-gray-900 rounded-2xl p-6 w-full max-w-md border border-purple-500/30">
+                <h2 className="text-2xl font-bold text-white mb-4">Настройки профиля</h2>
+                <div className="space-y-4">
+                  <div>
+                    <p className="text-gray-400 text-sm mb-2">Аватар:</p>
+                    <div className="grid grid-cols-5 gap-2">
+                      {AVATARS.
