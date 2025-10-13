@@ -48,7 +48,7 @@
         background-clip: unset !important;
         background: none !important;
     }
-    .liquid-eye .border-purple-500\/30, .liquid-eye .border-blue-500\/30, .liquid-eye .border-green-500\/30, .liquid-eye .border-red-500\/30 {
+    .liquid-eye .border-purple-500\/30, .liquid-eye .border-blue-500\/30, .liquid-eye .border-green-500\/30, .liquid-eye .border-red-500\/30, .liquid-eye .border-orange-500\/30 {
         border-color: var(--border-color) !important;
     }
     .liquid-eye .bg-gray-900\/90, .liquid-eye .bg-gray-900, .liquid-eye .bg-gray-800, .liquid-eye .bg-gray-800\/90 {
@@ -57,7 +57,7 @@
     .liquid-eye .bg-gray-800\/95 {
         background-color: var(--modal-bg) !important;
     }
-    .liquid-eye .from-purple-500\/20, .liquid-eye .from-blue-500\/20, .liquid-eye .from-green-500\/20, .liquid-eye .from-red-500\/20 {
+    .liquid-eye .from-purple-500\/20, .liquid-eye .to-pink-500\/20, .liquid-eye .from-blue-500\/20, .liquid-eye .from-green-500\/20, .liquid-eye .from-red-500\/20 {
         background: var(--card-bg) !important;
     }
     .liquid-eye input, .liquid-eye textarea, .liquid-eye select {
@@ -91,7 +91,6 @@
     const API_URL = 'https://gametracker-backend-production.up.railway.app';
     const REACTION_EMOJIS = ['😍', '🔥', '👍', '😮', '😂'];
 
-    // ... (Icon component remains the same)
     const Icon = ({ name, className = "w-5 h-5" }) => {
       const icons = {
         search: <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>,
@@ -103,7 +102,7 @@
         trash: <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>,
         message: <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>,
         x: <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>,
-        loader: <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24"><line x1="12" y1="2" x2="12" y2="6"/><line x1="12" y1="18" x2="12" y2="22"/><line x1="4.93" y1="4.93" x2="7.76" y2="7.76"/><line x1="16.24" y1="16.24" x2="19.07" y2="19.07"/><line x1="2" y1="12" x2="6" y2="12"/><line x1="18" y1="12" x2="22" y2="12"/><line x1="4.93" y1="19.07" x2="7.76" y2="16.24"/><line x1="16.24" y1="7.76" x2="19.07" y2="4.93"/></svg>,
+        loader: <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>,
         upload: <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>,
         globe: <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>,
         edit: <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>,
@@ -115,7 +114,6 @@
       };
       return icons[name] || null;
     };
-
 
     const Avatar = ({ src, size = 'md', className = '' }) => {
       const sizes = { sm: 'w-8 h-8', md: 'w-12 h-12', lg: 'w-20 h-20', xl: 'w-32 h-32' };
@@ -165,6 +163,7 @@
       const [userSearchQuery, setUserSearchQuery] = useState('');
       const [friends, setFriends] = useState([]);
       const [friendRequests, setFriendRequests] = useState([]);
+      const [sentRequests, setSentRequests] = useState([]);
       const [selectedGame, setSelectedGame] = useState(null);
       const [viewingUser, setViewingUser] = useState(null);
       const [friendshipStatus, setFriendshipStatus] = useState('none'); // 'none', 'friends', 'request_sent', 'request_received'
@@ -228,7 +227,8 @@
         }
       };
 
-      const loadFriends = async (token) => {
+      const loadFriends = async () => {
+        const token = localStorage.getItem('token');
         try {
           const response = await fetch(`${API_URL}/api/friends`, {
             headers: { 'Authorization': `Bearer ${token}` }
@@ -237,6 +237,7 @@
             const data = await response.json();
             setFriends(data.friends || []);
             setFriendRequests(data.requests || []);
+            setSentRequests(data.sentRequests || []);
           }
         } catch (err) {
           console.error('Ошибка загрузки друзей:', err);
@@ -370,7 +371,7 @@
         }
       };
 
-      const deleteCard = async (e, boardId, cardId) => {
+      const deleteCard = async (e, cardId) => {
         e.stopPropagation();
         const token = localStorage.getItem('token');
         try {
@@ -421,45 +422,30 @@
       const friendAction = async (friendId, action) => {
         const token = localStorage.getItem('token');
         let endpoint = '';
+        let method = 'POST';
         switch(action) {
             case 'request': endpoint = '/api/friends/request'; break;
             case 'accept': endpoint = '/api/friends/accept'; break;
             case 'reject': endpoint = '/api/friends/reject'; break;
-            case 'remove': return removeFriend(friendId);
+            case 'remove': endpoint = `/api/friends/${friendId}`; method = 'DELETE'; break;
             default: return;
         }
 
         try {
             await fetch(`${API_URL}${endpoint}`, {
-                method: 'POST',
+                method,
                 headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
                 body: JSON.stringify({ friendId })
             });
-            loadFriends(token);
+            loadFriends();
             if (viewingUser && viewingUser.id === friendId) {
-                loadBoards(token, friendId); // Обновляем статус на странице пользователя
+                loadBoards(token, friendId);
             }
         } catch(err) {
             console.error(`Ошибка действия '${action}':`, err);
         }
       };
-
-      const removeFriend = async (friendId) => {
-        const token = localStorage.getItem('token');
-        try {
-          await fetch(`${API_URL}/api/friends/${friendId}`, {
-            method: 'DELETE',
-            headers: { 'Authorization': `Bearer ${token}` }
-          });
-          loadFriends(token);
-          if (viewingUser && viewingUser.id === friendId) {
-             loadBoards(token, friendId);
-          }
-        } catch (err) {
-          console.error('Ошибка удаления друга:', err);
-        }
-      };
-
+      
       const updateNickname = async (friendId, nickname) => {
         const token = localStorage.getItem('token');
         try {
@@ -473,29 +459,23 @@
           });
           setUserNickname(nickname);
           setEditingNickname(false);
-          loadFriends(token);
+          loadFriends();
         } catch (err) {
           console.error('Ошибка обновления метки:', err);
         }
       };
 
-      const handleDragStart = (e, card, boardId) => {
-        setDraggedCard(card);
-        setDraggedFrom(boardId);
+      const handleDragStart = (e, cardId) => {
+        e.dataTransfer.setData("cardId", cardId);
       };
 
       const handleDragOver = (e) => e.preventDefault();
 
       const handleDrop = async (e, targetBoardId) => {
         e.preventDefault();
-        if (!draggedCard || !draggedFrom || draggedFrom === targetBoardId) {
-          setDraggedCard(null);
-          setDraggedFrom(null);
-          return;
-        }
-        await updateGame(draggedCard.id, { board: targetBoardId });
-        setDraggedCard(null);
-        setDraggedFrom(null);
+        const cardId = e.dataTransfer.getData("cardId");
+        if (!cardId) return;
+        await updateGame(cardId, { board: targetBoardId });
       };
 
       const handleLogout = () => {
@@ -540,7 +520,7 @@
       
       const FriendActionButton = ({ targetUserId }) => {
         if (friendshipStatus === 'friends') {
-            return <button onClick={() => removeFriend(targetUserId)} className="flex items-center gap-1 p-2 bg-green-500/20 hover:bg-red-500/20 rounded-lg border border-green-500/30 hover:border-red-500/30 transition-all"><Icon name="userCheck" className="w-4 h-4 md:w-5 md:h-5 text-green-400" /></button>;
+            return <button onClick={() => friendAction(targetUserId, 'remove')} className="flex items-center gap-1 p-2 bg-green-500/20 hover:bg-red-500/20 rounded-lg border border-green-500/30 hover:border-red-500/30 transition-all"><Icon name="userCheck" className="w-4 h-4 md:w-5 md:h-5 text-green-400" /></button>;
         }
         if (friendshipStatus === 'request_sent') {
             return <button onClick={() => friendAction(targetUserId, 'reject')} className="flex items-center gap-1 p-2 bg-yellow-500/20 rounded-lg border border-yellow-500/30"><Icon name="userClock" className="w-4 h-4 md:w-5 md:h-5 text-yellow-400" /></button>;
@@ -555,9 +535,28 @@
         }
         return <button onClick={() => friendAction(targetUserId, 'request')} className="flex items-center gap-1 p-2 bg-purple-500/20 hover:bg-purple-500/30 rounded-lg border border-purple-500/30 transition-all"><Icon name="userPlus" className="w-4 h-4 md:w-5 md:h-5 text-purple-400" /></button>;
     };
+    
+    const UserListFriendButton = ({ targetUser }) => {
+        const isFriend = friends.some(f => f.id === targetUser.id);
+        const isRequestReceived = friendRequests.some(r => r.id === targetUser.id);
+        const isRequestSent = sentRequests.some(s => s.id === targetUser.id);
+
+        if (isFriend) {
+            return <button onClick={() => friendAction(targetUser.id, 'remove')} className="p-2 bg-green-500/20 hover:bg-red-500/20 rounded-lg transition-all"><Icon name="userCheck" className="w-5 h-5 text-green-400" /></button>;
+        }
+        if (isRequestReceived) {
+            return (<div className="flex gap-2">
+                <button onClick={() => friendAction(targetUser.id, 'accept')} className="p-2 bg-green-500/20 hover:bg-green-500/30 rounded-lg"><Icon name="check" className="w-5 h-5 text-green-400" /></button>
+                <button onClick={() => friendAction(targetUser.id, 'reject')} className="p-2 bg-red-500/20 hover:bg-red-500/30 rounded-lg"><Icon name="x" className="w-5 h-5 text-red-400" /></button>
+            </div>);
+        }
+        if (isRequestSent) {
+            return <button onClick={() => friendAction(targetUser.id, 'reject')} className="p-2 bg-yellow-500/20 hover:bg-red-500/20 rounded-lg"><Icon name="userClock" className="w-5 h-5 text-yellow-400" /></button>;
+        }
+        return <button onClick={() => friendAction(targetUser.id, 'request')} className="p-2 bg-purple-500/20 hover:bg-purple-500/30 rounded-lg"><Icon name="userPlus" className="w-5 h-5 text-purple-400" /></button>;
+    };
 
       if (showAuth) {
-        // ... (Auth component remains the same)
         return (
           <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 flex items-center justify-center p-4">
             <div className="bg-gray-900/90 backdrop-blur-xl rounded-2xl p-8 w-full max-w-md border border-purple-500/30 shadow-2xl">
@@ -598,7 +597,6 @@
                         <span className="text-gray-300 font-semibold text-sm md:text-base">Добавить игру</span>
                       </button>
                       {showSearch && (
-                        // ... Search dropdown remains the same
                         <div className="absolute top-full mt-2 left-0 w-80 md:w-96 bg-gray-800/95 backdrop-blur-xl rounded-lg shadow-2xl border border-purple-500/30 p-4 z-50">
                           <div className="flex items-center gap-2 mb-3">
                             <input type="text" value={searchQuery} onChange={(e) => handleSearch(e.target.value)} placeholder="Поиск игры..." className="flex-1 px-4 py-2 bg-gray-900 border border-gray-700 rounded-lg focus:border-purple-500 focus:outline-none text-white text-sm" autoFocus />
@@ -692,13 +690,28 @@
                     </button>
                     <p className="text-xs text-gray-400">Изображение будет сжато до 128x128</p>
                   </div>
-                  {/* ... other profile fields ... */}
+                   <div>
+                    <label className="text-gray-400 text-sm">Имя пользователя:</label>
+                    <input type="text" value={profileData.username} onChange={(e) => setProfileData({ ...profileData, username: e.target.value })} placeholder={user?.username} className="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg focus:border-purple-500 focus:outline-none text-white mt-1" />
+                  </div>
+                  <div>
+                    <label className="text-gray-400 text-sm">О себе:</label>
+                    <textarea value={profileData.bio} onChange={(e) => setProfileData({ ...profileData, bio: e.target.value })} placeholder={user?.bio || "Расскажи о себе..."} className="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg focus:border-purple-500 focus:outline-none text-white mt-1" rows="3" />
+                  </div>
                   <div>
                     <label className="text-gray-400 text-sm">Тема оформления:</label>
                     <div className="flex gap-2 mt-1">
                         <button onClick={() => setTheme('default')} className={`flex-1 py-2 rounded-lg text-sm ${theme === 'default' ? 'bg-purple-500 text-white' : 'bg-gray-800'}`}>Стандартная</button>
                         <button onClick={() => setTheme('liquid-eye')} className={`flex-1 py-2 rounded-lg text-sm ${theme === 'liquid-eye' ? 'bg-white text-black' : 'bg-gray-800'}`}>Liquid Eye</button>
                     </div>
+                  </div>
+                   <div>
+                    <label className="text-gray-400 text-sm">Текущий пароль (для изменения):</label>
+                    <input type="password" value={profileData.currentPassword} onChange={(e) => setProfileData({ ...profileData, currentPassword: e.target.value })} className="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg focus:border-purple-500 focus:outline-none text-white mt-1" />
+                  </div>
+                  <div>
+                    <label className="text-gray-400 text-sm">Новый пароль:</label>
+                    <input type="password" value={profileData.newPassword} onChange={(e) => setProfileData({ ...profileData, newPassword: e.target.value })} className="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg focus:border-purple-500 focus:outline-none text-white mt-1" />
                   </div>
                   <div className="flex gap-2 mt-6">
                     <button onClick={updateProfile} className="flex-1 py-2 bg-gradient-to-r from-purple-500 to-pink-500 text-white font-bold rounded-lg hover:from-purple-600 hover:to-pink-600">Сохранить</button>
@@ -710,7 +723,6 @@
           )}
           
           {editingNickname && (
-            // Nickname modal remains the same
              <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
               <div className="bg-gray-900 rounded-2xl p-6 w-full max-w-md border border-purple-500/30">
                 <h2 className="text-xl font-bold text-white mb-4">Изменить метку для {viewingUser?.username}</h2>
@@ -725,41 +737,63 @@
 
           {showUserHub && (
             <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
-              <div className="bg-gray-900 rounded-2xl p-6 w-full max-w-3xl border border-purple-500/30 max-h-[80vh] overflow-y-auto">
-                <div className="flex justify-between items-center mb-4">
+              <div className="bg-gray-900 rounded-2xl p-6 w-full max-w-3xl border border-purple-500/30 max-h-[80vh] flex flex-col">
+                <div className="flex justify-between items-center mb-4 flex-shrink-0">
                   <h2 className="text-2xl font-bold text-white">Сообщество</h2>
                   <button onClick={() => setShowUserHub(false)} className="p-2 hover:bg-gray-800 rounded-lg"><Icon name="x" className="w-5 h-5 text-gray-400" /></button>
                 </div>
                 
-                {friendRequests.length > 0 && (
-                    <div className="mb-6">
-                        <h3 className="text-lg font-bold text-white mb-3">Запросы в друзья ({friendRequests.length})</h3>
-                        <div className="space-y-3">
-                            {friendRequests.map(req => (
-                                <div key={req.id} className="flex items-center gap-3 p-3 bg-gray-800 rounded-lg">
-                                    <Avatar src={req.avatar} size="md" />
-                                    <div className="flex-1 cursor-pointer" onClick={() => { loadBoards(localStorage.getItem('token'), req.id); setShowUserHub(false); }}>
-                                        <p className="text-white font-semibold">{req.username}</p>
+                <div className="overflow-y-auto">
+                    {friendRequests.length > 0 && (
+                        <div className="mb-6">
+                            <h3 className="text-lg font-bold text-white mb-3">Запросы в друзья ({friendRequests.length})</h3>
+                            <div className="space-y-3">
+                                {friendRequests.map(req => (
+                                    <div key={req.id} className="flex items-center gap-3 p-3 bg-gray-800 rounded-lg">
+                                        <Avatar src={req.avatar} size="md" />
+                                        <div className="flex-1 cursor-pointer" onClick={() => { loadBoards(localStorage.getItem('token'), req.id); setShowUserHub(false); }}>
+                                            <p className="text-white font-semibold">{req.username}</p>
+                                        </div>
+                                        <UserListFriendButton targetUser={req} />
                                     </div>
-                                    <button onClick={() => friendAction(req.id, 'accept')} className="p-2 bg-green-500/20 hover:bg-green-500/30 rounded-lg"><Icon name="check" className="w-5 h-5 text-green-400" /></button>
-                                    <button onClick={() => friendAction(req.id, 'reject')} className="p-2 bg-red-500/20 hover:bg-red-500/30 rounded-lg"><Icon name="x" className="w-5 h-5 text-red-400" /></button>
-                                </div>
-                            ))}
+                                ))}
+                            </div>
                         </div>
+                    )}
+
+                    {friends.length > 0 && (
+                      <div className="mb-6">
+                        <h3 className="text-lg font-bold text-white mb-3">Мои друзья ({friends.length})</h3>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                          {friends.map(friend => (
+                            <div key={friend.id} className="flex items-center gap-3 p-3 bg-gray-800 rounded-lg group">
+                              <Avatar src={friend.avatar} size="md" />
+                              <div className="flex-1 cursor-pointer" onClick={() => { loadBoards(localStorage.getItem('token'), friend.id); setShowUserHub(false); }}>
+                                <p className="text-white font-semibold">{friend.nickname || friend.username}</p>
+                                {friend.nickname && <p className="text-xs text-gray-400">@{friend.username}</p>}
+                              </div>
+                              <button onClick={() => friendAction(friend.id, 'remove')} className="p-2 bg-red-500/20 hover:bg-red-500/30 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity"><Icon name="x" className="w-5 h-5 text-red-400" /></button>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    <div>
+                      <h3 className="text-lg font-bold text-white mb-3">Все пользователи</h3>
+                      <input type="text" value={userSearchQuery} onChange={(e) => { setUserSearchQuery(e.target.value); loadAllUsers(e.target.value); }} placeholder="Поиск пользователей..." className="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg focus:border-purple-500 focus:outline-none text-white mb-4" />
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        {allUsers.map(u => (
+                          <div key={u.id} className="flex items-center gap-3 p-3 bg-gray-800 rounded-lg">
+                            <Avatar src={u.avatar} size="md" />
+                            <div className="flex-1 cursor-pointer" onClick={() => { loadBoards(localStorage.getItem('token'), u.id); setShowUserHub(false); }}>
+                              <p className="text-white font-semibold">{u.username}</p>
+                            </div>
+                            <UserListFriendButton targetUser={u} />
+                          </div>
+                        ))}
+                      </div>
                     </div>
-                )}
-
-                {friends.length > 0 && (
-                  <div className="mb-6">
-                    <h3 className="text-lg font-bold text-white mb-3">Мои друзья ({friends.length})</h3>
-                    {/* ... Friends list */}
-                  </div>
-                )}
-
-                <div>
-                  <h3 className="text-lg font-bold text-white mb-3">Все пользователи</h3>
-                  <input type="text" value={userSearchQuery} onChange={(e) => { setUserSearchQuery(e.target.value); loadAllUsers(e.target.value); }} placeholder="Поиск пользователей..." className="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg focus:border-purple-500 focus:outline-none text-white mb-4" />
-                  {/* ... All users list */}
                 </div>
               </div>
             </div>
@@ -851,11 +885,11 @@
                   </div>
                   <div className="space-y-3 min-h-[400px] md:min-h-[500px]">
                     {board.cards.map(card => (
-                      <div key={card.id} draggable={!viewingUser} onDragStart={(e) => !viewingUser && handleDragStart(e, card, board.id)} className="bg-gray-800/90 rounded-lg overflow-hidden border border-gray-700 hover:border-purple-500 transition-all cursor-pointer hover:scale-105" onClick={() => setSelectedGame(card)}>
+                      <div key={card.id} draggable={!viewingUser} onDragStart={(e) => handleDragStart(e, card.id)} className="bg-gray-800/90 rounded-lg overflow-hidden border border-gray-700 hover:border-purple-500 transition-all cursor-pointer hover:scale-105" onClick={() => setSelectedGame(card)}>
                         <div className="relative group">
                           {card.cover ? <img src={card.cover} alt={card.name} className="w-full h-40 md:h-48 object-cover" /> : <div className="w-full h-40 md:h-48 bg-gray-700 flex items-center justify-center text-4xl md:text-6xl">🎮</div>}
                           {!viewingUser && (
-                            <button onClick={(e) => deleteCard(e, board.id, card.id)} className="absolute top-2 right-2 p-2 bg-red-500/90 hover:bg-red-600 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity"><Icon name="trash" className="w-3 h-3 md:w-4 md:h-4 text-white" /></button>
+                            <button onClick={(e) => deleteCard(e, card.id)} className="absolute top-2 right-2 p-2 bg-red-500/90 hover:bg-red-600 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity"><Icon name="trash" className="w-4 h-4 text-white" /></button>
                           )}
                            {viewingUser && (
                             <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -871,13 +905,12 @@
                         </div>
                         <div className="p-3">
                            <h3 className="text-white font-bold text-sm md:text-base mb-2 truncate">{card.name}</h3>
-                           {/* ... card content like rating, notes, etc. ... */}
                            {card.reactions && card.reactions.length > 0 && (
                             <div className="flex gap-1 mt-2 flex-wrap">
                                {card.reactions.slice(0, 5).map((reaction, idx) => (
                                 <div key={idx} className="relative group/reaction">
                                   <span className="text-lg cursor-default">{reaction.emoji}</span>
-                                  <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 hidden group-hover/reaction:block bg-black text-white text-xs rounded py-1 px-2 whitespace-nowrap">
+                                  <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 hidden group-hover/reaction:block bg-black text-white text-xs rounded py-1 px-2 whitespace-nowrap z-10">
                                     {reaction.username}
                                   </div>
                                 </div>
@@ -892,7 +925,28 @@
                 </div>
               ))}
             </div>
-            {/* ... Summary blocks remain the same */}
+             <div className="mt-6 md:mt-8 grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
+              <div className="bg-gradient-to-br from-blue-500/20 to-cyan-500/20 backdrop-blur-xl rounded-xl p-4 md:p-6 border border-blue-500/30">
+                <div className="text-2xl md:text-4xl mb-2">📊</div>
+                <h3 className="text-xs md:text-sm font-semibold text-gray-300 mb-1">Всего</h3>
+                <p className="text-2xl md:text-3xl font-bold text-white">{Object.values(boards).reduce((acc, board) => acc + board.cards.length, 0)}</p>
+              </div>
+              <div className="bg-gradient-to-br from-green-500/20 to-emerald-500/20 backdrop-blur-xl rounded-xl p-4 md:p-6 border border-green-500/30">
+                <div className="text-2xl md:text-4xl mb-2">✅</div>
+                <h3 className="text-xs md:text-sm font-semibold text-gray-300 mb-1">Пройдено</h3>
+                <p className="text-2xl md:text-3xl font-bold text-white">{boards.completed.cards.length}</p>
+              </div>
+              <div className="bg-gradient-to-br from-purple-500/20 to-pink-500/20 backdrop-blur-xl rounded-xl p-4 md:p-6 border border-purple-500/30">
+                <div className="text-2xl md:text-4xl mb-2">🎮</div>
+                <h3 className="text-xs md:text-sm font-semibold text-gray-300 mb-1">Играю</h3>
+                <p className="text-2xl md:text-3xl font-bold text-white">{boards.playing.cards.length}</p>
+              </div>
+              <div className="bg-gradient-to-br from-orange-500/20 to-red-500/20 backdrop-blur-xl rounded-xl p-4 md:p-6 border border-orange-500/30">
+                <div className="text-2xl md:text-4xl mb-2">📋</div>
+                <h3 className="text-xs md:text-sm font-semibold text-gray-300 mb-1">Беклог</h3>
+                <p className="text-2xl md:text-3xl font-bold text-white">{boards.backlog.cards.length}</p>
+              </div>
+            </div>
           </div>
         </div>
       );
@@ -902,3 +956,4 @@
   </script>
 </body>
 </html>
+
