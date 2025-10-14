@@ -247,7 +247,9 @@
       const loadAllUsers = async (query = '') => {
         const token = localStorage.getItem('token');
         try {
-          const url = query ? `${API_URL}/api/users?q=${encodeURIComponent(query)}` : '/api/users';
+          const url = query 
+            ? `${API_URL}/api/users?q=${encodeURIComponent(query)}` 
+            : `${API_URL}/api/users`;
           const response = await fetch(url, { headers: { 'Authorization': `Bearer ${token}` } });
           if (response.ok) {
             const data = await response.json();
@@ -423,19 +425,27 @@
         const token = localStorage.getItem('token');
         let endpoint = '';
         let method = 'POST';
+        let body = { friendId: Number(friendId) }; // Ensure friendId is a number
         switch(action) {
             case 'request': endpoint = '/api/friends/request'; break;
             case 'accept': endpoint = '/api/friends/accept'; break;
             case 'reject': endpoint = '/api/friends/reject'; break; // Also for cancelling
-            case 'remove': endpoint = `/api/friends/${friendId}`; method = 'DELETE'; break;
+            case 'remove': 
+                endpoint = `/api/friends/${friendId}`; 
+                method = 'DELETE'; 
+                body = undefined; // No body for DELETE
+                break;
             default: return;
         }
 
         try {
             const response = await fetch(`${API_URL}${endpoint}`, {
                 method,
-                headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-                body: JSON.stringify({ friendId: Number(friendId) }) // Ensure friendId is a number
+                headers: { 
+                  'Authorization': `Bearer ${token}`, 
+                  'Content-Type': 'application/json' 
+                },
+                body: body ? JSON.stringify(body) : null
             });
             if(!response.ok) {
               const err = await response.json();
@@ -444,6 +454,9 @@
             await loadFriends();
             if (viewingUser && viewingUser.id == friendId) {
                 await loadBoards(token, friendId);
+            }
+             if (showUserHub) {
+                loadAllUsers(userSearchQuery); // Refresh user list in modal
             }
         } catch(err) {
             console.error(`Ошибка действия '${action}':`, err);
@@ -544,7 +557,7 @@
     const UserListFriendButton = ({ targetUser }) => {
         const isFriend = friends.some(f => f.id === targetUser.id);
         const isRequestReceived = friendRequests.some(r => r.id === targetUser.id);
-        const isRequestSent = sentRequests.some(s => s.id === targetUser.id);
+        const isRequestSent = sentRequests.some(id => id === targetUser.id);
 
         if (isFriend) {
             return <button onClick={() => friendAction(targetUser.id, 'remove')} className="p-2 bg-green-500/20 hover:bg-red-500/20 rounded-lg transition-all"><Icon name="userCheck" className="w-5 h-5 text-green-400" /></button>;
@@ -961,4 +974,3 @@
   </script>
 </body>
 </html>
-
