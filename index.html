@@ -12,7 +12,9 @@
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
     body { font-family: 'Inter', sans-serif; margin: 0; padding: 0; }
     .avatar-circle { border-radius: 50%; object-fit: cover; }
-    
+    .dragging { opacity: 0.5; border: 2px dashed #8b5cf6; }
+    .drag-over-column { background-color: rgba(139, 92, 246, 0.1); }
+
     /* Liquid Eye Theme */
     .liquid-eye {
         --bg-color: #000000;
@@ -29,59 +31,21 @@
         --input-bg: #222222;
     }
     
-    .liquid-eye .bg-gradient-to-br, .liquid-eye .bg-gradient-to-r {
-        background: var(--bg-color);
-    }
-    .liquid-eye body, .liquid-eye #root {
-        background-color: var(--bg-color);
-        color: var(--text-color);
-    }
-    .liquid-eye header {
-        background-color: var(--header-bg) !important;
-        border-bottom-color: var(--border-color) !important;
-    }
-    .liquid-eye .text-transparent {
-        color: var(--text-color) !important;
-    }
-    .liquid-eye .bg-clip-text {
-        -webkit-background-clip: unset !important;
-        background-clip: unset !important;
-        background: none !important;
-    }
-    .liquid-eye .border-purple-500\/30, .liquid-eye .border-blue-500\/30, .liquid-eye .border-green-500\/30, .liquid-eye .border-red-500\/30, .liquid-eye .border-orange-500\/30 {
-        border-color: var(--border-color) !important;
-    }
-    .liquid-eye .bg-gray-900\/90, .liquid-eye .bg-gray-900, .liquid-eye .bg-gray-800, .liquid-eye .bg-gray-800\/90 {
-        background-color: var(--card-bg) !important;
-    }
-    .liquid-eye .bg-gray-800\/95 {
-        background-color: var(--modal-bg) !important;
-    }
-    .liquid-eye .from-purple-500\/20, .liquid-eye .to-pink-500\/20, .liquid-eye .from-blue-500\/20, .liquid-eye .from-green-500\/20, .liquid-eye .from-red-500\/20 {
-        background: var(--card-bg) !important;
-    }
-    .liquid-eye input, .liquid-eye textarea, .liquid-eye select {
-        background-color: var(--input-bg) !important;
-        border-color: var(--border-color) !important;
-        color: var(--text-color) !important;
-    }
-    .liquid-eye .text-purple-400, .liquid-eye .text-red-400, .liquid-eye .text-blue-400, .liquid-eye .text-green-400 {
-        color: var(--primary-color) !important;
-    }
-     .liquid-eye .text-gray-300, .liquid-eye .text-gray-400 {
-        color: var(--secondary-color) !important;
-    }
-    .liquid-eye button.bg-gradient-to-r {
-       background: var(--button-bg) !important;
-       color: var(--button-text) !important;
-    }
-    .liquid-eye button.bg-gradient-to-r:hover {
-       background: var(--button-hover-bg) !important;
-    }
-    .liquid-eye .hover\:border-purple-500:hover {
-        border-color: var(--primary-color) !important;
-    }
-
+    .liquid-eye .bg-gradient-to-br, .liquid-eye .bg-gradient-to-r { background: var(--bg-color); }
+    .liquid-eye body, .liquid-eye #root { background-color: var(--bg-color); color: var(--text-color); }
+    .liquid-eye header { background-color: var(--header-bg) !important; border-bottom-color: var(--border-color) !important; }
+    .liquid-eye .text-transparent { color: var(--text-color) !important; }
+    .liquid-eye .bg-clip-text { -webkit-background-clip: unset !important; background-clip: unset !important; background: none !important; }
+    .liquid-eye .border-purple-500\/30, .liquid-eye .border-blue-500\/30, .liquid-eye .border-green-500\/30, .liquid-eye .border-red-500\/30, .liquid-eye .border-orange-500\/30 { border-color: var(--border-color) !important; }
+    .liquid-eye .bg-gray-900\/90, .liquid-eye .bg-gray-900, .liquid-eye .bg-gray-800, .liquid-eye .bg-gray-800\/90 { background-color: var(--card-bg) !important; }
+    .liquid-eye .bg-gray-800\/95 { background-color: var(--modal-bg) !important; }
+    .liquid-eye .from-purple-500\/20, .liquid-eye .to-pink-500\/20, .liquid-eye .from-blue-500\/20, .liquid-eye .from-green-500\/20, .liquid-eye .from-red-500\/20 { background: var(--card-bg) !important; }
+    .liquid-eye input, .liquid-eye textarea, .liquid-eye select { background-color: var(--input-bg) !important; border-color: var(--border-color) !important; color: var(--text-color) !important; }
+    .liquid-eye .text-purple-400, .liquid-eye .text-red-400, .liquid-eye .text-blue-400, .liquid-eye .text-green-400 { color: var(--primary-color) !important; }
+    .liquid-eye .text-gray-300, .liquid-eye .text-gray-400 { color: var(--secondary-color) !important; }
+    .liquid-eye button.bg-gradient-to-r { background: var(--button-bg) !important; color: var(--button-text) !important; }
+    .liquid-eye button.bg-gradient-to-r:hover { background: var(--button-hover-bg) !important; }
+    .liquid-eye .hover\:border-purple-500:hover { border-color: var(--primary-color) !important; }
   </style>
 </head>
 <body>
@@ -90,27 +54,27 @@
     const { useState, useEffect, useRef, Fragment } = React;
     const API_URL = 'https://gametracker-backend-production.up.railway.app';
     const REACTION_EMOJIS = ['😍', '🔥', '👍', '😮', '😂', '👎', '❤️', '🤔', '😢', '🤯', '😴', '💯', '💀', '🤨', '🥳'];
+    const GAMES_PER_COLUMN = 5;
 
     const Icon = ({ name, className = "w-5 h-5" }) => {
       const icons = {
-        search: <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>,
-        user: <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>,
-        users: <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>,
-        settings: <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 1v6m0 6v6M5.64 5.64l4.24 4.24m4.24 4.24l4.24 4.24M1 12h6m6 0h6M5.64 18.36l4.24-4.24m4.24-4.24l4.24-4.24"/></svg>,
-        logout: <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg>,
-        star: <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>,
-        trash: <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>,
-        message: <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>,
-        x: <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>,
-        loader: <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>,
-        upload: <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>,
-        globe: <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>,
-        edit: <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>,
-        tag: <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>,
-        userPlus: <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg>,
-        userCheck: <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><polyline points="17 11 19 13 23 9"/></svg>,
-        userClock: <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><circle cx="18" cy="18" r="3" /><path d="M20.5 16.5 18 18l.5 2.5"/></svg>,
-        check: <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>,
+        search: <svg className={className} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>,
+        user: <svg className={className} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>,
+        users: <svg className={className} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>,
+        settings: <svg className={className} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>,
+        logout: <svg className={className} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg>,
+        star: <svg className={className} fill="currentColor" viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>,
+        trash: <svg className={className} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>,
+        x: <svg className={className} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>,
+        loader: <svg className={className + " animate-spin"} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>,
+        upload: <svg className={className} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>,
+        globe: <svg className={className} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 1.53 0 0 1-4 10 15.3 1.53 0 0 1-4-10 15.3 1.53 0 0 1 4-10z"/></svg>,
+        edit: <svg className={className} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>,
+        tag: <svg className={className} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>,
+        userPlus: <svg className={className} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg>,
+        userCheck: <svg className={className} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><polyline points="17 11 19 13 23 9"/></svg>,
+        userClock: <svg className={className} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><circle cx="18" cy="18" r="3" /><path d="M20.5 16.5 18 18l.5 2.5"/></svg>,
+        check: <svg className={className} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>,
       };
       return icons[name] || null;
     };
@@ -155,8 +119,6 @@
       const [searchResults, setSearchResults] = useState([]);
       const [showSearch, setShowSearch] = useState(false);
       const [searching, setSearching] = useState(false);
-      const [draggedCard, setDraggedCard] = useState(null);
-      const [draggedFrom, setDraggedFrom] = useState(null);
       const [showProfile, setShowProfile] = useState(false);
       const [showUserHub, setShowUserHub] = useState(false);
       const [allUsers, setAllUsers] = useState([]);
@@ -166,14 +128,17 @@
       const [sentRequests, setSentRequests] = useState([]);
       const [selectedGame, setSelectedGame] = useState(null);
       const [viewingUser, setViewingUser] = useState(null);
-      const [friendshipStatus, setFriendshipStatus] = useState('none'); // 'none', 'friends', 'request_sent', 'request_received'
+      const [friendshipStatus, setFriendshipStatus] = useState('none');
       const [userNickname, setUserNickname] = useState('');
       const [editingNickname, setEditingNickname] = useState(false);
       const [uploadingAvatar, setUploadingAvatar] = useState(false);
       const fileInputRef = useRef(null);
       const [theme, setTheme] = useState('default');
       const [confirmingDeleteFriend, setConfirmingDeleteFriend] = useState(null);
-      
+      const [confirmingAddFriend, setConfirmingAddFriend] = useState(null);
+      const dragItem = useRef();
+      const dragOverItem = useRef();
+      const [expandedColumns, setExpandedColumns] = useState({});
       const [formData, setFormData] = useState({ username: '', email: '', password: '' });
       const [profileData, setProfileData] = useState({ username: '', bio: '', theme: 'default', currentPassword: '', newPassword: '' });
 
@@ -426,15 +391,15 @@
         const token = localStorage.getItem('token');
         let endpoint = '';
         let method = 'POST';
-        let body = { friendId: Number(friendId) }; // Ensure friendId is a number
+        let body = { friendId: Number(friendId) }; 
         switch(action) {
             case 'request': endpoint = '/api/friends/request'; break;
             case 'accept': endpoint = '/api/friends/accept'; break;
-            case 'reject': endpoint = '/api/friends/reject'; break; // Also for cancelling
+            case 'reject': endpoint = '/api/friends/reject'; break;
             case 'remove': 
                 endpoint = `/api/friends/${friendId}`; 
                 method = 'DELETE'; 
-                body = undefined; // No body for DELETE
+                body = undefined;
                 break;
             default: return;
         }
@@ -457,7 +422,7 @@
                 await loadBoards(token, friendId);
             }
              if (showUserHub) {
-                loadAllUsers(userSearchQuery); // Refresh user list in modal
+                loadAllUsers(userSearchQuery);
             }
         } catch(err) {
             console.error(`Ошибка действия '${action}':`, err);
@@ -482,18 +447,58 @@
           console.error('Ошибка обновления метки:', err);
         }
       };
-
-      const handleDragStart = (e, cardId) => {
-        e.dataTransfer.setData("cardId", cardId);
+      
+      const handleDragStart = (e, position, boardId) => {
+        dragItem.current = { position, boardId };
+        e.target.classList.add('dragging');
       };
 
-      const handleDragOver = (e) => e.preventDefault();
+      const handleDragEnter = (e, position, boardId) => {
+        dragOverItem.current = { position, boardId };
+        e.currentTarget.parentElement.parentElement.classList.add('drag-over-column');
+      };
 
-      const handleDrop = async (e, targetBoardId) => {
+      const handleDragLeave = (e) => {
+         e.currentTarget.parentElement.parentElement.classList.remove('drag-over-column');
+      }
+
+      const handleDrop = (e, targetBoardId) => {
         e.preventDefault();
-        const cardId = e.dataTransfer.getData("cardId");
-        if (!cardId) return;
-        await updateGame(cardId, { board: targetBoardId });
+        e.currentTarget.classList.remove('drag-over-column');
+        if (!dragItem.current) return;
+
+        const sourceBoardId = dragItem.current.boardId;
+        const sourcePosition = dragItem.current.position;
+        const targetPosition = dragOverItem.current?.position;
+        const targetDropBoardId = dragOverItem.current?.boardId || targetBoardId;
+        
+        const draggedItem = boards[sourceBoardId].cards[sourcePosition];
+        
+        // Don't do anything if dropping in the same spot
+        if(sourceBoardId === targetDropBoardId && sourcePosition === targetPosition) {
+            dragItem.current = null;
+            dragOverItem.current = null;
+            return;
+        }
+
+        if (sourceBoardId === targetDropBoardId) {
+          // Reordering within the same column
+          let cards = [...boards[sourceBoardId].cards];
+          const [reorderedItem] = cards.splice(sourcePosition, 1);
+          cards.splice(targetPosition, 0, reorderedItem);
+          
+          setBoards(prev => ({ ...prev, [sourceBoardId]: {...prev[sourceBoardId], cards} }));
+        } else {
+          // Moving to a different column
+          updateGame(draggedItem.id, { board: targetDropBoardId });
+        }
+
+        dragItem.current = null;
+        dragOverItem.current = null;
+      };
+      
+      const handleDragEnd = (e) => {
+        e.target.classList.remove('dragging');
       };
 
       const handleLogout = () => {
@@ -536,36 +541,36 @@
         }
       };
       
-      const FriendActionButton = ({ targetUserId }) => {
-        if (!user || user.id == targetUserId) return null;
+      const FriendActionButton = ({ targetUser }) => {
+        if (!user || user.id === targetUser.id) return null;
         if (friendshipStatus === 'friends') {
-            return <button onClick={() => setConfirmingDeleteFriend({id: viewingUser.id, username: viewingUser.username})} className="flex items-center gap-1 p-2 bg-green-500/20 hover:bg-red-500/20 rounded-lg border border-green-500/30 hover:border-red-500/30 transition-all"><Icon name="userCheck" className="w-4 h-4 md:w-5 md:h-5 text-green-400" /></button>;
+            return <button onClick={() => setConfirmingDeleteFriend(targetUser)} className="flex items-center gap-1 p-2 bg-green-500/20 hover:bg-red-500/20 rounded-lg border border-green-500/30 hover:border-red-500/30 transition-all"><Icon name="userCheck" className="w-4 h-4 md:w-5 md:h-5 text-green-400" /></button>;
         }
         if (friendshipStatus === 'request_sent') {
-            return <button onClick={() => friendAction(targetUserId, 'reject')} className="flex items-center gap-1 p-2 bg-yellow-500/20 rounded-lg border border-yellow-500/30"><Icon name="userClock" className="w-4 h-4 md:w-5 md:h-5 text-yellow-400" /></button>;
+            return <button onClick={() => friendAction(targetUser.id, 'reject')} className="flex items-center gap-1 p-2 bg-yellow-500/20 rounded-lg border border-yellow-500/30"><Icon name="userClock" className="w-4 h-4 md:w-5 md:h-5 text-yellow-400" /></button>;
         }
         if (friendshipStatus === 'request_received') {
             return (
                 <div className="flex gap-2">
-                    <button onClick={() => friendAction(targetUserId, 'accept')} className="flex items-center gap-1 p-2 bg-green-500/20 hover:bg-green-500/30 rounded-lg border border-green-500/30"><Icon name="check" className="w-4 h-4 md:w-5 md:h-5 text-green-400" /></button>
-                    <button onClick={() => friendAction(targetUserId, 'reject')} className="flex items-center gap-1 p-2 bg-red-500/20 hover:bg-red-500/30 rounded-lg border border-red-500/30"><Icon name="x" className="w-4 h-4 md:w-5 md:h-5 text-red-400" /></button>
+                    <button onClick={() => setConfirmingAddFriend(targetUser)} className="flex items-center gap-1 p-2 bg-green-500/20 hover:bg-green-500/30 rounded-lg border border-green-500/30"><Icon name="check" className="w-4 h-4 md:w-5 md:h-5 text-green-400" /></button>
+                    <button onClick={() => friendAction(targetUser.id, 'reject')} className="flex items-center gap-1 p-2 bg-red-500/20 hover:bg-red-500/30 rounded-lg border border-red-500/30"><Icon name="x" className="w-4 h-4 md:w-5 md:h-5 text-red-400" /></button>
                 </div>
             );
         }
-        return <button onClick={() => friendAction(targetUserId, 'request')} className="flex items-center gap-1 p-2 bg-purple-500/20 hover:bg-purple-500/30 rounded-lg border border-purple-500/30 transition-all"><Icon name="userPlus" className="w-4 h-4 md:w-5 md:h-5 text-purple-400" /></button>;
+        return <button onClick={() => friendAction(targetUser.id, 'request')} className="flex items-center gap-1 p-2 bg-purple-500/20 hover:bg-purple-500/30 rounded-lg border border-purple-500/30 transition-all"><Icon name="userPlus" className="w-4 h-4 md:w-5 md:h-5 text-purple-400" /></button>;
     };
     
     const UserListFriendButton = ({ targetUser }) => {
         const isFriend = friends.some(f => f.id === targetUser.id);
         const isRequestReceived = friendRequests.some(r => r.id === targetUser.id);
-        const isRequestSent = sentRequests.some(id => id === targetUser.id);
+        const isRequestSent = sentRequests.some(r => r.id === targetUser.id);
 
         if (isFriend) {
-            return <button onClick={() => setConfirmingDeleteFriend({id: targetUser.id, username: targetUser.username})} className="p-2 bg-green-500/20 hover:bg-red-500/20 rounded-lg transition-all"><Icon name="userCheck" className="w-5 h-5 text-green-400" /></button>;
+            return <button onClick={() => setConfirmingDeleteFriend(targetUser)} className="p-2 bg-green-500/20 hover:bg-red-500/20 rounded-lg transition-all"><Icon name="userCheck" className="w-5 h-5 text-green-400" /></button>;
         }
         if (isRequestReceived) {
             return (<div className="flex gap-2">
-                <button onClick={() => friendAction(targetUser.id, 'accept')} className="p-2 bg-green-500/20 hover:bg-green-500/30 rounded-lg"><Icon name="check" className="w-5 h-5 text-green-400" /></button>
+                <button onClick={() => setConfirmingAddFriend(targetUser)} className="p-2 bg-green-500/20 hover:bg-green-500/30 rounded-lg"><Icon name="check" className="w-5 h-5 text-green-400" /></button>
                 <button onClick={() => friendAction(targetUser.id, 'reject')} className="p-2 bg-red-500/20 hover:bg-red-500/30 rounded-lg"><Icon name="x" className="w-5 h-5 text-red-400" /></button>
             </div>);
         }
@@ -574,6 +579,10 @@
         }
         return <button onClick={() => friendAction(targetUser.id, 'request')} className="p-2 bg-purple-500/20 hover:bg-purple-500/30 rounded-lg"><Icon name="userPlus" className="w-5 h-5 text-purple-400" /></button>;
     };
+
+      const toggleColumnExpansion = (boardId) => {
+        setExpandedColumns(prev => ({...prev, [boardId]: !prev[boardId]}));
+      };
 
       if (showAuth) {
         return (
@@ -594,7 +603,7 @@
                 <input type="password" placeholder="Пароль" value={formData.password} onChange={(e) => setFormData({ ...formData, password: e.target.value })} className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg focus:border-purple-500 focus:outline-none text-white placeholder-gray-500" />
                 {authMode === 'register' && <input type="email" placeholder="Email" value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })} className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg focus:border-purple-500 focus:outline-none text-white placeholder-gray-500" />}
                 <button onClick={handleAuth} disabled={loading} className="w-full py-3 bg-gradient-to-r from-purple-500 via-pink-500 to-blue-500 text-white font-bold rounded-lg hover:from-purple-600 hover:via-pink-600 hover:to-blue-600 transition-all transform hover:scale-105 shadow-xl disabled:opacity-50 flex items-center justify-center gap-2">
-                  {loading ? <><Icon name="loader" className="w-5 h-5 animate-spin" />Загрузка...</> : (authMode === 'login' ? '🚀 Войти' : '✨ Зарегистрироваться')}
+                  {loading ? <><Icon name="loader" className="w-5 h-5" />Загрузка...</> : (authMode === 'login' ? '🚀 Войти' : '✨ Зарегистрироваться')}
                 </button>
               </div>
             </div>
@@ -626,7 +635,7 @@
                           <div className="space-y-2 max-h-80 overflow-y-auto">
                             {searching ? (
                               <div className="flex items-center justify-center py-8">
-                                <Icon name="loader" className="w-6 h-6 animate-spin text-purple-400" />
+                                <Icon name="loader" className="w-6 h-6 text-purple-400" />
                               </div>
                             ) : searchResults.length > 0 ? (
                               searchResults.map(game => (
@@ -671,7 +680,7 @@
                           <Icon name="tag" className="w-4 h-4 md:w-5 md:h-5 text-blue-400" />
                         </button>
                       )}
-                      <FriendActionButton targetUserId={viewingUser.id} />
+                      <FriendActionButton targetUser={viewingUser} />
                       <button onClick={() => { setViewingUser(null); loadBoards(localStorage.getItem('token')); }} className="p-2 bg-gray-800 hover:bg-gray-700 rounded-lg border border-gray-700">
                         <Icon name="x" className="w-4 h-4 md:w-5 md:h-5 text-gray-400" />
                       </button>
@@ -704,7 +713,7 @@
                     <Avatar src={user?.avatar} size="xl" />
                     <input type="file" ref={fileInputRef} onChange={handleAvatarUpload} accept="image/*" className="hidden" />
                     <button onClick={() => fileInputRef.current?.click()} disabled={uploadingAvatar} className="flex items-center gap-2 px-4 py-2 bg-purple-500 hover:bg-purple-600 text-white rounded-lg transition-all disabled:opacity-50">
-                      {uploadingAvatar ? <Icon name="loader" className="w-4 h-4 animate-spin" /> : <Icon name="upload" className="w-4 h-4" />}
+                      {uploadingAvatar ? <Icon name="loader" className="w-4 h-4" /> : <Icon name="upload" className="w-4 h-4" />}
                       {uploadingAvatar ? 'Загрузка...' : 'Загрузить аватар'}
                     </button>
                     <p className="text-xs text-gray-400">Изображение будет сжато до 128x128</p>
@@ -791,7 +800,7 @@
                                 <p className="text-white font-semibold">{friend.nickname || friend.username}</p>
                                 {friend.nickname && <p className="text-xs text-gray-400">@{friend.username}</p>}
                               </div>
-                              <button onClick={() => setConfirmingDeleteFriend({id: friend.id, username: friend.nickname || friend.username})} className="p-2 bg-red-500/20 hover:bg-red-500/30 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity"><Icon name="x" className="w-5 h-5 text-red-400" /></button>
+                              <button onClick={() => setConfirmingDeleteFriend(friend)} className="p-2 bg-red-500/20 hover:bg-red-500/30 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity"><Icon name="x" className="w-5 h-5 text-red-400" /></button>
                             </div>
                           ))}
                         </div>
@@ -833,7 +842,7 @@
                         <div className="flex gap-2">
                           {[1, 2, 3, 4, 5].map(star => (
                             <button key={star} onClick={() => { updateGame(selectedGame.id, { rating: star }); setSelectedGame({ ...selectedGame, rating: star }); }} className="transition-transform hover:scale-110">
-                              <Icon name="star" className={`w-8 h-8 ${star <= (selectedGame.rating || 0) ? 'text-yellow-400 fill-yellow-400' : 'text-gray-600'}`} />
+                              <Icon name="star" className={`w-8 h-8 ${star <= (selectedGame.rating || 0) ? 'text-yellow-400' : 'text-gray-600'}`} />
                             </button>
                           ))}
                         </div>
@@ -849,7 +858,7 @@
                             <div>
                                 <p className="text-gray-400 text-sm mb-2">Рейтинг от {viewingUser.username}:</p>
                                 <div className="flex gap-1">
-                                    {[...Array(5)].map((_, i) => (<Icon key={i} name="star" className={`w-6 h-6 ${i < selectedGame.rating ? 'text-yellow-400 fill-yellow-400' : 'text-gray-600'}`} />))}
+                                    {[...Array(5)].map((_, i) => (<Icon key={i} name="star" className={`w-6 h-6 ${i < selectedGame.rating ? 'text-yellow-400' : 'text-gray-600'}`} />))}
                                 </div>
                             </div>
                         }
@@ -880,6 +889,42 @@
               </div>
             </div>
           )}
+          
+          {confirmingDeleteFriend && (
+            <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
+              <div className="bg-gray-900 rounded-2xl p-6 w-full max-w-md border border-red-500/30">
+                <h2 className="text-xl font-bold text-white mb-4">Подтверждение</h2>
+                <p className="text-gray-300 mb-6">
+                  Вы уверены, что хотите удалить <span className="font-bold text-white">{confirmingDeleteFriend.username}</span> из друзей?
+                </p>
+                <div className="flex gap-2">
+                  <button onClick={() => { friendAction(confirmingDeleteFriend.id, 'remove'); setConfirmingDeleteFriend(null); }}
+                    className="flex-1 py-2 bg-gradient-to-r from-red-500 to-orange-500 text-white font-bold rounded-lg hover:from-red-600 hover:to-orange-600">
+                    Удалить
+                  </button>
+                  <button onClick={() => setConfirmingDeleteFriend(null)} className="flex-1 py-2 bg-gray-800 text-white font-bold rounded-lg hover:bg-gray-700">Отмена</button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {confirmingAddFriend && (
+             <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
+              <div className="bg-gray-900 rounded-2xl p-6 w-full max-w-md border border-green-500/30">
+                <h2 className="text-xl font-bold text-white mb-4">Запрос в друзья</h2>
+                <p className="text-gray-300 mb-6">
+                  Принять запрос в друзья от <span className="font-bold text-white">{confirmingAddFriend.username}</span>?
+                </p>
+                <div className="flex gap-2">
+                  <button onClick={() => { friendAction(confirmingAddFriend.id, 'accept'); setConfirmingAddFriend(null); }}
+                    className="flex-1 py-2 bg-gradient-to-r from-green-500 to-emerald-500 text-white font-bold rounded-lg hover:from-green-600 hover:to-emerald-600">
+                    Принять
+                  </button>
+                  <button onClick={() => {friendAction(confirmingAddFriend.id, 'reject'); setConfirmingAddFriend(null); }} className="flex-1 py-2 bg-gray-800 text-white font-bold rounded-lg hover:bg-gray-700">Отклонить</button>
+                </div>
+              </div>
+            </div>
+          )}
 
           <div className="container mx-auto px-4 py-6">
             {viewingUser && (
@@ -896,53 +941,67 @@
             )}
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
-              {Object.values(boards).map(board => (
-                <div key={board.id} onDragOver={handleDragOver} onDrop={(e) => !viewingUser && handleDrop(e, board.id)} className={`bg-gradient-to-br ${board.color} backdrop-blur-xl rounded-xl p-4 border ${board.borderColor}`}>
-                  <div className="flex items-center justify-between mb-4">
-                    <h2 className="text-lg md:text-xl font-bold text-white flex items-center gap-2"><span className="text-xl md:text-2xl">{board.emoji}</span><span className="hidden sm:inline">{board.title}</span></h2>
-                    <span className="bg-white/10 text-white px-2 md:px-3 py-1 rounded-full text-xs md:text-sm font-bold">{board.cards.length}</span>
-                  </div>
-                  <div className="space-y-3 min-h-[400px] md:min-h-[500px]">
-                    {board.cards.map(card => (
-                      <div key={card.id} draggable={!viewingUser} onDragStart={(e) => handleDragStart(e, card.id)} className="bg-gray-800/90 rounded-lg overflow-hidden border border-gray-700 hover:border-purple-500 transition-all cursor-pointer hover:scale-105" onClick={() => setSelectedGame(card)}>
-                        <div className="relative group">
-                          {card.cover ? <img src={card.cover} alt={card.name} className="w-full h-40 md:h-48 object-cover" /> : <div className="w-full h-40 md:h-48 bg-gray-700 flex items-center justify-center text-4xl md:text-6xl">🎮</div>}
-                          {!viewingUser && (
-                            <button onClick={(e) => deleteCard(e, card.id)} className="absolute top-2 right-2 p-2 bg-red-500/90 hover:bg-red-600 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity"><Icon name="trash" className="w-4 h-4 text-white" /></button>
-                          )}
-                           {viewingUser && (
-                            <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                              <div className="flex gap-1 p-1 bg-gray-900/80 rounded-lg">
-                                {REACTION_EMOJIS.map(emoji => (
-                                  <button key={emoji} onClick={(e) => { e.stopPropagation(); addReaction(card.id, emoji); }} className="text-2xl transition-transform hover:scale-125">
-                                    {emoji}
-                                  </button>
-                                ))}
+              {Object.values(boards).map(board => {
+                 const isExpanded = !!expandedColumns[board.id];
+                 const visibleCards = isExpanded ? board.cards : board.cards.slice(0, GAMES_PER_COLUMN);
+
+                return (
+                  <div key={board.id} 
+                       onDragOver={(e) => { e.preventDefault(); e.currentTarget.classList.add('drag-over-column');}}
+                       onDragLeave={(e) => e.currentTarget.classList.remove('drag-over-column')}
+                       onDrop={(e) => !viewingUser && handleDrop(e, board.id)} 
+                       className={`bg-gradient-to-br ${board.color} backdrop-blur-xl rounded-xl p-4 border ${board.borderColor} flex flex-col transition-colors`}>
+                    <div className="flex items-center justify-between mb-4">
+                      <h2 className="text-lg md:text-xl font-bold text-white flex items-center gap-2"><span className="text-xl md:text-2xl">{board.emoji}</span><span className="hidden sm:inline">{board.title}</span></h2>
+                      <span className="bg-white/10 text-white px-2 md:px-3 py-1 rounded-full text-xs md:text-sm font-bold">{board.cards.length}</span>
+                    </div>
+                    
+                    <div className="space-y-2 flex-grow min-h-[100px]">
+                      {visibleCards.map((card, index) => (
+                        <div key={card.id} 
+                             draggable={!viewingUser}
+                             onDragStart={(e) => handleDragStart(e, index, board.id)}
+                             onDragEnter={(e) => !viewingUser && handleDragEnter(e, index, board.id)}
+                             onDragEnd={handleDragEnd}
+                             onDrop={(e) => { e.stopPropagation(); !viewingUser && handleDrop(e, board.id); }}
+                             className="bg-gray-800/80 rounded-lg border border-gray-700 hover:border-purple-500 transition-all cursor-pointer flex gap-3 p-2 group relative" 
+                             onClick={() => setSelectedGame(card)}>
+                           
+                           {card.cover ? 
+                              <img src={card.cover} alt={card.name} className="w-14 h-20 object-cover rounded-md flex-shrink-0" /> : 
+                              <div className="w-14 h-20 bg-gray-700 rounded-md flex items-center justify-center text-2xl flex-shrink-0">🎮</div>
+                           }
+                           <div className="flex flex-col justify-between flex-grow min-w-0 py-1">
+                              <div>
+                                <h3 className="text-white font-semibold text-sm truncate">{card.name}</h3>
+                                {card.rating && !viewingUser && <div className="flex gap-0.5 mt-1">
+                                    {[...Array(5)].map((_, i) => (<Icon key={i} name="star" className={`w-3 h-3 ${i < card.rating ? 'text-yellow-400' : 'text-gray-600'}`} />))}
+                                </div>}
                               </div>
-                            </div>
-                          )}
-                        </div>
-                        <div className="p-3">
-                           <h3 className="text-white font-bold text-sm md:text-base mb-2 truncate">{card.name}</h3>
-                           {card.reactions && card.reactions.length > 0 && (
-                            <div className="flex gap-1 mt-2 flex-wrap">
-                               {card.reactions.slice(0, 5).map((reaction, idx) => (
-                                <div key={idx} className="relative group/reaction">
-                                  <span className="text-lg cursor-default">{reaction.emoji}</span>
-                                  <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 hidden group-hover/reaction:block bg-black text-white text-xs rounded py-1 px-2 whitespace-nowrap z-10">
-                                    {reaction.username}
-                                  </div>
+                              {card.reactions && card.reactions.length > 0 && (
+                                <div className="flex gap-1.5 mt-1 flex-wrap items-center">
+                                  {card.reactions.slice(0, 4).map((r, i) => <span key={i} className="text-lg">{r.emoji}</span>)}
+                                  {card.reactions.length > 4 && <span className="text-xs text-gray-400 self-center">+{card.reactions.length - 4}</span>}
                                 </div>
-                              ))}
-                              {card.reactions.length > 5 && <span className="text-xs text-gray-400 self-center">+{card.reactions.length - 5}</span>}
-                            </div>
-                          )}
+                              )}
+                           </div>
+                           {!viewingUser && (
+                              <button onClick={(e) => deleteCard(e, card.id)} className="absolute top-1 right-1 p-1.5 bg-red-600/80 hover:bg-red-500 rounded-full opacity-0 group-hover:opacity-100 transition-opacity self-start flex-shrink-0 z-10">
+                                <Icon name="trash" className="w-3 h-3 text-white" />
+                              </button>
+                            )}
                         </div>
-                      </div>
-                    ))}
+                      ))}
+                    </div>
+
+                    {board.cards.length > GAMES_PER_COLUMN && (
+                        <button onClick={() => toggleColumnExpansion(board.id)} className="w-full text-center mt-3 py-1.5 text-xs font-semibold text-purple-300 bg-purple-500/10 hover:bg-purple-500/20 rounded-lg flex items-center justify-center gap-1">
+                          {isExpanded ? 'Свернуть' : `Показать еще ${board.cards.length - GAMES_PER_COLUMN}`}
+                          <Icon name={isExpanded ? 'chevronUp' : 'chevronDown'} className="w-3 h-3" />
+                        </button>
+                    )}
                   </div>
-                </div>
-              ))}
+                )})}
             </div>
              <div className="mt-6 md:mt-8 grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
               <div className="bg-gradient-to-br from-blue-500/20 to-cyan-500/20 backdrop-blur-xl rounded-xl p-4 md:p-6 border border-blue-500/30">
@@ -975,3 +1034,4 @@
   </script>
 </body>
 </html>
+
