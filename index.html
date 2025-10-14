@@ -435,7 +435,7 @@
             const response = await fetch(`${API_URL}${endpoint}`, {
                 method,
                 headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-                body: JSON.stringify({ friendId })
+                body: JSON.stringify({ friendId: Number(friendId) }) // Ensure friendId is a number
             });
             if(!response.ok) {
               const err = await response.json();
