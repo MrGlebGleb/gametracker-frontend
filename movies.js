@@ -3,6 +3,7 @@ const { useState, useEffect, useRef, Fragment, useCallback } = React;
 // --- Глобальные константы и хелперы ---
 const API_URL = 'https://gametracker-backend-production.up.railway.app';
 const REACTION_EMOJIS = ['😍', '🔥', '👍', '😮', '😂', '👎', '❤️', '🤔', '😢', '🤯'];
+const MEDIA_PER_COLUMN = 5;
 
 // --- Переиспользуемые UI-компоненты (взяты со страницы игр) ---
 
@@ -23,6 +24,8 @@ const Icon = ({ name, className = "w-5 h-5" }) => {
     userPlus: <svg className={className} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg>,
     userCheck: <svg className={className} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><polyline points="17 11 19 13 23 9"/></svg>,
     userClock: <svg className={className} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><circle cx="18" cy="18" r="3" /><path d="M20.5 16.5 18 18l.5 2.5"/></svg>,
+    chevronUp: <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M5 15l7-7 7 7" /></svg>,
+    chevronDown: <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" /></svg>,
   };
   return icons[name] || null;
 };
@@ -52,42 +55,9 @@ function StarRating({ value = 0, onChange }) {
   );
 }
 
-function MediaCard({ item, onSelect, onRemove, onDragStart, onDragEnd }) {
-  return (
-    <div
-      draggable
-      onDragStart={(e) => onDragStart(e, item)}
-      onDragEnd={onDragEnd}
-      onClick={() => onSelect(item)}
-      className="bg-gray-800/80 rounded-lg border border-gray-700 hover:border-purple-500 transition-all cursor-pointer flex gap-3 p-2 group relative"
-    >
-      <img src={item.poster || 'https://placehold.co/96x128/1f2937/ffffff?text=?'} alt={item.title} className="w-14 h-20 object-cover rounded-md flex-shrink-0" />
-      <div className="flex flex-col justify-between flex-grow min-w-0 py-1">
-        <div>
-          <h3 className="text-white font-semibold text-sm truncate">{item.title}</h3>
-          {item.rating && (
-            <div className="flex gap-0.5 mt-1">
-              {[...Array(5)].map((_, i) => (
-                <Icon key={i} name="star" className={`w-3 h-3 ${i < item.rating ? 'text-yellow-400' : 'text-gray-600'}`} />
-              ))}
-            </div>
-          )}
-        </div>
-        {item.reactions && item.reactions.length > 0 && (
-          <div className="flex gap-1.5 mt-1 flex-wrap items-center">
-            {item.reactions.slice(0, 4).map((r, i) => <span key={i} className="text-lg">{r.emoji}</span>)}
-            {item.reactions.length > 4 && <span className="text-xs text-gray-400 self-center">+{item.reactions.length - 4}</span>}
-          </div>
-        )}
-      </div>
-      <button onClick={(e) => onRemove(e, item)} className="absolute top-1 right-1 p-1.5 bg-red-600/80 hover:bg-red-500 rounded-full opacity-0 group-hover:opacity-100 transition-opacity self-start flex-shrink-0 z-10">
-        <Icon name="trash" className="w-3 h-3 text-white" />
-      </button>
-    </div>
-  );
-}
-
-function Column({ title, emoji, items, ...handlers }) {
+function Column({ title, emoji, items, columnKey, isExpanded, onToggleExpand, ...handlers }) {
+  const visibleItems = isExpanded ? items : items.slice(0, MEDIA_PER_COLUMN);
+    
   return (
     <div className="bg-gradient-to-br from-purple-500/10 to-pink-500/10 backdrop-blur-xl rounded-xl p-4 border border-purple-500/30 flex flex-col">
         <div className="flex items-center justify-between mb-4">
@@ -98,8 +68,14 @@ function Column({ title, emoji, items, ...handlers }) {
             <span className="bg-white/10 text-white px-3 py-1 rounded-full text-sm font-bold">{items.length}</span>
         </div>
         <div className="space-y-2 flex-grow min-h-[150px]">
-            {items.map(it => <MediaCard key={it.id} item={it} {...handlers} />)}
+            {visibleItems.map(it => <MediaCard key={it.id} item={it} {...handlers} />)}
         </div>
+        {items.length > MEDIA_PER_COLUMN && (
+          <button onClick={() => onToggleExpand(columnKey)} className="w-full text-center mt-3 py-1.5 text-xs font-semibold text-purple-300 bg-purple-500/10 hover:bg-purple-500/20 rounded-lg flex items-center justify-center gap-1">
+            {isExpanded ? 'Свернуть' : `Показать еще ${items.length - MEDIA_PER_COLUMN}`}
+            <Icon name={isExpanded ? 'chevronUp' : 'chevronDown'} className="w-3 h-3" />
+          </button>
+        )}
     </div>
   );
 }
@@ -178,6 +154,7 @@ function MovieApp() {
   const [showUserHub, setShowUserHub] = useState(false);
   const [friends, setFriends] = useState([]);
   const dragItem = useRef(null);
+  const [expandedColumns, setExpandedColumns] = useState({});
   const token = localStorage.getItem('token');
 
   const loadBoards = useCallback(async () => {
@@ -290,6 +267,10 @@ function MovieApp() {
     document.querySelectorAll('.drag-over-column').forEach(el => el.classList.remove('drag-over-column'));
   };
 
+  const toggleColumnExpansion = (columnKey) => {
+    setExpandedColumns(prev => ({...prev, [columnKey]: !prev[columnKey]}));
+  };
+
   const onDragOver = (e) => e.preventDefault();
   const onDragEnterColumn = (e) => e.currentTarget.classList.add('drag-over-column');
   const onDragLeaveColumn = (e) => e.currentTarget.classList.remove('drag-over-column');
@@ -353,19 +334,33 @@ function MovieApp() {
             </button>
         </div>
         
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-x-6 gap-y-8">
+        <div className="relative grid grid-cols-1 lg:grid-cols-2 gap-x-8 gap-y-8">
+            {/* Вертикальный разделитель */}
+            <div className="hidden lg:block absolute left-1/2 -ml-px top-0 h-full bg-gradient-to-b from-transparent via-purple-500/20 to-transparent w-px"></div>
+
+            {/* Секция Фильмов */}
             <div className="space-y-4">
-                <h2 className="text-3xl font-bold text-white px-2">Фильмы</h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6" onDragOver={onDragOver}>
-                    <div onDrop={(e) => onDrop(e, 'movie:wishlist')} onDragEnter={onDragEnterColumn} onDragLeave={onDragLeaveColumn}><Column title="Хочу посмотреть" emoji="🎬" items={movies.wishlist} onSelect={setSelectedMedia} onRemove={removeItem} onDragStart={onDragStart} onDragEnd={onDragEnd} /></div>
-                    <div onDrop={(e) => onDrop(e, 'movie:watched')} onDragEnter={onDragEnterColumn} onDragLeave={onDragLeaveColumn}><Column title="Посмотрел" emoji="🍿" items={movies.watched} onSelect={setSelectedMedia} onRemove={removeItem} onDragStart={onDragStart} onDragEnd={onDragEnd} /></div>
+                <h2 className="text-center text-3xl font-semibold tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-purple-300 to-pink-300 opacity-80 mb-4">Фильмы</h2>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6" onDragOver={onDragOver}>
+                    <div onDrop={(e) => onDrop(e, 'movie:wishlist')} onDragEnter={onDragEnterColumn} onDragLeave={onDragLeaveColumn}>
+                        <Column title="Хочу посмотреть" emoji="🎬" items={movies.wishlist} columnKey="movie:wishlist" isExpanded={!!expandedColumns['movie:wishlist']} onToggleExpand={toggleColumnExpansion} onSelect={setSelectedMedia} onRemove={removeItem} onDragStart={onDragStart} onDragEnd={onDragEnd} />
+                    </div>
+                    <div onDrop={(e) => onDrop(e, 'movie:watched')} onDragEnter={onDragEnterColumn} onDragLeave={onDragLeaveColumn}>
+                        <Column title="Посмотрел" emoji="🍿" items={movies.watched} columnKey="movie:watched" isExpanded={!!expandedColumns['movie:watched']} onToggleExpand={toggleColumnExpansion} onSelect={setSelectedMedia} onRemove={removeItem} onDragStart={onDragStart} onDragEnd={onDragEnd} />
+                    </div>
                 </div>
             </div>
+            
+             {/* Секция Сериалов */}
              <div className="space-y-4">
-                <h2 className="text-3xl font-bold text-white px-2">Сериалы</h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6" onDragOver={onDragOver}>
-                    <div onDrop={(e) => onDrop(e, 'tv:wishlist')} onDragEnter={onDragEnterColumn} onDragLeave={onDragLeaveColumn}><Column title="Хочу посмотреть" emoji="📺" items={tv.wishlist} onSelect={setSelectedMedia} onRemove={removeItem} onDragStart={onDragStart} onDragEnd={onDragEnd} /></div>
-                    <div onDrop={(e) => onDrop(e, 'tv:watched')} onDragEnter={onDragEnterColumn} onDragLeave={onDragLeaveColumn}><Column title="Посмотрел" emoji="✅" items={tv.watched} onSelect={setSelectedMedia} onRemove={removeItem} onDragStart={onDragStart} onDragEnd={onDragEnd} /></div>
+                <h2 className="text-center text-3xl font-semibold tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-purple-300 to-pink-300 opacity-80 mb-4">Сериалы</h2>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6" onDragOver={onDragOver}>
+                    <div onDrop={(e) => onDrop(e, 'tv:wishlist')} onDragEnter={onDragEnterColumn} onDragLeave={onDragLeaveColumn}>
+                        <Column title="Хочу посмотреть" emoji="📺" items={tv.wishlist} columnKey="tv:wishlist" isExpanded={!!expandedColumns['tv:wishlist']} onToggleExpand={toggleColumnExpansion} onSelect={setSelectedMedia} onRemove={removeItem} onDragStart={onDragStart} onDragEnd={onDragEnd} />
+                    </div>
+                    <div onDrop={(e) => onDrop(e, 'tv:watched')} onDragEnter={onDragEnterColumn} onDragLeave={onDragLeaveColumn}>
+                        <Column title="Посмотрел" emoji="✅" items={tv.watched} columnKey="tv:watched" isExpanded={!!expandedColumns['tv:watched']} onToggleExpand={toggleColumnExpansion} onSelect={setSelectedMedia} onRemove={removeItem} onDragStart={onDragStart} onDragEnd={onDragEnd} />
+                    </div>
                 </div>
             </div>
         </div>
@@ -416,4 +411,6 @@ function MovieApp() {
 }
 
 ReactDOM.createRoot(document.getElementById('root')).render(<MovieApp />);
+
+
 
