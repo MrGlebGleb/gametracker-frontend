@@ -55,11 +55,48 @@ function StarRating({ value = 0, onChange }) {
   );
 }
 
-function Column({ title, emoji, items, columnKey, isExpanded, onToggleExpand, ...handlers }) {
+function MediaCard({ item, onSelect, onRemove, onDragStart, onDragEnd, isViewingFriend }) {
+  return (
+    <div
+      draggable={!isViewingFriend}
+      onDragStart={(e) => !isViewingFriend && onDragStart(e, item)}
+      onDragEnd={onDragEnd}
+      onClick={() => onSelect(item)}
+      className="bg-gray-800/80 rounded-lg border border-gray-700 hover:border-purple-500 transition-all cursor-pointer flex gap-3 p-2 group relative"
+    >
+      <img src={item.poster || 'https://placehold.co/96x128/1f2937/ffffff?text=?'} alt={item.title} className="w-14 h-20 object-cover rounded-md flex-shrink-0" />
+      <div className="flex flex-col justify-between flex-grow min-w-0 py-1">
+        <div>
+          <h3 className="text-white font-semibold text-sm truncate">{item.title}</h3>
+          {item.rating && (
+            <div className="flex gap-0.5 mt-1">
+              {[...Array(5)].map((_, i) => (
+                <Icon key={i} name="star" className={`w-3 h-3 ${i < item.rating ? 'text-yellow-400' : 'text-gray-600'}`} />
+              ))}
+            </div>
+          )}
+        </div>
+        {item.reactions && item.reactions.length > 0 && (
+          <div className="flex gap-1.5 mt-1 flex-wrap items-center">
+            {item.reactions.slice(0, 4).map((r, i) => <span key={i} className="text-lg">{r.emoji}</span>)}
+            {item.reactions.length > 4 && <span className="text-xs text-gray-400 self-center">+{item.reactions.length - 4}</span>}
+          </div>
+        )}
+      </div>
+       {!isViewingFriend && (
+            <button onClick={(e) => onRemove(e, item)} className="absolute top-1 right-1 p-1.5 bg-red-600/80 hover:bg-red-500 rounded-full opacity-0 group-hover:opacity-100 transition-opacity self-start flex-shrink-0 z-10">
+                <Icon name="trash" className="w-3 h-3 text-white" />
+            </button>
+       )}
+    </div>
+  );
+}
+
+function Column({ title, emoji, items, columnKey, isExpanded, onToggleExpand, isViewingFriend, ...handlers }) {
   const visibleItems = isExpanded ? items : items.slice(0, MEDIA_PER_COLUMN);
     
   return (
-    <div className="bg-gradient-to-br from-purple-500/10 to-pink-500/10 backdrop-blur-xl rounded-xl p-4 border border-purple-500/30 flex flex-col">
+    <div className="bg-gradient-to-br from-purple-500/10 to-pink-500/10 backdrop-blur-xl rounded-xl p-4 border border-purple-500/30 flex flex-col h-full">
         <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-bold text-white flex items-center gap-2">
                 <span className="text-xl">{emoji}</span>
@@ -68,7 +105,7 @@ function Column({ title, emoji, items, columnKey, isExpanded, onToggleExpand, ..
             <span className="bg-white/10 text-white px-3 py-1 rounded-full text-sm font-bold">{items.length}</span>
         </div>
         <div className="space-y-2 flex-grow min-h-[150px]">
-            {visibleItems.map(it => <MediaCard key={it.id} item={it} {...handlers} />)}
+            {visibleItems.map(it => <MediaCard key={it.id} item={it} isViewingFriend={isViewingFriend} {...handlers} />)}
         </div>
         {items.length > MEDIA_PER_COLUMN && (
           <button onClick={() => onToggleExpand(columnKey)} className="w-full text-center mt-3 py-1.5 text-xs font-semibold text-purple-300 bg-purple-500/10 hover:bg-purple-500/20 rounded-lg flex items-center justify-center gap-1">
@@ -80,8 +117,9 @@ function Column({ title, emoji, items, columnKey, isExpanded, onToggleExpand, ..
   );
 }
 
-function MediaDetailsModal({ item, onClose, onUpdate, onReact }) {
+function MediaDetailsModal({ item, onClose, onUpdate, onReact, isViewingFriend, user }) {
   if (!item) return null;
+  const userReaction = item.reactions.find(r => r.user_id === user?.id);
 
   return (
     <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-[100] p-4" onClick={onClose}>
@@ -91,29 +129,29 @@ function MediaDetailsModal({ item, onClose, onUpdate, onReact }) {
           <button onClick={onClose} className="p-2 hover:bg-gray-800 rounded-lg"><Icon name="x" className="w-5 h-5 text-gray-400" /></button>
         </div>
         <div className="space-y-4">
-          <div>
-            <p className="text-gray-400 text-sm mb-2">Рейтинг:</p>
-            <StarRating value={item.rating || 0} onChange={val => onUpdate(item, { rating: val })} />
-          </div>
-          <div>
-            <label className="text-gray-400 text-sm">Отзыв:</label>
-            <textarea
-              defaultValue={item.review || ''}
-              onBlur={(e) => onUpdate(item, { review: e.target.value })}
-              className="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg focus:border-purple-500 focus:outline-none text-white mt-1"
-              rows="4"
-              placeholder="Ваши впечатления..."
-            />
-          </div>
+          {!isViewingFriend ? (
+              <Fragment>
+                  <div>
+                    <p className="text-gray-400 text-sm mb-2">Рейтинг:</p>
+                    <StarRating value={item.rating || 0} onChange={val => onUpdate(item, { rating: val })} />
+                  </div>
+                  <div>
+                    <label className="text-gray-400 text-sm">Отзыв:</label>
+                    <textarea defaultValue={item.review || ''} onBlur={(e) => onUpdate(item, { review: e.target.value })} className="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg focus:border-purple-500 focus:outline-none text-white mt-1" rows="4" placeholder="Ваши впечатления..."/>
+                  </div>
+              </Fragment>
+          ) : (
+             <Fragment>
+                {item.rating && <div><p className="text-gray-400 text-sm mb-2">Рейтинг:</p><div className="flex gap-1">{[...Array(5)].map((_, i) => (<Icon key={i} name="star" className={`w-6 h-6 ${i < item.rating ? 'text-yellow-400' : 'text-gray-600'}`} />))}</div></div>}
+                {item.review && <div><p className="text-gray-400 text-sm mb-1">Отзыв:</p><p className="text-white bg-gray-800 p-3 rounded-lg border border-gray-700">{item.review}</p></div>}
+             </Fragment>
+          )}
+
           <div>
             <p className="text-gray-400 text-sm mb-2">Ваша реакция:</p>
             <div className="flex flex-wrap gap-2">
               {REACTION_EMOJIS.map(emoji => (
-                <button
-                  key={emoji}
-                  onClick={() => onReact(item, emoji)}
-                  className="text-2xl transform hover:scale-125 transition-transform p-1 rounded-full"
-                >
+                <button key={emoji} onClick={() => onReact(item, emoji)} className={`text-2xl transform hover:scale-125 transition-transform p-1 rounded-full ${userReaction?.emoji === emoji ? 'bg-purple-500/30' : ''}`}>
                   {emoji}
                 </button>
               ))}
@@ -124,9 +162,9 @@ function MediaDetailsModal({ item, onClose, onUpdate, onReact }) {
               <p className="text-gray-400 text-sm mb-2">Все реакции:</p>
               <div className="flex flex-wrap gap-2">
                 {item.reactions.map((reaction, idx) => (
-                  <div key={idx} className="flex items-center gap-1 bg-gray-800 px-3 py-1 rounded-full">
+                  <div key={idx} className="flex items-center gap-1 bg-gray-800 px-3 py-1 rounded-full" title={reaction.username}>
+                     <Avatar src={reaction.avatar} size="sm" className="w-5 h-5" />
                     <span className="text-xl">{reaction.emoji}</span>
-                    <span className="text-xs text-gray-400">{reaction.username}</span>
                   </div>
                 ))}
               </div>
@@ -150,33 +188,32 @@ function MovieApp() {
   const [searching, setSearching] = useState(false);
   const [selectedMedia, setSelectedMedia] = useState(null);
   const [theme, setTheme] = useState('default');
-  const [showProfile, setShowProfile] = useState(false);
-  const [showUserHub, setShowUserHub] = useState(false);
-  const [friends, setFriends] = useState([]);
+  const [viewingUser, setViewingUser] = useState(null);
   const dragItem = useRef(null);
   const [expandedColumns, setExpandedColumns] = useState({});
   const token = localStorage.getItem('token');
 
-  const loadBoards = useCallback(async () => {
+  const loadBoards = useCallback(async (userId = null) => {
     if (!token) return;
     try {
-      const res = await fetch(`${API_URL}/api/user/media/boards`, { headers: { Authorization: `Bearer ${token}` } });
+      const url = userId ? `${API_URL}/api/user/${userId}/media/boards` : `${API_URL}/api/user/media/boards`;
+      const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
       const data = await res.json();
+      
+      if(userId){
+        setViewingUser(data.user);
+      } else {
+        setViewingUser(null);
+      }
+      
       if (res.ok && data.boards) {
         setBoards(data.boards);
       } else {
-        // Если доски не пришли, возможно, пользователь разлогинен
         if(res.status === 401 || res.status === 403) handleLogout();
       }
     } catch (err) {
       console.error("Ошибка загрузки досок:", err);
     }
-  }, [token]);
-  
-  const loadFriends = useCallback(async () => {
-      if(!token) return;
-      // Эта функция идентична той, что на странице игр
-      // и будет использоваться для отображения друзей
   }, [token]);
 
   useEffect(() => {
@@ -186,11 +223,10 @@ function MovieApp() {
         setUser(parsedUser);
         setTheme(parsedUser.theme || 'default');
         loadBoards();
-        loadFriends();
     } else {
         window.location.href = '/index.html'; 
     }
-  }, [token, loadBoards, loadFriends]);
+  }, [token, loadBoards]);
 
   useEffect(() => {
     document.body.className = theme;
@@ -226,7 +262,7 @@ function MovieApp() {
       method: 'PUT', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
       body: JSON.stringify(updates)
     });
-    await loadBoards();
+    await loadBoards(viewingUser?.id);
     if(selectedMedia && selectedMedia.id === item.id) {
         setSelectedMedia(prev => ({...prev, ...updates}));
     }
@@ -245,7 +281,7 @@ function MovieApp() {
       method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
       body: JSON.stringify({ emoji })
     });
-    await loadBoards();
+    await loadBoards(viewingUser?.id);
   };
 
   const handleLogout = () => {
@@ -256,6 +292,7 @@ function MovieApp() {
   };
   
   const onDragStart = (e, item) => {
+    if(viewingUser) return;
     dragItem.current = { item };
     setTimeout(() => e.target.classList.add('dragging'), 0);
   };
@@ -277,12 +314,13 @@ function MovieApp() {
   
   const onDrop = async (e, targetColumnKey) => {
     e.preventDefault();
-    if (!dragItem.current) return;
+    if (!dragItem.current || viewingUser) return;
     
     const { item } = dragItem.current;
     const [targetMedia, targetBoard] = targetColumnKey.split(':');
 
     if (item.mediaType !== targetMedia) return;
+    if (item.board === targetBoard) return;
     
     await updateItem(item, { board: targetBoard });
   };
@@ -327,39 +365,36 @@ function MovieApp() {
       </header>
       
       <main className="flex-grow container mx-auto px-4 py-6 space-y-8">
-        <div className="bg-gray-900/50 backdrop-blur-xl rounded-xl border border-purple-500/30 p-4">
-            <button onClick={() => setShowSearch(true)} className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-500/20 to-pink-500/20 hover:from-purple-500/30 hover:to-pink-500/30 rounded-lg transition-all border border-purple-500/30">
-                <Icon name="search" className="w-4 h-4 text-purple-400" />
-                <span className="text-gray-300 font-semibold text-sm md:text-base">Поиск фильмов/сериалов</span>
-            </button>
-        </div>
+        {!viewingUser && (
+            <div className="bg-gray-900/50 backdrop-blur-xl rounded-xl border border-purple-500/30 p-4">
+                <button onClick={() => setShowSearch(true)} className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-500/20 to-pink-500/20 hover:from-purple-500/30 hover:to-pink-500/30 rounded-lg transition-all border border-purple-500/30">
+                    <Icon name="search" className="w-4 h-4 text-purple-400" />
+                    <span className="text-gray-300 font-semibold text-sm md:text-base">Поиск фильмов/сериалов</span>
+                </button>
+            </div>
+        )}
         
         <div className="relative grid grid-cols-1 lg:grid-cols-2 gap-x-8 gap-y-8">
-            {/* Вертикальный разделитель */}
             <div className="hidden lg:block absolute left-1/2 -ml-px top-0 h-full bg-gradient-to-b from-transparent via-purple-500/20 to-transparent w-px"></div>
-
-            {/* Секция Фильмов */}
             <div className="space-y-4">
                 <h2 className="text-center text-3xl font-semibold tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-purple-300 to-pink-300 opacity-80 mb-4">Фильмы</h2>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-6" onDragOver={onDragOver}>
                     <div onDrop={(e) => onDrop(e, 'movie:wishlist')} onDragEnter={onDragEnterColumn} onDragLeave={onDragLeaveColumn}>
-                        <Column title="Хочу посмотреть" emoji="🎬" items={movies.wishlist} columnKey="movie:wishlist" isExpanded={!!expandedColumns['movie:wishlist']} onToggleExpand={toggleColumnExpansion} onSelect={setSelectedMedia} onRemove={removeItem} onDragStart={onDragStart} onDragEnd={onDragEnd} />
+                        <Column title="Хочу посмотреть" emoji="🎬" items={movies.wishlist} columnKey="movie:wishlist" isExpanded={!!expandedColumns['movie:wishlist']} onToggleExpand={toggleColumnExpansion} onSelect={setSelectedMedia} onRemove={removeItem} onDragStart={onDragStart} onDragEnd={onDragEnd} isViewingFriend={!!viewingUser} />
                     </div>
                     <div onDrop={(e) => onDrop(e, 'movie:watched')} onDragEnter={onDragEnterColumn} onDragLeave={onDragLeaveColumn}>
-                        <Column title="Посмотрел" emoji="🍿" items={movies.watched} columnKey="movie:watched" isExpanded={!!expandedColumns['movie:watched']} onToggleExpand={toggleColumnExpansion} onSelect={setSelectedMedia} onRemove={removeItem} onDragStart={onDragStart} onDragEnd={onDragEnd} />
+                        <Column title="Посмотрел" emoji="🍿" items={movies.watched} columnKey="movie:watched" isExpanded={!!expandedColumns['movie:watched']} onToggleExpand={toggleColumnExpansion} onSelect={setSelectedMedia} onRemove={removeItem} onDragStart={onDragStart} onDragEnd={onDragEnd} isViewingFriend={!!viewingUser} />
                     </div>
                 </div>
             </div>
-            
-             {/* Секция Сериалов */}
              <div className="space-y-4">
                 <h2 className="text-center text-3xl font-semibold tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-purple-300 to-pink-300 opacity-80 mb-4">Сериалы</h2>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-6" onDragOver={onDragOver}>
                     <div onDrop={(e) => onDrop(e, 'tv:wishlist')} onDragEnter={onDragEnterColumn} onDragLeave={onDragLeaveColumn}>
-                        <Column title="Хочу посмотреть" emoji="📺" items={tv.wishlist} columnKey="tv:wishlist" isExpanded={!!expandedColumns['tv:wishlist']} onToggleExpand={toggleColumnExpansion} onSelect={setSelectedMedia} onRemove={removeItem} onDragStart={onDragStart} onDragEnd={onDragEnd} />
+                        <Column title="Хочу посмотреть" emoji="📺" items={tv.wishlist} columnKey="tv:wishlist" isExpanded={!!expandedColumns['tv:wishlist']} onToggleExpand={toggleColumnExpansion} onSelect={setSelectedMedia} onRemove={removeItem} onDragStart={onDragStart} onDragEnd={onDragEnd} isViewingFriend={!!viewingUser} />
                     </div>
                     <div onDrop={(e) => onDrop(e, 'tv:watched')} onDragEnter={onDragEnterColumn} onDragLeave={onDragLeaveColumn}>
-                        <Column title="Посмотрел" emoji="✅" items={tv.watched} columnKey="tv:watched" isExpanded={!!expandedColumns['tv:watched']} onToggleExpand={toggleColumnExpansion} onSelect={setSelectedMedia} onRemove={removeItem} onDragStart={onDragStart} onDragEnd={onDragEnd} />
+                        <Column title="Посмотрел" emoji="✅" items={tv.watched} columnKey="tv:watched" isExpanded={!!expandedColumns['tv:watched']} onToggleExpand={toggleColumnExpansion} onSelect={setSelectedMedia} onRemove={removeItem} onDragStart={onDragStart} onDragEnd={onDragEnd} isViewingFriend={!!viewingUser} />
                     </div>
                 </div>
             </div>
@@ -405,12 +440,10 @@ function MovieApp() {
         </div>
       )}
 
-      <MediaDetailsModal item={selectedMedia} onClose={() => setSelectedMedia(null)} onUpdate={updateItem} onReact={reactToItem}/>
+      <MediaDetailsModal item={selectedMedia} onClose={() => setSelectedMedia(null)} onUpdate={updateItem} onReact={reactToItem} isViewingFriend={!!viewingUser} user={user}/>
     </div>
   );
 }
 
 ReactDOM.createRoot(document.getElementById('root')).render(<MovieApp />);
-
-
 
