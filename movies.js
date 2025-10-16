@@ -1,324 +1,391 @@
-const { useState, useEffect, Fragment, useRef } = React;
+const { useState, useEffect, useRef, Fragment, useCallback } = React;
+
+// --- Глобальные константы и хелперы ---
 const API_URL = 'https://gametracker-backend-production.up.railway.app';
-const REACTION_EMOJIS = ['😍','🔥','👍','😮','😂','👎','❤️','🤔','😢','🤯'];
+const REACTION_EMOJIS = ['😍', '🔥', '👍', '😮', '😂', '👎', '❤️', '🤔', '😢', '🤯'];
+
+// --- Переиспользуемые UI-компоненты (взяты со страницы игр) ---
+
+const Icon = ({ name, className = "w-5 h-5" }) => {
+  const icons = {
+    plus: <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" /></svg>,
+    search: <svg className={className} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>,
+    user: <svg className={className} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>,
+    users: <svg className={className} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>,
+    settings: <svg className={className} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06-.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>,
+    logout: <svg className={className} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg>,
+    star: <svg className={className} fill="currentColor" viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>,
+    trash: <svg className={className} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>,
+    x: <svg className={className} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>,
+    loader: <svg className={className + " animate-spin"} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>,
+    upload: <svg className={className} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>,
+    check: <svg className={className} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>,
+  };
+  return icons[name] || null;
+};
+
+const Avatar = ({ src, size = 'md', className = '' }) => {
+  const sizes = { sm: 'w-8 h-8', md: 'w-12 h-12', lg: 'w-20 h-20', xl: 'w-32 h-32' };
+  return src ? (
+    <img src={src} className={`${sizes[size]} avatar-circle ${className}`} alt="avatar" />
+  ) : (
+    <div className={`${sizes[size]} avatar-circle bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white font-bold ${className}`}>
+      <Icon name="user" className={size === 'sm' ? 'w-4 h-4' : 'w-6 h-6'} />
+    </div>
+  );
+};
+
+// --- Основные компоненты приложения ---
 
 function StarRating({ value = 0, onChange }) {
   return (
     <div className="flex items-center gap-1">
-      {[1,2,3,4,5].map(star => (
-        <button key={star} className={"text-xl " + (value >= star ? 'text-yellow-400' : 'text-gray-500')} onClick={() => onChange(star)}>★</button>
+      {[1, 2, 3, 4, 5].map(star => (
+        <button key={star} onClick={() => onChange(star)} className="transition-transform hover:scale-110">
+          <Icon name="star" className={`w-8 h-8 ${star <= value ? 'text-yellow-400' : 'text-gray-600'}`} />
+        </button>
       ))}
     </div>
   );
 }
 
-function MediaCard({ item, onMove, onRemove, onRate, onReview, onReact, onDragStart, onDragEnd }) {
+function MediaCard({ item, onSelect, onRemove, onDragStart, onDragEnd }) {
   return (
     <div
-      className="bg-gray-900/90 backdrop-blur rounded-xl p-3 border border-purple-500/30 flex gap-3 hover:border-purple-500/60 transition-colors"
       draggable
       onDragStart={(e) => onDragStart(e, item)}
       onDragEnd={onDragEnd}
+      onClick={() => onSelect(item)}
+      className="bg-gray-800/80 rounded-lg border border-gray-700 hover:border-purple-500 transition-all cursor-pointer flex gap-3 p-2 group relative"
     >
-      <img src={item.poster || ''} alt={item.title} className="w-24 h-32 object-cover rounded-lg" />
-      <div className="flex-1">
-        <div className="flex items-center justify-between">
-          <div className="font-semibold line-clamp-1">{item.title}</div>
-          <div className="text-xs text-gray-400">{item.mediaType === 'tv' ? 'Сериал' : 'Фильм'}</div>
+      <img src={item.poster || 'https://placehold.co/96x128/1f2937/ffffff?text=?'} alt={item.title} className="w-14 h-20 object-cover rounded-md flex-shrink-0" />
+      <div className="flex flex-col justify-between flex-grow min-w-0 py-1">
+        <div>
+          <h3 className="text-white font-semibold text-sm truncate">{item.title}</h3>
+          {item.rating && (
+            <div className="flex gap-0.5 mt-1">
+              {[...Array(5)].map((_, i) => (
+                <Icon key={i} name="star" className={`w-3 h-3 ${i < item.rating ? 'text-yellow-400' : 'text-gray-600'}`} />
+              ))}
+            </div>
+          )}
         </div>
-        <div className="mt-2"><StarRating value={item.rating || 0} onChange={val => onRate(item, val)} /></div>
-        <textarea className="mt-2 w-full bg-black/40 border border-purple-500/30 rounded-lg p-2 text-sm" rows="2" placeholder="Отзыв..." defaultValue={item.review || ''} onBlur={e => onReview(item, e.target.value)} />
-        <div className="mt-2 flex items-center gap-2">
-          <button className="px-2 py-1 bg-green-600/20 border border-green-600/40 rounded text-sm" onClick={() => onMove(item)}>
-            {item.board === 'wishlist' ? 'Перенести в «Посмотрел»' : 'Вернуть в «Хочу посмотреть»'}
-          </button>
-          <button className="px-2 py-1 bg-red-600/20 border border-red-600/40 rounded text-sm" onClick={() => onRemove(item)}>Удалить</button>
-          <div className="flex items-center gap-1 ml-auto">
-            {REACTION_EMOJIS.map(e => (
-              <button key={e} className="text-lg" onClick={() => onReact(item, e)}>{e}</button>
-            ))}
+        {item.reactions && item.reactions.length > 0 && (
+          <div className="flex gap-1.5 mt-1 flex-wrap items-center">
+            {item.reactions.slice(0, 4).map((r, i) => <span key={i} className="text-lg">{r.emoji}</span>)}
+            {item.reactions.length > 4 && <span className="text-xs text-gray-400 self-center">+{item.reactions.length - 4}</span>}
           </div>
+        )}
+      </div>
+      <button onClick={(e) => onRemove(e, item)} className="absolute top-1 right-1 p-1.5 bg-red-600/80 hover:bg-red-500 rounded-full opacity-0 group-hover:opacity-100 transition-opacity self-start flex-shrink-0 z-10">
+        <Icon name="trash" className="w-3 h-3 text-white" />
+      </button>
+    </div>
+  );
+}
+
+function Column({ title, emoji, items, columnKey, onDrop, onDragOver, onDragEnter, onDragLeave, ...handlers }) {
+  return (
+    <div
+      onDragOver={onDragOver}
+      onDragEnter={onDragEnter}
+      onDragLeave={onDragLeave}
+      onDrop={(e) => onDrop(e, columnKey)}
+      className="bg-gradient-to-br from-purple-500/10 to-pink-500/10 backdrop-blur-xl rounded-xl p-4 border border-purple-500/30 flex flex-col"
+    >
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="text-lg font-bold text-white flex items-center gap-2">
+          <span className="text-xl">{emoji}</span>
+          <span>{title}</span>
+        </h2>
+        <span className="bg-white/10 text-white px-3 py-1 rounded-full text-sm font-bold">{items.length}</span>
+      </div>
+      <div className="space-y-2 flex-grow min-h-[150px]">
+        {items.map(it => <MediaCard key={it.id} item={it} {...handlers} />)}
+      </div>
+    </div>
+  );
+}
+
+function MediaDetailsModal({ item, onClose, onUpdate, onReact }) {
+  if (!item) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-[100] p-4" onClick={onClose}>
+      <div className="bg-gray-900 rounded-2xl p-6 w-full max-w-md border border-purple-500/30 max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-xl font-bold text-white">{item.title}</h2>
+          <button onClick={onClose} className="p-2 hover:bg-gray-800 rounded-lg"><Icon name="x" className="w-5 h-5 text-gray-400" /></button>
+        </div>
+        <div className="space-y-4">
+          <div>
+            <p className="text-gray-400 text-sm mb-2">Рейтинг:</p>
+            <StarRating value={item.rating || 0} onChange={val => onUpdate(item, { rating: val })} />
+          </div>
+          <div>
+            <label className="text-gray-400 text-sm">Отзыв:</label>
+            <textarea
+              defaultValue={item.review || ''}
+              onBlur={(e) => onUpdate(item, { review: e.target.value })}
+              className="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg focus:border-purple-500 focus:outline-none text-white mt-1"
+              rows="4"
+              placeholder="Ваши впечатления..."
+            />
+          </div>
+          <div>
+            <p className="text-gray-400 text-sm mb-2">Ваша реакция:</p>
+            <div className="flex flex-wrap gap-2">
+              {REACTION_EMOJIS.map(emoji => (
+                <button
+                  key={emoji}
+                  onClick={() => onReact(item, emoji)}
+                  className="text-2xl transform hover:scale-125 transition-transform p-1 rounded-full"
+                >
+                  {emoji}
+                </button>
+              ))}
+            </div>
+          </div>
+          {item.reactions && item.reactions.length > 0 && (
+            <div>
+              <p className="text-gray-400 text-sm mb-2">Все реакции:</p>
+              <div className="flex flex-wrap gap-2">
+                {item.reactions.map((reaction, idx) => (
+                  <div key={idx} className="flex items-center gap-1 bg-gray-800 px-3 py-1 rounded-full">
+                    <span className="text-xl">{reaction.emoji}</span>
+                    <span className="text-xs text-gray-400">{reaction.username}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>
   );
 }
 
-function Column({ title, items, columnKey, isDragOver, onDragOver, onDragLeave, onDrop, ...handlers }) {
-  return (
-    <div className="flex-1 min-w-[260px]">
-      <div className="mb-2 text-sm text-gray-400">{title}</div>
-      <div
-        className={(isDragOver ? 'ring-2 ring-purple-500/60 ' : '') + 'min-h-[120px] space-y-3 bg-black/30 border border-purple-500/30 rounded-xl p-2 transition-colors'}
-        data-column={columnKey}
-        onDragOver={(e) => onDragOver(e, columnKey)}
-        onDragLeave={onDragLeave}
-        onDrop={(e) => onDrop(e, columnKey)}
-      >
-        {items.map(it => (
-          <MediaCard key={it.id} item={it} {...handlers} />
-        ))}
-      </div>
-    </div>
-  );
-}
+// --- Главный компонент приложения ---
 
-function App() {
+function MovieApp() {
+  const [user, setUser] = useState(null);
   const [boards, setBoards] = useState({ movies: { wishlist: [], watched: [] }, tv: { wishlist: [], watched: [] } });
   const [query, setQuery] = useState('');
   const [type, setType] = useState('movie');
   const [searchResults, setSearchResults] = useState([]);
   const [showSearch, setShowSearch] = useState(false);
-  const [dragging, setDragging] = useState(null); // { id, mediaType, board }
-  const [dragOverKey, setDragOverKey] = useState(null);
+  const [searching, setSearching] = useState(false);
+  const [selectedMedia, setSelectedMedia] = useState(null);
+  const [theme, setTheme] = useState('default');
+  const dragItem = useRef(null);
   const token = localStorage.getItem('token');
 
-  async function loadBoards() {
-    const res = await fetch(`${API_URL}/api/user/media/boards`, { headers: { Authorization: `Bearer ${token}` } });
-    const data = await res.json();
-    setBoards(data.boards);
-  }
+  const loadBoards = useCallback(async () => {
+    if (!token) return;
+    try {
+      const res = await fetch(`${API_URL}/api/user/media/boards`, { headers: { Authorization: `Bearer ${token}` } });
+      const data = await res.json();
+      if (data.boards) {
+        setBoards(data.boards);
+      }
+    } catch (err) {
+      console.error("Ошибка загрузки досок:", err);
+    }
+  }, [token]);
+  
+  useEffect(() => {
+    const savedUser = localStorage.getItem('user');
+    if (token && savedUser) {
+        const parsedUser = JSON.parse(savedUser);
+        setUser(parsedUser);
+        setTheme(parsedUser.theme || 'default');
+        loadBoards();
+    } else {
+        window.location.href = '/index.html'; // Если не авторизован, перенаправляем на главную
+    }
+  }, [token, loadBoards]);
 
-  async function search() {
-    if (query.length < 2) { setSearchResults([]); return; }
-    const res = await fetch(`${API_URL}/api/media/search?q=${encodeURIComponent(query)}&type=${type}`, { headers: { Authorization: `Bearer ${token}` } });
-    const data = await res.json();
-    setSearchResults(data.items || []);
-  }
+  useEffect(() => {
+    document.body.className = theme;
+  }, [theme]);
 
-  async function addItem(item, board = 'wishlist') {
+  const handleSearch = async (q) => {
+    setQuery(q);
+    if (q.length < 2) { setSearchResults([]); return; }
+    setSearching(true);
+    try {
+      const res = await fetch(`${API_URL}/api/media/search?q=${encodeURIComponent(q)}&type=${type}`, { headers: { Authorization: `Bearer ${token}` } });
+      const data = await res.json();
+      setSearchResults(data.items || []);
+    } catch (err) {
+      console.error("Ошибка поиска:", err);
+    } finally {
+      setSearching(false);
+    }
+  };
+
+  const addItem = async (item, board = 'wishlist') => {
     await fetch(`${API_URL}/api/user/media`, {
       method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
       body: JSON.stringify({ item, board })
     });
     await loadBoards();
-  }
+    setShowSearch(false);
+    setQuery('');
+  };
 
-  async function onMove(item) {
-    const to = item.board === 'wishlist' ? 'watched' : 'wishlist';
-    await fetch(`${API_URL}/api/user/media/${item.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify({ board: to }) });
-    await loadBoards();
-  }
-  async function onRemove(item) {
-    await fetch(`${API_URL}/api/user/media/${item.id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } });
-    await loadBoards();
-  }
-  async function onRate(item, val) {
-    await fetch(`${API_URL}/api/user/media/${item.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify({ rating: val }) });
-    await loadBoards();
-  }
-  async function onReview(item, text) {
-    await fetch(`${API_URL}/api/user/media/${item.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify({ review: text }) });
-  }
-  async function onReact(item, emoji) {
-    await fetch(`${API_URL}/api/media/${item.id}/reactions`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify({ emoji }) });
-  }
-
-  useEffect(() => { loadBoards(); }, []);
-  useEffect(() => { const t = setTimeout(search, 300); return () => clearTimeout(t); }, [query, type]);
-
-  const movies = boards.movies || { wishlist: [], watched: [] };
-  const tv = boards.tv || { wishlist: [], watched: [] };
-
-  function onDragStart(e, item) {
-    setDragging({ id: item.id, mediaType: item.mediaType, board: item.board });
-    try { e.dataTransfer.setData('text/plain', JSON.stringify({ id: item.id })); } catch {}
-    e.dataTransfer.effectAllowed = 'move';
-  }
-
-  function onDragEnd() {
-    setDragging(null);
-    setDragOverKey(null);
-  }
-
-  function onDragOver(e, columnKey) {
-    if (!dragging) return;
-    e.preventDefault();
-    setDragOverKey(columnKey);
-  }
-
-  function onDragLeave() {
-    setDragOverKey(null);
-  }
-
-  async function onDrop(e, columnKey) {
-    e.preventDefault();
-    setDragOverKey(null);
-    if (!dragging) return;
-    // columnKey format: `${mediaType}:${board}`
-    const [targetMedia, targetBoard] = columnKey.split(':');
-    if (dragging.mediaType !== targetMedia) {
-      // For now, restrict cross-type moves
-      return;
-    }
-    if (dragging.board === targetBoard) return;
-    await fetch(`${API_URL}/api/user/media/${dragging.id}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-      body: JSON.stringify({ board: targetBoard })
+  const updateItem = async (item, updates) => {
+    await fetch(`${API_URL}/api/user/media/${item.id}`, {
+      method: 'PUT', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify(updates)
     });
     await loadBoards();
-  }
+    if(selectedMedia && selectedMedia.id === item.id) {
+        setSelectedMedia(prev => ({...prev, ...updates}));
+    }
+  };
+  
+  const removeItem = async (e, item) => {
+    e.stopPropagation();
+    if (confirm(`Вы уверены, что хотите удалить "${item.title}"?`)) {
+      await fetch(`${API_URL}/api/user/media/${item.id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } });
+      await loadBoards();
+    }
+  };
 
+  const reactToItem = async (item, emoji) => {
+    await fetch(`${API_URL}/api/media/${item.id}/reactions`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ emoji })
+    });
+    await loadBoards();
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    setUser(null);
+    window.location.href = '/index.html';
+  };
+  
+  const onDragStart = (e, item) => {
+    dragItem.current = { item };
+    setTimeout(() => e.target.classList.add('dragging'), 0);
+  };
+  
+  const onDragEnd = (e) => {
+    e.target.classList.remove('dragging');
+    dragItem.current = null;
+    document.querySelectorAll('.drag-over-column').forEach(el => el.classList.remove('drag-over-column'));
+  };
+
+  const onDragOver = (e) => e.preventDefault();
+  const onDragEnterColumn = (e) => e.currentTarget.classList.add('drag-over-column');
+  const onDragLeaveColumn = (e) => e.currentTarget.classList.remove('drag-over-column');
+  
+  const onDrop = async (e, targetColumnKey) => {
+    e.preventDefault();
+    if (!dragItem.current) return;
+    
+    const { item } = dragItem.current;
+    const [targetMedia, targetBoard] = targetColumnKey.split(':');
+
+    // Запрещаем перенос между фильмами и сериалами
+    if (item.mediaType !== targetMedia) {
+        alert("Нельзя перемещать элементы между фильмами и сериалами.");
+        return;
+    }
+    
+    // Обновляем доску
+    await updateItem(item, { board: targetBoard });
+  };
+  
+  const movies = boards.movies || { wishlist: [], watched: [] };
+  const tv = boards.tv || { wishlist: [], watched: [] };
+  
   return (
-    <div className="max-w-7xl mx-auto p-4 space-y-8">
-      <div className="bg-gray-900/80 backdrop-blur-xl border border-purple-500/30 rounded-2xl p-4">
-        <div className="flex gap-2">
-          <button className="px-3 py-2 bg-gradient-to-r from-purple-500 to-pink-500 rounded-lg font-semibold" onClick={() => setShowSearch(true)}>Поиск фильмов/сериалов</button>
-        </div>
-      </div>
-
-      <div className="bg-gray-900/80 backdrop-blur-xl border border-purple-500/30 rounded-2xl p-4">
-        <div className="text-xl font-bold mb-4">Доска медиа</div>
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
-          <Column
-            title="Фильмы • Хочу посмотреть"
-            items={movies.wishlist}
-            columnKey="movie:wishlist"
-            isDragOver={dragOverKey === 'movie:wishlist'}
-            onDragOver={onDragOver}
-            onDragLeave={onDragLeave}
-            onDrop={onDrop}
-            onMove={onMove}
-            onRemove={onRemove}
-            onRate={onRate}
-            onReview={onReview}
-            onReact={onReact}
-            onDragStart={onDragStart}
-            onDragEnd={onDragEnd}
-          />
-          <Column
-            title="Фильмы • Посмотрел"
-            items={movies.watched}
-            columnKey="movie:watched"
-            isDragOver={dragOverKey === 'movie:watched'}
-            onDragOver={onDragOver}
-            onDragLeave={onDragLeave}
-            onDrop={onDrop}
-            onMove={onMove}
-            onRemove={onRemove}
-            onRate={onRate}
-            onReview={onReview}
-            onReact={onReact}
-            onDragStart={onDragStart}
-            onDragEnd={onDragEnd}
-          />
-          <Column
-            title="Сериалы • Хочу посмотреть"
-            items={tv.wishlist}
-            columnKey="tv:wishlist"
-            isDragOver={dragOverKey === 'tv:wishlist'}
-            onDragOver={onDragOver}
-            onDragLeave={onDragLeave}
-            onDrop={onDrop}
-            onMove={onMove}
-            onRemove={onRemove}
-            onRate={onRate}
-            onReview={onReview}
-            onReact={onReact}
-            onDragStart={onDragStart}
-            onDragEnd={onDragEnd}
-          />
-          <Column
-            title="Сериалы • Посмотрел"
-            items={tv.watched}
-            columnKey="tv:watched"
-            isDragOver={dragOverKey === 'tv:watched'}
-            onDragOver={onDragOver}
-            onDragLeave={onDragLeave}
-            onDrop={onDrop}
-            onMove={onMove}
-            onRemove={onRemove}
-            onRate={onRate}
-            onReview={onReview}
-            onReact={onReact}
-            onDragStart={onDragStart}
-            onDragEnd={onDragEnd}
-          />
-        </div>
-      </div>
-
-      <Stats />
-      <FriendsActivity />
-
-      {showSearch && (
-        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-[100] p-4" onClick={() => setShowSearch(false)}>
-          <div className="bg-gray-900/95 rounded-2xl p-4 w-full max-w-3xl border border-purple-500/30" onClick={e => e.stopPropagation()}>
-            <div className="flex gap-2">
-              <input className="flex-1 bg-black/40 border border-purple-500/30 rounded-lg p-2" placeholder="Поиск TMDB..." value={query} onChange={e => setQuery(e.target.value)} />
-              <select className="bg-black/40 border border-purple-500/30 rounded-lg p-2" value={type} onChange={e => setType(e.target.value)}>
-                <option value="movie">Фильмы</option>
-                <option value="tv">Сериалы</option>
-              </select>
+    <div className={`min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-blue-900 ${theme} flex flex-col`}>
+      <header className="bg-gray-900/50 backdrop-blur-xl border-b border-purple-500/30 sticky top-0 z-50 flex-shrink-0">
+        <div className="container mx-auto px-4 py-4">
+          <div className="flex items-center justify-between flex-wrap gap-4">
+            <div className="flex items-center gap-4 flex-wrap">
+              <a href="./index.html" className="text-2xl md:text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 via-pink-400 to-blue-400 active:scale-95 transition-transform cursor-pointer">🎮 GameTracker</a>
+              <a href="./movies.html" className="inline-flex items-center gap-2 active:scale-95 transition-transform">
+                <svg className="w-7 h-7" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                  <defs><linearGradient id="camGradHeaderReact" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stopColor="#a78bfa"/><stop offset="100%" stopColor="#8b5cf6"/></linearGradient></defs>
+                  <path fill="url(#camGradHeaderReact)" d="M4 7a3 3 0 0 0-3 3v4a3 3 0 0 0 3 3h10a3 3 0 0 0 3-3v-.764l3.553 2.132A1 1 0 0 0 22 14.5v-5a1 1 0 0 0-1.447-.868L17 10.764V10a3 3 0 0 0-3-3H11l-.553-1.106A2 2 0 0 0 8.658 5H6a2 2 0 0 0-1.789 1.106L4 7Zm7 9a4 4 0 1 1 0-8 4 4 0 0 1 0 8Zm0-2.5a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3Z"/>
+                </svg>
+                <span className="text-2xl md:text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 via-pink-400 to-blue-400">MovieTracker</span>
+              </a>
             </div>
-            {searchResults.length > 0 && (
-              <div className="mt-3 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 max-h-[60vh] overflow-y-auto pr-1">
-                {searchResults.map(it => (
-                  <div key={`${it.mediaType}-${it.tmdbId}`} className="bg-gray-800/80 rounded-xl p-2 border border-purple-500/30">
-                    <img src={it.poster || ''} alt={it.title} className="w-full h-48 object-cover rounded-lg" />
-                    <div className="mt-2 text-sm line-clamp-2">{it.title}</div>
-                    <button className="mt-2 w-full px-2 py-1 bg-purple-600/30 border border-purple-600/50 rounded text-sm" onClick={() => addItem(it, 'wishlist')}>Добавить</button>
-                  </div>
-                ))}
-              </div>
+            {user && (
+                <div className="flex items-center gap-2 md:gap-3">
+                    <div className="flex items-center gap-2 px-3 md:px-4 py-2 bg-gradient-to-r from-purple-500/20 to-pink-500/20 rounded-lg border border-purple-500/30">
+                        <Avatar src={user.avatar} size="sm" />
+                        <span className="text-white font-semibold text-sm md:text-base block">{user.username}</span>
+                    </div>
+                    {/* Кнопки профиля и друзей можно будет добавить по аналогии с index.html, если потребуется */}
+                    <button onClick={handleLogout} className="p-2 hover:bg-red-900/50 rounded-lg border border-red-500/30">
+                        <Icon name="logout" className="w-4 h-4 md:w-5 md:h-5 text-red-400" />
+                    </button>
+                </div>
             )}
           </div>
         </div>
+      </header>
+      
+      <main className="flex-grow container mx-auto px-4 py-6 space-y-8">
+        <div className="bg-gray-900/50 backdrop-blur-xl rounded-xl border border-purple-500/30 p-4">
+            <button onClick={() => setShowSearch(true)} className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-500/20 to-pink-500/20 hover:from-purple-500/30 hover:to-pink-500/30 rounded-lg transition-all border border-purple-500/30">
+                <Icon name="search" className="w-4 h-4 text-purple-400" />
+                <span className="text-gray-300 font-semibold text-sm md:text-base">Поиск фильмов/сериалов</span>
+            </button>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
+          <Column title="Фильмы • Хочу посмотреть" emoji="🎬" items={movies.wishlist} columnKey="movie:wishlist" onSelect={setSelectedMedia} onRemove={removeItem} onDragStart={onDragStart} onDragEnd={onDragEnd} onDrop={onDrop} onDragOver={onDragOver} onDragEnter={onDragEnterColumn} onDragLeave={onDragLeaveColumn} />
+          <Column title="Фильмы • Посмотрел" emoji="🍿" items={movies.watched} columnKey="movie:watched" onSelect={setSelectedMedia} onRemove={removeItem} onDragStart={onDragStart} onDragEnd={onDragEnd} onDrop={onDrop} onDragOver={onDragOver} onDragEnter={onDragEnterColumn} onDragLeave={onDragLeaveColumn} />
+          <Column title="Сериалы • Хочу посмотреть" emoji="📺" items={tv.wishlist} columnKey="tv:wishlist" onSelect={setSelectedMedia} onRemove={removeItem} onDragStart={onDragStart} onDragEnd={onDragEnd} onDrop={onDrop} onDragOver={onDragOver} onDragEnter={onDragEnterColumn} onDragLeave={onDragLeaveColumn} />
+          <Column title="Сериалы • Посмотрел" emoji=" binge-watch " items={tv.watched} columnKey="tv:watched" onSelect={setSelectedMedia} onRemove={removeItem} onDragStart={onDragStart} onDragEnd={onDragEnd} onDrop={onDrop} onDragOver={onDragOver} onDragEnter={onDragEnterColumn} onDragLeave={onDragLeaveColumn} />
+        </div>
+      </main>
+
+      {showSearch && (
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-[100] p-4">
+          <div className="bg-gray-800/95 backdrop-blur-xl rounded-lg shadow-2xl border border-purple-500/30 p-4 z-50 w-full max-w-3xl">
+            <div className="flex items-center gap-2 mb-3">
+              <input type="text" value={query} onChange={e => handleSearch(e.target.value)} placeholder="Поиск TMDB..." className="flex-1 px-4 py-2 bg-gray-900 border border-gray-700 rounded-lg focus:border-purple-500 focus:outline-none text-white text-sm" autoFocus />
+              <select className="px-3 py-2 bg-gray-900 border border-gray-700 rounded-lg text-sm text-white" value={type} onChange={e => {setType(e.target.value); handleSearch(query)}}>
+                <option value="movie">Фильмы</option>
+                <option value="tv">Сериалы</option>
+              </select>
+              <button onClick={() => { setShowSearch(false); setQuery(''); setSearchResults([]); }} className="p-2 hover:bg-gray-700 rounded-lg">
+                <Icon name="x" className="w-5 h-5 text-gray-400" />
+              </button>
+            </div>
+            <div className="space-y-2 max-h-[60vh] overflow-y-auto pr-2">
+              {searching ? (
+                <div className="flex items-center justify-center py-8"><Icon name="loader" className="w-6 h-6 text-purple-400" /></div>
+              ) : searchResults.length > 0 ? (
+                searchResults.map(it => (
+                  <div key={`${it.mediaType}-${it.tmdbId}`} className="flex items-center gap-3 p-2 hover:bg-gray-700 rounded-lg">
+                    <img src={it.poster || 'https://placehold.co/40x56/1f2937/ffffff?text=?'} alt={it.title} className="w-10 h-14 object-cover rounded" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-white font-semibold text-sm truncate">{it.title} ({it.year})</p>
+                      <p className="text-xs text-gray-400 truncate">{it.overview}</p>
+                    </div>
+                    <button onClick={() => addItem(it, 'wishlist')} className="p-2 bg-purple-500/80 hover:bg-purple-500 rounded-lg"><Icon name="plus" className="w-5 h-5 text-white" /></button>
+                  </div>
+                ))
+              ) : query.length >= 2 && <p className="text-gray-400 text-center py-4 text-sm">Ничего не найдено</p>}
+            </div>
+          </div>
+        </div>
       )}
+
+      <MediaDetailsModal item={selectedMedia} onClose={() => setSelectedMedia(null)} onUpdate={updateItem} onReact={reactToItem}/>
     </div>
   );
 }
 
-function Stats() {
-  const [stats, setStats] = useState({ movies: { watched: 0, wishlist: 0 }, tv: { watched: 0, wishlist: 0 } });
-  const token = localStorage.getItem('token');
-  useEffect(() => {
-    async function load() {
-      const res = await fetch(`${API_URL}/api/user/media/boards`, { headers: { Authorization: `Bearer ${token}` } });
-      const data = await res.json();
-      const movies = data.boards.movies; const tv = data.boards.tv;
-      setStats({
-        movies: { watched: movies.watched.length, wishlist: movies.wishlist.length },
-        tv: { watched: tv.watched.length, wishlist: tv.wishlist.length }
-      });
-    }
-    load();
-  }, []);
-  return (
-    <div className="bg-gray-900 border border-gray-700 rounded-lg p-4">
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
-        <div><div className="text-2xl font-bold">{stats.movies.watched}</div><div className="text-gray-400">Фильмов посмотрено</div></div>
-        <div><div className="text-2xl font-bold">{stats.movies.wishlist}</div><div className="text-gray-400">Фильмов хочу</div></div>
-        <div><div className="text-2xl font-bold">{stats.tv.watched}</div><div className="text-gray-400">Сериалов посмотрено</div></div>
-        <div><div className="text-2xl font-bold">{stats.tv.wishlist}</div><div className="text-gray-400">Сериалов хочу</div></div>
-      </div>
-    </div>
-  );
-}
-
-function FriendsActivity() {
-  const [items, setItems] = useState([]);
-  const token = localStorage.getItem('token');
-  useEffect(() => {
-    async function load() {
-      const res = await fetch(`${API_URL}/api/friends/activity?media=media`, { headers: { Authorization: `Bearer ${token}` } });
-      const data = await res.json();
-      setItems(data.activities || []);
-    }
-    load();
-  }, []);
-  return (
-    <div className="bg-gray-900 border border-gray-700 rounded-lg p-4">
-      <div className="font-semibold mb-2">Активность друзей (последние 12)</div>
-      <div className="space-y-2">
-        {items.map(a => (
-          <div key={a.id} className="text-sm text-gray-300">{a.username}: {a.action_type}</div>
-        ))}
-        {items.length === 0 && <div className="text-sm text-gray-500">Нет активности</div>}
-      </div>
-    </div>
-  );
-}
-
-ReactDOM.createRoot(document.getElementById('root')).render(<App />);
-
+ReactDOM.createRoot(document.getElementById('root')).render(<MovieApp />);
