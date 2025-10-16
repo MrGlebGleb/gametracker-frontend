@@ -4,38 +4,62 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>MovieTracker</title>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <!-- Подключаем те же стили и скрипты, что и на странице с играми -->
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css" rel="stylesheet">
   <script src="https://cdn.tailwindcss.com"></script>
   <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
   <style>
-    body { font-family: 'Inter', sans-serif; }
+    /* Копируем все стили со страницы игр для единообразия */
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+    body { font-family: 'Inter', sans-serif; margin: 0; padding: 0; }
+    .avatar-circle { border-radius: 50%; object-fit: cover; }
+    .dragging { opacity: 0.5; border: 2px dashed #8b5cf6; }
+    .drag-over-column { background-color: rgba(139, 92, 246, 0.1); }
+    .drag-over-card { transform: scale(1.05); }
+    .cropper-container { max-width: 100%; }
+    .img-container { max-height: 50vh; margin-bottom: 1rem; }
+    .img-container > img { max-width: 100%; }
+    
+    /* Тема Liquid Eye */
+    .liquid-eye {
+        --bg-color: #000000;
+        --text-color: #ffffff;
+        --primary-color: #ffffff;
+        --secondary-color: #a0a0a0;
+        --border-color: #444444;
+        --card-bg: #101010;
+        --header-bg: rgba(0, 0, 0, 0.7);
+        --modal-bg: #111111;
+        --button-bg: #ffffff;
+        --button-text: #000000;
+        --button-hover-bg: #e0e0e0;
+        --input-bg: #222222;
+    }
+    .liquid-eye .bg-gradient-to-br, .liquid-eye .bg-gradient-to-r { background: var(--bg-color); }
+    .liquid-eye body, .liquid-eye #root { background-color: var(--bg-color); color: var(--text-color); }
+    .liquid-eye header { background-color: var(--header-bg) !important; border-bottom-color: var(--border-color) !important; }
+    .liquid-eye .text-transparent { color: var(--text-color) !important; }
+    .liquid-eye .bg-clip-text { -webkit-background-clip: unset !important; background-clip: unset !important; background: none !important; }
+    .liquid-eye .border-purple-500\/30, .liquid-eye .border-blue-500\/30, .liquid-eye .border-green-500\/30, .liquid-eye .border-red-500\/30, .liquid-eye .border-orange-500\/30 { border-color: var(--border-color) !important; }
+    .liquid-eye .bg-gray-900\/90, .liquid-eye .bg-gray-900, .liquid-eye .bg-gray-800, .liquid-eye .bg-gray-800\/90 { background-color: var(--card-bg) !important; }
+    .liquid-eye .bg-gray-800\/95 { background-color: var(--modal-bg) !important; }
+    .liquid-eye .from-purple-500\/20, .liquid-eye .to-pink-500\/20, .liquid-eye .from-blue-500\/20, .liquid-eye .from-green-500\/20, .liquid-eye .from-red-500\/20 { background: var(--card-bg) !important; }
+    .liquid-eye input, .liquid-eye textarea, .liquid-eye select { background-color: var(--input-bg) !important; border-color: var(--border-color) !important; color: var(--text-color) !important; }
+    .liquid-eye .text-purple-400, .liquid-eye .text-red-400, .liquid-eye .text-blue-400, .liquid-eye .text-green-400 { color: var(--primary-color) !important; }
+    .liquid-eye .text-gray-300, .liquid-eye .text-gray-400 { color: var(--secondary-color) !important; }
+    .liquid-eye button.bg-gradient-to-r { background: var(--button-bg) !important; color: var(--button-text) !important; }
+    .liquid-eye button.bg-gradient-to-r:hover { background: var(--button-hover-bg) !important; }
+    .liquid-eye .hover\:border-purple-500:hover { border-color: var(--primary-color) !important; }
   </style>
 </head>
-<body class="bg-black text-white">
-  <div class="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-4 py-2 bg-black/70 border-b border-gray-700">
-    <div class="flex items-center gap-3">
-      <a href="/index.html" class="text-xl font-bold text-white/80 hover:text-white flex items-center gap-2"><span>🎮</span><span>GameTracker</span></a>
-      <a href="#" class="flex items-center gap-2">
-        <svg class="w-7 h-7" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-          <defs>
-            <linearGradient id="camGradHeader" x1="0" y1="0" x2="1" y2="1">
-              <stop offset="0%" stop-color="#a78bfa"/>
-              <stop offset="100%" stop-color="#8b5cf6"/>
-            </linearGradient>
-          </defs>
-          <path fill="url(#camGradHeader)" d="M4 7a3 3 0 0 0-3 3v4a3 3 0 0 0 3 3h10a3 3 0 0 0 3-3v-.764l3.553 2.132A1 1 0 0 0 22 14.5v-5a1 1 0 0 0-1.447-.868L17 10.764V10a3 3 0 0 0-3-3H11l-.553-1.106A2 2 0 0 0 8.658 5H6a2 2 0 0 0-1.789 1.106L4 7Zm7 9a4 4 0 1 1 0-8 4 4 0 0 1 0 8Zm0-2.5a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3Z"/>
-        </svg>
-        <span class="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 via-pink-400 to-blue-400">MovieTracker</span>
-      </a>
-    </div>
-    <div class="text-xs text-gray-300">Переключатель досок</div>
-  </div>
-  <div id="root" style="padding-top:56px"></div>
-
-  <script type="text/babel" src="/movies.js"></script>
+<body>
+  <!-- Структура body теперь такая же простая, как на главной странице -->
+  <div id="root"></div>
+  
+  <!-- Подключаем обновленный movies.js как babel-скрипт -->
+  <script type="text/babel" src="movies.js"></script>
 </body>
 </html>
-
-
