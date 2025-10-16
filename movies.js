@@ -269,6 +269,13 @@ function MovieApp() {
   const [sentRequests, setSentRequests] = useState([]);
   const [allUsers, setAllUsers] = useState([]);
   const [userSearchQuery, setUserSearchQuery] = useState('');
+  const [friendshipStatus, setFriendshipStatus] = useState('none');
+  const [userNickname, setUserNickname] = useState('');
+  const [confirmingAddFriend, setConfirmingAddFriend] = useState(null);
+  const [confirmingDeleteFriend, setConfirmingDeleteFriend] = useState(null);
+  const [profileData, setProfileData] = useState({ username: '', bio: '', currentPassword: '', newPassword: '' });
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const fileInputRef = useRef(null);
   const token = localStorage.getItem('token');
   
   const loadBoards = useCallback(async (userId = null) => {
@@ -278,10 +285,14 @@ function MovieApp() {
       const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
       const data = await res.json();
       
-      if(userId){
+      if (userId) {
         setViewingUser(data.user);
+        setFriendshipStatus(data.friendship || 'none');
+        setUserNickname(data.nickname || '');
       } else {
         setViewingUser(null);
+        setFriendshipStatus('none');
+        setUserNickname('');
       }
       
       if (res.ok && data.boards) {
@@ -322,6 +333,7 @@ function MovieApp() {
         const parsedUser = JSON.parse(savedUser);
         setUser(parsedUser);
         setTheme(parsedUser.theme || 'default');
+        setProfileData({ username: parsedUser.username || '', bio: parsedUser.bio || '', currentPassword: '', newPassword: '' });
         loadBoards();
         loadFriends();
     } else {
@@ -393,6 +405,69 @@ function MovieApp() {
     }
   };
 
+  const friendAction = async (friendId, action) => {
+    try {
+      if (action === 'request') {
+        await fetch(`${API_URL}/api/friends/request`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify({ friendId }) });
+      } else if (action === 'accept') {
+        await fetch(`${API_URL}/api/friends/accept`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify({ friendId }) });
+      } else if (action === 'reject') {
+        await fetch(`${API_URL}/api/friends/reject`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify({ friendId }) });
+      } else if (action === 'delete') {
+        await fetch(`${API_URL}/api/friends/${friendId}`, { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } });
+      }
+      await loadFriends();
+      if (viewingUser && viewingUser.id === friendId) await loadBoards(friendId);
+    } catch (err) {
+      console.error('Ошибка действия с другом:', err);
+    } finally {
+      setConfirmingAddFriend(null);
+      setConfirmingDeleteFriend(null);
+    }
+  };
+
+  const updateNickname = async (friendId, nickname) => {
+    try {
+      await fetch(`${API_URL}/api/friends/${friendId}/nickname`, { method: 'PUT', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify({ nickname }) });
+      await loadFriends();
+    } catch (e) { console.error('Ошибка изменения метки:', e); }
+  };
+
+  const handleFileSelect = async (e) => {
+    const file = e.target.files && e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = async () => {
+      try {
+        setUploadingAvatar(true);
+        const res = await fetch(`${API_URL}/api/profile/avatar`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify({ avatar: reader.result }) });
+        if (res.ok) {
+          const data = await res.json();
+          localStorage.setItem('user', JSON.stringify(data.user));
+          setUser(data.user);
+        }
+      } catch (err) { console.error('Ошибка загрузки аватара:', err); }
+      finally { setUploadingAvatar(false); }
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const updateProfile = async () => {
+    try {
+      const res = await fetch(`${API_URL}/api/profile`, { method: 'PUT', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify({ username: profileData.username, bio: profileData.bio, theme, currentPassword: profileData.currentPassword, newPassword: profileData.newPassword }) });
+      if (res.ok) {
+        const data = await res.json();
+        localStorage.setItem('user', JSON.stringify(data.user));
+        localStorage.setItem('token', data.token);
+        setUser(data.user);
+        setTheme(data.user.theme || 'default');
+        setShowProfile(false);
+      }
+    } catch (err) {
+      console.error('Ошибка обновления профиля:', err);
+    }
+  };
+
   const handleLogout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
@@ -456,12 +531,30 @@ function MovieApp() {
                 <div className="flex items-center gap-2 md:gap-3">
                     <div className="flex items-center gap-2 px-3 md:px-4 py-2 bg-gradient-to-r from-purple-500/20 to-pink-500/20 rounded-lg border border-purple-500/30">
                         <Avatar src={viewingUser ? viewingUser.avatar : user.avatar} size="sm" />
-                        <span className="text-white font-semibold text-sm md:text-base block">{viewingUser ? viewingUser.username : user.username}</span>
+                        <span className="text-white font-semibold text-sm md:text-base block">{viewingUser ? (userNickname || viewingUser.username) : user.username}</span>
+                        {viewingUser && userNickname && <span className="text-xs text-gray-400">@{viewingUser.username}</span>}
                     </div>
                     {viewingUser ? (
-                       <button onClick={() => { setViewingUser(null); loadBoards(); }} className="p-2 bg-gray-800 hover:bg-gray-700 rounded-lg border border-gray-700">
+                       <Fragment>
+                         {friendshipStatus === 'friends' && (
+                           <button onClick={() => setConfirmingDeleteFriend(viewingUser)} className="p-2 bg-blue-500/20 hover:bg-red-500/20 rounded-lg border border-blue-500/30 hover:border-red-500/30"><Icon name="userCheck" className="w-4 h-4 md:w-5 md:h-5 text-green-400" /></button>
+                         )}
+                         {friendshipStatus === 'request_sent' && (
+                           <button onClick={() => friendAction(viewingUser.id, 'reject')} className="p-2 bg-yellow-500/20 rounded-lg border border-yellow-500/30"><Icon name="userClock" className="w-4 h-4 md:w-5 md:h-5 text-yellow-400" /></button>
+                         )}
+                         {friendshipStatus === 'request_received' && (
+                           <div className="flex gap-2">
+                             <button onClick={() => setConfirmingAddFriend(viewingUser)} className="p-2 bg-green-500/20 hover:bg-green-500/30 rounded-lg border border-green-500/30"><Icon name="check" className="w-4 h-4 md:w-5 md:h-5 text-green-400" /></button>
+                             <button onClick={() => friendAction(viewingUser.id, 'reject')} className="p-2 bg-red-500/20 hover:bg-red-500/30 rounded-lg border border-red-500/30"><Icon name="x" className="w-4 h-4 md:w-5 md:h-5 text-red-400" /></button>
+                           </div>
+                         )}
+                         {friendshipStatus === 'none' && (
+                           <button onClick={() => friendAction(viewingUser.id, 'request')} className="p-2 bg-purple-500/20 hover:bg-purple-500/30 rounded-lg border border-purple-500/30"><Icon name="userPlus" className="w-4 h-4 md:w-5 md:h-5 text-purple-400" /></button>
+                         )}
+                         <button onClick={() => { setViewingUser(null); loadBoards(); }} className="p-2 bg-gray-800 hover:bg-gray-700 rounded-lg border border-gray-700">
                            <Icon name="x" className="w-4 h-4 md:w-5 md:h-5 text-gray-400" />
-                       </button>
+                         </button>
+                       </Fragment>
                     ) : (
                        <Fragment>
                            <button onClick={() => { setShowUserHub(true); loadAllUsers(); }} className="p-2 hover:bg-gray-800 rounded-lg border border-purple-500/30 relative">
@@ -522,6 +615,154 @@ function MovieApp() {
 
       </main>
 
+      {showProfile && (
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-[100] p-4" onClick={() => setShowProfile(false)}>
+          <div className="bg-gray-900 rounded-2xl p-6 w-full max-w-md border border-purple-500/30 max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+            <h2 className="text-2xl font-bold text-white mb-4">Настройки профиля</h2>
+            <div className="space-y-4">
+              <div className="flex flex-col items-center gap-3">
+                <Avatar src={user?.avatar} size="xl" />
+                <input type="file" ref={fileInputRef} onChange={handleFileSelect} accept="image/*" className="hidden" />
+                <button onClick={() => fileInputRef.current?.click()} disabled={uploadingAvatar} className="flex items-center gap-2 px-4 py-2 bg-purple-500 hover:bg-purple-600 text-white rounded-lg transition-all disabled:opacity-50">
+                  {uploadingAvatar ? <Icon name="loader" className="w-4 h-4" /> : <Icon name="upload" className="w-4 h-4" />} {uploadingAvatar ? 'Загрузка...' : 'Загрузить аватар'}
+                </button>
+              </div>
+              <div>
+                <label className="text-gray-400 text-sm">Имя пользователя:</label>
+                <input type="text" value={profileData.username} onChange={(e) => setProfileData({ ...profileData, username: e.target.value })} placeholder={user?.username} className="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg focus:border-purple-500 focus:outline-none text-white mt-1" />
+              </div>
+              <div>
+                <label className="text-gray-400 text-sm">О себе:</label>
+                <textarea value={profileData.bio} onChange={(e) => setProfileData({ ...profileData, bio: e.target.value })} placeholder={user?.bio || 'Расскажи о себе...'} className="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg focus:border-purple-500 focus:outline-none text-white mt-1" rows="3" />
+              </div>
+              <div>
+                <label className="text-gray-400 text-sm">Тема оформления:</label>
+                <div className="flex gap-2 mt-1">
+                  <button onClick={() => setTheme('default')} className={`flex-1 py-2 rounded-lg text-sm ${theme === 'default' ? 'bg-purple-500 text-white' : 'bg-gray-800'}`}>Стандартная</button>
+                  <button onClick={() => setTheme('liquid-eye')} className={`flex-1 py-2 rounded-lg text-sm ${theme === 'liquid-eye' ? 'bg-white text-black' : 'bg-gray-800'}`}>Liquid Eye</button>
+                </div>
+              </div>
+              <div>
+                <label className="text-gray-400 text-sm">Текущий пароль (для изменения):</label>
+                <input type="password" value={profileData.currentPassword} onChange={(e) => setProfileData({ ...profileData, currentPassword: e.target.value })} className="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg focus:border-purple-500 focus:outline-none text-white mt-1" />
+              </div>
+              <div>
+                <label className="text-gray-400 text-sm">Новый пароль:</label>
+                <input type="password" value={profileData.newPassword} onChange={(e) => setProfileData({ ...profileData, newPassword: e.target.value })} className="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg focus:border-purple-500 focus:outline-none text-white mt-1" />
+              </div>
+              <div className="flex gap-2 mt-6">
+                <button onClick={updateProfile} className="flex-1 py-2 bg-gradient-to-r from-purple-500 to-pink-500 text-white font-bold rounded-lg hover:from-purple-600 hover:to-pink-600">Сохранить</button>
+                <button onClick={() => setShowProfile(false)} className="flex-1 py-2 bg-gray-800 text-white font-bold rounded-lg hover:bg-gray-700">Отмена</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showUserHub && (
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-[100] p-4" onClick={() => setShowUserHub(false)}>
+          <div className="bg-gray-900 rounded-2xl p-6 w-full max-w-3xl border border-purple-500/30 max-h-[80vh] flex flex-col" onClick={e => e.stopPropagation()}>
+            <div className="flex justify-between items-center mb-4 flex-shrink-0">
+              <h2 className="text-2xl font-bold text-white">Сообщество</h2>
+              <button onClick={() => setShowUserHub(false)} className="p-2 hover:bg-gray-800 rounded-lg"><Icon name="x" className="w-5 h-5 text-gray-400" /></button>
+            </div>
+            <div className="overflow-y-auto">
+              {friendRequests.length > 0 && (
+                <div className="mb-6">
+                  <h3 className="text-lg font-bold text-white mb-3">Запросы в друзья ({friendRequests.length})</h3>
+                  <div className="space-y-3">
+                    {friendRequests.map(req => (
+                      <div key={req.id} className="flex items-center gap-3 p-3 bg-gray-800 rounded-lg">
+                        <Avatar src={req.avatar} size="md" />
+                        <div className="flex-1 cursor-pointer" onClick={() => { loadBoards(req.id); setShowUserHub(false); }}>
+                          <p className="text-white font-semibold">{req.username}</p>
+                        </div>
+                        <div className="flex gap-2">
+                          <button onClick={() => setConfirmingAddFriend(req)} className="p-2 bg-green-500/20 hover:bg-green-500/30 rounded-lg"><Icon name="check" className="w-5 h-5 text-green-400" /></button>
+                          <button onClick={() => friendAction(req.id, 'reject')} className="p-2 bg-red-500/20 hover:bg-red-500/30 rounded-lg"><Icon name="x" className="w-5 h-5 text-red-400" /></button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {friends.length > 0 && (
+                <div className="mb-6">
+                  <h3 className="text-lg font-bold text-white mb-3">Мои друзья ({friends.length})</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    {friends.map(friend => (
+                      <div key={friend.id} className="flex items-center gap-3 p-3 bg-gray-800 rounded-lg group">
+                        <Avatar src={friend.avatar} size="md" />
+                        <div className="flex-1 cursor-pointer" onClick={() => { loadBoards(friend.id); setShowUserHub(false); }}>
+                          <p className="text-white font-semibold">{friend.nickname || friend.username}</p>
+                          {friend.nickname && <p className="text-xs text-gray-400">@{friend.username}</p>}
+                        </div>
+                        <button onClick={() => setConfirmingDeleteFriend(friend)} className="p-2 bg-red-500/20 hover:bg-red-500/30 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity"><Icon name="x" className="w-5 h-5 text-red-400" /></button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              <div>
+                <h3 className="text-lg font-bold text-white mb-3">Все пользователи</h3>
+                <input type="text" value={userSearchQuery} onChange={(e) => { setUserSearchQuery(e.target.value); loadAllUsers(e.target.value); }} placeholder="Поиск пользователей..." className="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg focus:border-purple-500 focus:outline-none text-white mb-4" />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  {allUsers.map(u => {
+                    const isFriend = friends.some(f => f.id === u.id);
+                    const isRequestReceived = friendRequests.some(r => r.id === u.id);
+                    const isRequestSent = sentRequests.includes(u.id);
+                    return (
+                      <div key={u.id} className="flex items-center gap-3 p-3 bg-gray-800 rounded-lg">
+                        <Avatar src={u.avatar} size="md" />
+                        <div className="flex-1 cursor-pointer" onClick={() => { loadBoards(u.id); setShowUserHub(false); }}>
+                          <p className="text-white font-semibold">{u.username}</p>
+                        </div>
+                        {isFriend ? (
+                          <button onClick={() => setConfirmingDeleteFriend(u)} className="p-2 bg-green-500/20 hover:bg-red-500/20 rounded-lg transition-all"><Icon name="userCheck" className="w-5 h-5 text-green-400" /></button>
+                        ) : isRequestReceived ? (
+                          <div className="flex gap-2">
+                            <button onClick={() => setConfirmingAddFriend(u)} className="p-2 bg-green-500/20 hover:bg-green-500/30 rounded-lg"><Icon name="check" className="w-5 h-5 text-green-400" /></button>
+                            <button onClick={() => friendAction(u.id, 'reject')} className="p-2 bg-red-500/20 hover:bg-red-500/30 rounded-lg"><Icon name="x" className="w-5 h-5 text-red-400" /></button>
+                          </div>
+                        ) : isRequestSent ? (
+                          <button onClick={() => friendAction(u.id, 'reject')} className="p-2 bg-yellow-500/20 hover:bg-red-500/20 rounded-lg"><Icon name="userClock" className="w-5 h-5 text-yellow-400" /></button>
+                        ) : (
+                          <button onClick={() => friendAction(u.id, 'request')} className="p-2 bg-purple-500/20 hover:bg-purple-500/30 rounded-lg"><Icon name="userPlus" className="w-5 h-5 text-purple-400" /></button>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {confirmingAddFriend && (
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-[110] p-4" onClick={() => setConfirmingAddFriend(null)}>
+          <div className="bg-gray-900 rounded-2xl p-6 w-full max-w-md border border-purple-500/30" onClick={e => e.stopPropagation()}>
+            <h2 className="text-xl font-bold text-white mb-4">Добавить в друзья {confirmingAddFriend.username}?</h2>
+            <div className="flex gap-2">
+              <button onClick={() => friendAction(confirmingAddFriend.id, 'accept')} className="flex-1 py-2 bg-green-600 text-white rounded-lg">Добавить</button>
+              <button onClick={() => setConfirmingAddFriend(null)} className="flex-1 py-2 bg-gray-800 text-white rounded-lg">Отмена</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {confirmingDeleteFriend && (
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-[110] p-4" onClick={() => setConfirmingDeleteFriend(null)}>
+          <div className="bg-gray-900 rounded-2xl p-6 w-full max-w-md border border-purple-500/30" onClick={e => e.stopPropagation()}>
+            <h2 className="text-xl font-bold text-white mb-4">Удалить из друзей {confirmingDeleteFriend.username}?</h2>
+            <div className="flex gap-2">
+              <button onClick={() => friendAction(confirmingDeleteFriend.id, 'delete')} className="flex-1 py-2 bg-red-600 text-white rounded-lg">Удалить</button>
+              <button onClick={() => setConfirmingDeleteFriend(null)} className="flex-1 py-2 bg-gray-800 text-white rounded-lg">Отмена</button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {showSearch && (
         <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-[100] p-4">
           <div className="bg-gray-800/95 backdrop-blur-xl rounded-lg shadow-2xl border border-purple-500/30 p-4 z-50 w-full max-w-3xl">
@@ -561,4 +802,3 @@ function MovieApp() {
 }
 
 ReactDOM.createRoot(document.getElementById('root')).render(<MovieApp />);
-
