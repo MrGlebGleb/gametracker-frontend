@@ -20,6 +20,9 @@ const Icon = ({ name, className = "w-5 h-5" }) => {
     loader: <svg className={className + " animate-spin"} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>,
     upload: <svg className={className} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>,
     check: <svg className={className} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>,
+    userPlus: <svg className={className} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg>,
+    userCheck: <svg className={className} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><polyline points="17 11 19 13 23 9"/></svg>,
+    userClock: <svg className={className} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><circle cx="18" cy="18" r="3" /><path d="M20.5 16.5 18 18l.5 2.5"/></svg>,
   };
   return icons[name] || null;
 };
@@ -84,25 +87,19 @@ function MediaCard({ item, onSelect, onRemove, onDragStart, onDragEnd }) {
   );
 }
 
-function Column({ title, emoji, items, columnKey, onDrop, onDragOver, onDragEnter, onDragLeave, ...handlers }) {
+function Column({ title, emoji, items, ...handlers }) {
   return (
-    <div
-      onDragOver={onDragOver}
-      onDragEnter={onDragEnter}
-      onDragLeave={onDragLeave}
-      onDrop={(e) => onDrop(e, columnKey)}
-      className="bg-gradient-to-br from-purple-500/10 to-pink-500/10 backdrop-blur-xl rounded-xl p-4 border border-purple-500/30 flex flex-col"
-    >
-      <div className="flex items-center justify-between mb-4">
-        <h2 className="text-lg font-bold text-white flex items-center gap-2">
-          <span className="text-xl">{emoji}</span>
-          <span>{title}</span>
-        </h2>
-        <span className="bg-white/10 text-white px-3 py-1 rounded-full text-sm font-bold">{items.length}</span>
-      </div>
-      <div className="space-y-2 flex-grow min-h-[150px]">
-        {items.map(it => <MediaCard key={it.id} item={it} {...handlers} />)}
-      </div>
+    <div className="bg-gradient-to-br from-purple-500/10 to-pink-500/10 backdrop-blur-xl rounded-xl p-4 border border-purple-500/30 flex flex-col">
+        <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                <span className="text-xl">{emoji}</span>
+                <span>{title}</span>
+            </h3>
+            <span className="bg-white/10 text-white px-3 py-1 rounded-full text-sm font-bold">{items.length}</span>
+        </div>
+        <div className="space-y-2 flex-grow min-h-[150px]">
+            {items.map(it => <MediaCard key={it.id} item={it} {...handlers} />)}
+        </div>
     </div>
   );
 }
@@ -177,6 +174,9 @@ function MovieApp() {
   const [searching, setSearching] = useState(false);
   const [selectedMedia, setSelectedMedia] = useState(null);
   const [theme, setTheme] = useState('default');
+  const [showProfile, setShowProfile] = useState(false);
+  const [showUserHub, setShowUserHub] = useState(false);
+  const [friends, setFriends] = useState([]);
   const dragItem = useRef(null);
   const token = localStorage.getItem('token');
 
@@ -185,14 +185,23 @@ function MovieApp() {
     try {
       const res = await fetch(`${API_URL}/api/user/media/boards`, { headers: { Authorization: `Bearer ${token}` } });
       const data = await res.json();
-      if (data.boards) {
+      if (res.ok && data.boards) {
         setBoards(data.boards);
+      } else {
+        // Если доски не пришли, возможно, пользователь разлогинен
+        if(res.status === 401 || res.status === 403) handleLogout();
       }
     } catch (err) {
       console.error("Ошибка загрузки досок:", err);
     }
   }, [token]);
   
+  const loadFriends = useCallback(async () => {
+      if(!token) return;
+      // Эта функция идентична той, что на странице игр
+      // и будет использоваться для отображения друзей
+  }, [token]);
+
   useEffect(() => {
     const savedUser = localStorage.getItem('user');
     if (token && savedUser) {
@@ -200,10 +209,11 @@ function MovieApp() {
         setUser(parsedUser);
         setTheme(parsedUser.theme || 'default');
         loadBoards();
+        loadFriends();
     } else {
-        window.location.href = '/index.html'; // Если не авторизован, перенаправляем на главную
+        window.location.href = '/index.html'; 
     }
-  }, [token, loadBoards]);
+  }, [token, loadBoards, loadFriends]);
 
   useEffect(() => {
     document.body.className = theme;
@@ -290,13 +300,8 @@ function MovieApp() {
     const { item } = dragItem.current;
     const [targetMedia, targetBoard] = targetColumnKey.split(':');
 
-    // Запрещаем перенос между фильмами и сериалами
-    if (item.mediaType !== targetMedia) {
-        alert("Нельзя перемещать элементы между фильмами и сериалами.");
-        return;
-    }
+    if (item.mediaType !== targetMedia) return;
     
-    // Обновляем доску
     await updateItem(item, { board: targetBoard });
   };
   
@@ -324,7 +329,12 @@ function MovieApp() {
                         <Avatar src={user.avatar} size="sm" />
                         <span className="text-white font-semibold text-sm md:text-base block">{user.username}</span>
                     </div>
-                    {/* Кнопки профиля и друзей можно будет добавить по аналогии с index.html, если потребуется */}
+                    <button onClick={() => alert('Просмотр друзей и их досок с фильмами скоро появится!')} className="p-2 hover:bg-gray-800 rounded-lg border border-purple-500/30 relative">
+                        <Icon name="users" className="w-4 h-4 md:w-5 md:h-5 text-purple-400" />
+                    </button>
+                    <button onClick={() => alert('Настройки профиля скоро появятся!')} className="p-2 hover:bg-gray-800 rounded-lg border border-purple-500/30">
+                        <Icon name="settings" className="w-4 h-4 md:w-5 md:h-5 text-purple-400" />
+                    </button>
                     <button onClick={handleLogout} className="p-2 hover:bg-red-900/50 rounded-lg border border-red-500/30">
                         <Icon name="logout" className="w-4 h-4 md:w-5 md:h-5 text-red-400" />
                     </button>
@@ -342,12 +352,39 @@ function MovieApp() {
             </button>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
-          <Column title="Фильмы • Хочу посмотреть" emoji="🎬" items={movies.wishlist} columnKey="movie:wishlist" onSelect={setSelectedMedia} onRemove={removeItem} onDragStart={onDragStart} onDragEnd={onDragEnd} onDrop={onDrop} onDragOver={onDragOver} onDragEnter={onDragEnterColumn} onDragLeave={onDragLeaveColumn} />
-          <Column title="Фильмы • Посмотрел" emoji="🍿" items={movies.watched} columnKey="movie:watched" onSelect={setSelectedMedia} onRemove={removeItem} onDragStart={onDragStart} onDragEnd={onDragEnd} onDrop={onDrop} onDragOver={onDragOver} onDragEnter={onDragEnterColumn} onDragLeave={onDragLeaveColumn} />
-          <Column title="Сериалы • Хочу посмотреть" emoji="📺" items={tv.wishlist} columnKey="tv:wishlist" onSelect={setSelectedMedia} onRemove={removeItem} onDragStart={onDragStart} onDragEnd={onDragEnd} onDrop={onDrop} onDragOver={onDragOver} onDragEnter={onDragEnterColumn} onDragLeave={onDragLeaveColumn} />
-          <Column title="Сериалы • Посмотрел" emoji=" binge-watch " items={tv.watched} columnKey="tv:watched" onSelect={setSelectedMedia} onRemove={removeItem} onDragStart={onDragStart} onDragEnd={onDragEnd} onDrop={onDrop} onDragOver={onDragOver} onDragEnter={onDragEnterColumn} onDragLeave={onDragLeaveColumn} />
+        <div className="space-y-8">
+            <div>
+                <h2 className="text-3xl font-bold text-white mb-4 px-2">Фильмы</h2>
+                <div 
+                    className="grid grid-cols-1 md:grid-cols-2 gap-6"
+                    onDragOver={onDragOver}
+                    onDragEnter={onDragEnterColumn}
+                    onDragLeave={onDragLeaveColumn}
+                >
+                    <div onDrop={(e) => onDrop(e, 'movie:wishlist')}><Column title="Хочу посмотреть" emoji="🎬" items={movies.wishlist} onSelect={setSelectedMedia} onRemove={removeItem} onDragStart={onDragStart} onDragEnd={onDragEnd} /></div>
+                    <div onDrop={(e) => onDrop(e, 'movie:watched')}><Column title="Посмотрел" emoji="🍿" items={movies.watched} onSelect={setSelectedMedia} onRemove={removeItem} onDragStart={onDragStart} onDragEnd={onDragEnd} /></div>
+                </div>
+            </div>
+            <div>
+                <h2 className="text-3xl font-bold text-white mb-4 px-2">Сериалы</h2>
+                <div 
+                    className="grid grid-cols-1 md:grid-cols-2 gap-6"
+                    onDragOver={onDragOver}
+                    onDragEnter={onDragEnterColumn}
+                    onDragLeave={onDragLeaveColumn}
+                >
+                    <div onDrop={(e) => onDrop(e, 'tv:wishlist')}><Column title="Хочу посмотреть" emoji="📺" items={tv.wishlist} onSelect={setSelectedMedia} onRemove={removeItem} onDragStart={onDragStart} onDragEnd={onDragEnd} /></div>
+                    <div onDrop={(e) => onDrop(e, 'tv:watched')}><Column title="Посмотрел" emoji="✅" items={tv.watched} onSelect={setSelectedMedia} onRemove={removeItem} onDragStart={onDragStart} onDragEnd={onDragEnd} /></div>
+                </div>
+            </div>
         </div>
+        
+        {/* Компонент ленты активности друзей будет добавлен здесь */}
+        <div className="bg-gray-900/50 backdrop-blur-xl rounded-xl border border-purple-500/30 p-6">
+            <h3 className="text-xl font-bold text-white mb-4">Активность друзей</h3>
+            <p className="text-gray-400">Лента активности по фильмам и сериалам скоро появится здесь!</p>
+        </div>
+
       </main>
 
       {showSearch && (
@@ -389,3 +426,4 @@ function MovieApp() {
 }
 
 ReactDOM.createRoot(document.getElementById('root')).render(<MovieApp />);
+
