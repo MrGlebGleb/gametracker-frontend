@@ -30,13 +30,21 @@ window.GameRunner = (function() {
     // --- ИМЕНОВАННЫЕ ОБРАБОТЧИКИ СОБЫТИЙ ---
     // Они должны быть именованными, чтобы их можно было удалить при очистке
     const handleKeyDown = (e) => {
-        if (e.code === 'Space') {
-            e.preventDefault();
-            if (!gameStarted) {
-                startGame();
-            } else {
-                jump();
-            }
+        // 1. Игнорируем нажатия, если пользователь печатает в поле ввода
+        if (['INPUT', 'TEXTAREA', 'SELECT'].includes(e.target.tagName)) {
+            return;
+        }
+
+        // 2. Используем 'Enter' для старта/рестарта игры
+        if (e.code === 'Enter' && (!gameStarted || gameOver)) {
+            e.preventDefault(); // Предотвращаем стандартное действие Enter
+            startGame();
+        }
+
+        // 3. Используем 'Пробел' ТОЛЬКО для прыжка во время активной игры
+        if (e.code === 'Space' && gameStarted && !gameOver) {
+            e.preventDefault(); // Предотвращаем прокрутку страницы
+            jump();
         }
     };
     
@@ -295,7 +303,7 @@ window.GameRunner = (function() {
 
     function showStartScreen() {
         overlayTitle.textContent = 'Начать игру';
-        finalScoreDisplay.textContent = 'Нажмите Пробел или Старт';
+        finalScoreDisplay.textContent = 'Нажмите Enter или Старт';
         restartButton.textContent = 'Старт';
         highScoresDisplay.style.display = 'none';
         gameOverlay.style.display = 'flex';
