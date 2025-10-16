@@ -12,9 +12,14 @@ function StarRating({ value = 0, onChange }) {
   );
 }
 
-function MediaCard({ item, onMove, onRemove, onRate, onReview, onReact }) {
+function MediaCard({ item, onMove, onRemove, onRate, onReview, onReact, onDragStart, onDragEnd }) {
   return (
-    <div className="bg-gray-900 rounded-lg p-3 border border-gray-700 flex gap-3">
+    <div
+      className="bg-gray-900 rounded-lg p-3 border border-gray-700 flex gap-3"
+      draggable
+      onDragStart={(e) => onDragStart(e, item)}
+      onDragEnd={onDragEnd}
+    >
       <img src={item.poster || ''} alt={item.title} className="w-20 h-28 object-cover rounded" />
       <div className="flex-1">
         <div className="flex items-center justify-between">
@@ -39,26 +44,20 @@ function MediaCard({ item, onMove, onRemove, onRate, onReview, onReact }) {
   );
 }
 
-function Column({ title, items, ...handlers }) {
+function Column({ title, items, columnKey, isDragOver, onDragOver, onDragLeave, onDrop, ...handlers }) {
   return (
-    <div className="flex-1 min-w-[280px]">
+    <div className="flex-1 min-w-[260px]">
       <div className="mb-2 text-sm text-gray-400">{title}</div>
-      <div className="space-y-3">
+      <div
+        className={(isDragOver ? 'ring-2 ring-purple-500/60 ' : '') + 'min-h-[120px] space-y-3 bg-black/20 border border-gray-800 rounded p-2 transition-colors'}
+        data-column={columnKey}
+        onDragOver={(e) => onDragOver(e, columnKey)}
+        onDragLeave={onDragLeave}
+        onDrop={(e) => onDrop(e, columnKey)}
+      >
         {items.map(it => (
           <MediaCard key={it.id} item={it} {...handlers} />
         ))}
-      </div>
-    </div>
-  );
-}
-
-function Section({ heading, left, right }) {
-  return (
-    <div>
-      <div className="text-xl font-bold mb-3">{heading}</div>
-      <div className="flex gap-4">
-        {left}
-        {right}
       </div>
     </div>
   );
@@ -69,6 +68,8 @@ function App() {
   const [query, setQuery] = useState('');
   const [type, setType] = useState('movie');
   const [searchResults, setSearchResults] = useState([]);
+  const [dragging, setDragging] = useState(null); // { id, mediaType, board }
+  const [dragOverKey, setDragOverKey] = useState(null);
   const token = localStorage.getItem('token');
 
   async function loadBoards() {
@@ -118,8 +119,48 @@ function App() {
   const movies = boards.movies || { wishlist: [], watched: [] };
   const tv = boards.tv || { wishlist: [], watched: [] };
 
+  function onDragStart(e, item) {
+    setDragging({ id: item.id, mediaType: item.mediaType, board: item.board });
+    try { e.dataTransfer.setData('text/plain', JSON.stringify({ id: item.id })); } catch {}
+    e.dataTransfer.effectAllowed = 'move';
+  }
+
+  function onDragEnd() {
+    setDragging(null);
+    setDragOverKey(null);
+  }
+
+  function onDragOver(e, columnKey) {
+    if (!dragging) return;
+    e.preventDefault();
+    setDragOverKey(columnKey);
+  }
+
+  function onDragLeave() {
+    setDragOverKey(null);
+  }
+
+  async function onDrop(e, columnKey) {
+    e.preventDefault();
+    setDragOverKey(null);
+    if (!dragging) return;
+    // columnKey format: `${mediaType}:${board}`
+    const [targetMedia, targetBoard] = columnKey.split(':');
+    if (dragging.mediaType !== targetMedia) {
+      // For now, restrict cross-type moves
+      return;
+    }
+    if (dragging.board === targetBoard) return;
+    await fetch(`${API_URL}/api/user/media/${dragging.id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ board: targetBoard })
+    });
+    await loadBoards();
+  }
+
   return (
-    <div className="max-w-6xl mx-auto p-4 space-y-8">
+    <div className="max-w-7xl mx-auto p-4 space-y-8">
       <div className="bg-gray-900 border border-gray-700 rounded-lg p-4">
         <div className="flex gap-2">
           <input className="flex-1 bg-black/40 border border-gray-700 rounded p-2" placeholder="Поиск TMDB..." value={query} onChange={e => setQuery(e.target.value)} />
@@ -141,9 +182,75 @@ function App() {
         )}
       </div>
 
-      <Section heading="Фильмы" left={<Column title="Хочу посмотреть" items={movies.wishlist} onMove={onMove} onRemove={onRemove} onRate={onRate} onReview={onReview} onReact={onReact} />} right={<Column title="Посмотрел" items={movies.watched} onMove={onMove} onRemove={onRemove} onRate={onRate} onReview={onReview} onReact={onReact} />} />
-
-      <Section heading="Сериалы" left={<Column title="Хочу посмотреть" items={tv.wishlist} onMove={onMove} onRemove={onRemove} onRate={onRate} onReview={onReview} onReact={onReact} />} right={<Column title="Посмотрел" items={tv.watched} onMove={onMove} onRemove={onRemove} onRate={onRate} onReview={onReview} onReact={onReact} />} />
+      <div className="bg-gray-900 border border-gray-700 rounded-lg p-4">
+        <div className="text-xl font-bold mb-4">Доска медиа</div>
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+          <Column
+            title="Фильмы • Хочу посмотреть"
+            items={movies.wishlist}
+            columnKey="movie:wishlist"
+            isDragOver={dragOverKey === 'movie:wishlist'}
+            onDragOver={onDragOver}
+            onDragLeave={onDragLeave}
+            onDrop={onDrop}
+            onMove={onMove}
+            onRemove={onRemove}
+            onRate={onRate}
+            onReview={onReview}
+            onReact={onReact}
+            onDragStart={onDragStart}
+            onDragEnd={onDragEnd}
+          />
+          <Column
+            title="Фильмы • Посмотрел"
+            items={movies.watched}
+            columnKey="movie:watched"
+            isDragOver={dragOverKey === 'movie:watched'}
+            onDragOver={onDragOver}
+            onDragLeave={onDragLeave}
+            onDrop={onDrop}
+            onMove={onMove}
+            onRemove={onRemove}
+            onRate={onRate}
+            onReview={onReview}
+            onReact={onReact}
+            onDragStart={onDragStart}
+            onDragEnd={onDragEnd}
+          />
+          <Column
+            title="Сериалы • Хочу посмотреть"
+            items={tv.wishlist}
+            columnKey="tv:wishlist"
+            isDragOver={dragOverKey === 'tv:wishlist'}
+            onDragOver={onDragOver}
+            onDragLeave={onDragLeave}
+            onDrop={onDrop}
+            onMove={onMove}
+            onRemove={onRemove}
+            onRate={onRate}
+            onReview={onReview}
+            onReact={onReact}
+            onDragStart={onDragStart}
+            onDragEnd={onDragEnd}
+          />
+          <Column
+            title="Сериалы • Посмотрел"
+            items={tv.watched}
+            columnKey="tv:watched"
+            isDragOver={dragOverKey === 'tv:watched'}
+            onDragOver={onDragOver}
+            onDragLeave={onDragLeave}
+            onDrop={onDrop}
+            onMove={onMove}
+            onRemove={onRemove}
+            onRate={onRate}
+            onReview={onReview}
+            onReact={onReact}
+            onDragStart={onDragStart}
+            onDragEnd={onDragEnd}
+          />
+        </div>
+      </div>
 
       <Stats />
       <FriendsActivity />
@@ -203,5 +310,4 @@ function FriendsActivity() {
 }
 
 ReactDOM.createRoot(document.getElementById('root')).render(<App />);
-
 
