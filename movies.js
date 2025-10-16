@@ -284,7 +284,8 @@ function MovieApp() {
   };
   
   const onDragEnd = (e) => {
-    e.target.classList.remove('dragging');
+    const draggingElement = document.querySelector('.dragging');
+    if(draggingElement) draggingElement.classList.remove('dragging');
     dragItem.current = null;
     document.querySelectorAll('.drag-over-column').forEach(el => el.classList.remove('drag-over-column'));
   };
@@ -351,35 +352,24 @@ function MovieApp() {
                 <span className="text-gray-300 font-semibold text-sm md:text-base">Поиск фильмов/сериалов</span>
             </button>
         </div>
-
-        <div className="space-y-8">
-            <div>
-                <h2 className="text-3xl font-bold text-white mb-4 px-2">Фильмы</h2>
-                <div 
-                    className="grid grid-cols-1 md:grid-cols-2 gap-6"
-                    onDragOver={onDragOver}
-                    onDragEnter={onDragEnterColumn}
-                    onDragLeave={onDragLeaveColumn}
-                >
-                    <div onDrop={(e) => onDrop(e, 'movie:wishlist')}><Column title="Хочу посмотреть" emoji="🎬" items={movies.wishlist} onSelect={setSelectedMedia} onRemove={removeItem} onDragStart={onDragStart} onDragEnd={onDragEnd} /></div>
-                    <div onDrop={(e) => onDrop(e, 'movie:watched')}><Column title="Посмотрел" emoji="🍿" items={movies.watched} onSelect={setSelectedMedia} onRemove={removeItem} onDragStart={onDragStart} onDragEnd={onDragEnd} /></div>
+        
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-x-6 gap-y-8">
+            <div className="space-y-4">
+                <h2 className="text-3xl font-bold text-white px-2">Фильмы</h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6" onDragOver={onDragOver}>
+                    <div onDrop={(e) => onDrop(e, 'movie:wishlist')} onDragEnter={onDragEnterColumn} onDragLeave={onDragLeaveColumn}><Column title="Хочу посмотреть" emoji="🎬" items={movies.wishlist} onSelect={setSelectedMedia} onRemove={removeItem} onDragStart={onDragStart} onDragEnd={onDragEnd} /></div>
+                    <div onDrop={(e) => onDrop(e, 'movie:watched')} onDragEnter={onDragEnterColumn} onDragLeave={onDragLeaveColumn}><Column title="Посмотрел" emoji="🍿" items={movies.watched} onSelect={setSelectedMedia} onRemove={removeItem} onDragStart={onDragStart} onDragEnd={onDragEnd} /></div>
                 </div>
             </div>
-            <div>
-                <h2 className="text-3xl font-bold text-white mb-4 px-2">Сериалы</h2>
-                <div 
-                    className="grid grid-cols-1 md:grid-cols-2 gap-6"
-                    onDragOver={onDragOver}
-                    onDragEnter={onDragEnterColumn}
-                    onDragLeave={onDragLeaveColumn}
-                >
-                    <div onDrop={(e) => onDrop(e, 'tv:wishlist')}><Column title="Хочу посмотреть" emoji="📺" items={tv.wishlist} onSelect={setSelectedMedia} onRemove={removeItem} onDragStart={onDragStart} onDragEnd={onDragEnd} /></div>
-                    <div onDrop={(e) => onDrop(e, 'tv:watched')}><Column title="Посмотрел" emoji="✅" items={tv.watched} onSelect={setSelectedMedia} onRemove={removeItem} onDragStart={onDragStart} onDragEnd={onDragEnd} /></div>
+             <div className="space-y-4">
+                <h2 className="text-3xl font-bold text-white px-2">Сериалы</h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6" onDragOver={onDragOver}>
+                    <div onDrop={(e) => onDrop(e, 'tv:wishlist')} onDragEnter={onDragEnterColumn} onDragLeave={onDragLeaveColumn}><Column title="Хочу посмотреть" emoji="📺" items={tv.wishlist} onSelect={setSelectedMedia} onRemove={removeItem} onDragStart={onDragStart} onDragEnd={onDragEnd} /></div>
+                    <div onDrop={(e) => onDrop(e, 'tv:watched')} onDragEnter={onDragEnterColumn} onDragLeave={onDragLeaveColumn}><Column title="Посмотрел" emoji="✅" items={tv.watched} onSelect={setSelectedMedia} onRemove={removeItem} onDragStart={onDragStart} onDragEnd={onDragEnd} /></div>
                 </div>
             </div>
         </div>
         
-        {/* Компонент ленты активности друзей будет добавлен здесь */}
         <div className="bg-gray-900/50 backdrop-blur-xl rounded-xl border border-purple-500/30 p-6">
             <h3 className="text-xl font-bold text-white mb-4">Активность друзей</h3>
             <p className="text-gray-400">Лента активности по фильмам и сериалам скоро появится здесь!</p>
