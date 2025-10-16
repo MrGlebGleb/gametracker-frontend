@@ -318,6 +318,33 @@
         completed: { id: 'completed', title: 'Пройдено', emoji: '✅', color: 'from-green-500/20 to-emerald-500/20', borderColor: 'border-green-500/30', cards: [] },
         dropped: { id: 'dropped', title: 'Брошено', emoji: '❌', color: 'from-red-500/20 to-orange-500/20', borderColor: 'border-red-500/30', cards: [] }
       });
+      
+      // *** ИЗМЕНЕНИЕ НАЧАЛО: Логика загрузки игрового скрипта ***
+      // Этот useEffect будет следить за состоянием авторизации и просмотра профиля.
+      useEffect(() => {
+        // Мы хотим запустить игру, только если пользователь авторизован и смотрит СВОЮ доску.
+        if (!showAuth && !viewingUser) {
+          // Проверяем, не был ли скрипт уже добавлен
+          if (!document.getElementById('game-runner-script')) {
+            const script = document.createElement('script');
+            script.src = 'game.js';
+            script.id = 'game-runner-script';
+            script.async = true;
+            document.body.appendChild(script);
+          }
+        }
+    
+        // Функция очистки: будет вызвана, когда компонент размонтируется 
+        // или когда изменятся зависимости (showAuth, viewingUser)
+        return () => {
+          const gameScript = document.getElementById('game-runner-script');
+          if (gameScript) {
+            // Удаляем скрипт, если пользователь выходит из системы или переходит на страницу друга
+            document.body.removeChild(gameScript);
+          }
+        };
+      }, [showAuth, viewingUser]); // Зависимости эффекта
+      // *** ИЗМЕНЕНИЕ КОНЕЦ ***
 
       const loadBoards = useCallback(async (token, userId = null) => {
         try {
@@ -381,7 +408,9 @@
       }, []);
       
       useEffect(() => {
-        loadFriends();
+        if(user) {
+            loadFriends();
+        }
       }, [user, loadFriends])
 
       const loadAllUsers = useCallback(async (query = '') => {
@@ -419,7 +448,6 @@
             setTheme(data.user.theme || 'default');
             setShowAuth(false);
             loadBoards(data.token);
-            loadFriends(data.token);
           } else {
             setError(data.error || 'Ошибка авторизации');
           }
@@ -1592,6 +1620,6 @@
     ReactDOM.render(<GameKanban />, document.getElementById('root'));
   </script>
   
-  <script src="game.js"></script>
+  <!-- Я удалил <script src="game.js"></script> отсюда, теперь им управляет React -->
 </body>
 </html>
