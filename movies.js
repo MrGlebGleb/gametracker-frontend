@@ -5,7 +5,7 @@ const API_URL = 'https://gametracker-backend-production.up.railway.app';
 const REACTION_EMOJIS = ['😍', '🔥', '👍', '😮', '😂', '👎', '❤️', '🤔', '😢', '🤯'];
 const MEDIA_PER_COLUMN = 5;
 
-// --- Переиспользуемые UI-компоненты (взяты со страницы игр) ---
+// --- Переиспользуемые UI-компоненты (идентичны странице игр) ---
 
 const Icon = ({ name, className = "w-5 h-5" }) => {
   const icons = {
@@ -142,8 +142,9 @@ function MediaDetailsModal({ item, onClose, onUpdate, onReact, isViewingFriend, 
               </Fragment>
           ) : (
              <Fragment>
-                {item.rating && <div><p className="text-gray-400 text-sm mb-2">Рейтинг:</p><div className="flex gap-1">{[...Array(5)].map((_, i) => (<Icon key={i} name="star" className={`w-6 h-6 ${i < item.rating ? 'text-yellow-400' : 'text-gray-600'}`} />))}</div></div>}
-                {item.review && <div><p className="text-gray-400 text-sm mb-1">Отзыв:</p><p className="text-white bg-gray-800 p-3 rounded-lg border border-gray-700">{item.review}</p></div>}
+                {item.rating && <div><p className="text-gray-400 text-sm mb-2">Рейтинг от {item.owner.username}:</p><div className="flex gap-1">{[...Array(5)].map((_, i) => (<Icon key={i} name="star" className={`w-6 h-6 ${i < item.rating ? 'text-yellow-400' : 'text-gray-600'}`} />))}</div></div>}
+                {item.review && <div><p className="text-gray-400 text-sm mb-1">Отзыв от {item.owner.username}:</p><p className="text-white bg-gray-800 p-3 rounded-lg border border-gray-700">{item.review}</p></div>}
+                {!item.rating && !item.review && <p className="text-gray-400 italic">Пользователь не оставил отзыва.</p>}
              </Fragment>
           )}
 
@@ -176,6 +177,76 @@ function MediaDetailsModal({ item, onClose, onUpdate, onReact, isViewingFriend, 
   );
 }
 
+function ActivityFeed({ token }) {
+    const [activities, setActivities] = useState([]);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        const fetchActivities = async () => {
+            if (!token) return;
+            setLoading(true);
+            try {
+                const response = await fetch(`${API_URL}/api/friends/activity?media=media`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (response.ok) {
+                    const data = await response.json();
+                    setActivities(data.activities);
+                }
+            } catch (err) {
+                console.error("Failed to fetch activities", err);
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchActivities();
+        const interval = setInterval(fetchActivities, 60000);
+        return () => clearInterval(interval);
+    }, [token]);
+    
+    const boardTitles = { wishlist: 'Хочу посмотреть', watched: 'Посмотрел' };
+    const mediaTypes = { movie: 'фильм', tv: 'сериал'};
+
+    const formatActivity = (act) => {
+        const { username, action_type, details } = act;
+        const mediaName = <span className="font-bold text-purple-300">{details.title}</span>;
+        const mediaType = mediaTypes[details.mediaType] || 'медиа';
+        switch (action_type) {
+            case 'add_media':
+                return <>{username} добавил {mediaType} {mediaName} в <span className="italic">{boardTitles[details.board]}</span></>;
+            case 'complete_media':
+                return <><span className="text-green-400 font-semibold">{username}</span> посмотрел {mediaType} {mediaName}! 🎉</>;
+            case 'move_media':
+                return <>{username} вернул {mediaType} {mediaName} в <span className="italic">"{boardTitles.wishlist}"</span></>;
+             case 'remove_media':
+                return <>{username} удалил {mediaName}</>;
+            default:
+                return `${username} ${action_type}`;
+        }
+    };
+    
+    return (
+        <div className="bg-gray-900/50 backdrop-blur-xl rounded-xl border border-purple-500/30 p-6">
+            <h3 className="text-xl font-bold text-white mb-4">Активность друзей</h3>
+            {loading ? (
+                <div className="w-full flex items-center justify-center p-10"><Icon name="loader" className="w-8 h-8 text-purple-400"/></div>
+            ) : activities.length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {activities.map(act => (
+                        <div key={act.id} className="text-sm text-gray-300 p-4 bg-gray-800/80 rounded-lg border border-gray-700 hover:border-purple-500/50 transition-colors">
+                            <p>{formatActivity(act)}</p>
+                            <div className="text-xs text-gray-500 mt-2 text-right">{new Date(act.created_at).toLocaleString('ru-RU')}</div>
+                        </div>
+                    ))}
+                </div>
+            ) : (
+                <p className="text-gray-400 text-center">Пока нет активности от ваших друзей.</p>
+            )}
+        </div>
+    );
+};
+
+
 // --- Главный компонент приложения ---
 
 function MovieApp() {
@@ -189,10 +260,17 @@ function MovieApp() {
   const [selectedMedia, setSelectedMedia] = useState(null);
   const [theme, setTheme] = useState('default');
   const [viewingUser, setViewingUser] = useState(null);
+  const [showProfile, setShowProfile] = useState(false);
+  const [showUserHub, setShowUserHub] = useState(false);
   const dragItem = useRef(null);
   const [expandedColumns, setExpandedColumns] = useState({});
+  const [friends, setFriends] = useState([]);
+  const [friendRequests, setFriendRequests] = useState([]);
+  const [sentRequests, setSentRequests] = useState([]);
+  const [allUsers, setAllUsers] = useState([]);
+  const [userSearchQuery, setUserSearchQuery] = useState('');
   const token = localStorage.getItem('token');
-
+  
   const loadBoards = useCallback(async (userId = null) => {
     if (!token) return;
     try {
@@ -216,6 +294,28 @@ function MovieApp() {
     }
   }, [token]);
 
+  const loadFriends = useCallback(async () => {
+    if (!token) return;
+    try {
+      const response = await fetch(`${API_URL}/api/friends`, { headers: { 'Authorization': `Bearer ${token}` } });
+      if (response.ok) {
+        const data = await response.json();
+        setFriends(data.friends || []);
+        setFriendRequests(data.requests || []);
+        setSentRequests(data.sentRequests || []);
+      }
+    } catch (err) { console.error('Ошибка загрузки друзей:', err); }
+  }, [token]);
+  
+  const loadAllUsers = useCallback(async (query = '') => {
+      const url = query ? `${API_URL}/api/users?q=${encodeURIComponent(query)}` : `${API_URL}/api/users`;
+      const response = await fetch(url, { headers: { 'Authorization': `Bearer ${token}` } });
+      if (response.ok) {
+          const data = await response.json();
+          setAllUsers(data.users || []);
+      }
+  }, [token]);
+
   useEffect(() => {
     const savedUser = localStorage.getItem('user');
     if (token && savedUser) {
@@ -223,10 +323,11 @@ function MovieApp() {
         setUser(parsedUser);
         setTheme(parsedUser.theme || 'default');
         loadBoards();
+        loadFriends();
     } else {
         window.location.href = '/index.html'; 
     }
-  }, [token, loadBoards]);
+  }, [token, loadBoards, loadFriends]);
 
   useEffect(() => {
     document.body.className = theme;
@@ -282,6 +383,14 @@ function MovieApp() {
       body: JSON.stringify({ emoji })
     });
     await loadBoards(viewingUser?.id);
+    if (selectedMedia && selectedMedia.id === item.id) {
+        // Optimistically update reactions in modal
+        const res = await fetch(`${API_URL}/api/user/media/boards`, { headers: { Authorization: `Bearer ${token}` } });
+        const data = await res.json();
+        const allItems = [...data.boards.movies.wishlist, ...data.boards.movies.watched, ...data.boards.tv.wishlist, ...data.boards.tv.watched];
+        const updatedItem = allItems.find(i => i.id === item.id);
+        if(updatedItem) setSelectedMedia(updatedItem);
+    }
   };
 
   const handleLogout = () => {
@@ -334,7 +443,7 @@ function MovieApp() {
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between flex-wrap gap-4">
             <div className="flex items-center gap-4 flex-wrap">
-              <a href="./index.html" className="text-2xl md:text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 via-pink-400 to-blue-400 active:scale-95 transition-transform cursor-pointer">🎮 GameTracker</a>
+              <button onClick={() => { setViewingUser(null); loadBoards(); }} className="text-2xl md:text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 via-pink-400 to-blue-400 active:scale-95 transition-transform cursor-pointer">🎮 GameTracker</button>
               <a href="./movies.html" className="inline-flex items-center gap-2 active:scale-95 transition-transform">
                 <svg className="w-7 h-7" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
                   <defs><linearGradient id="camGradHeaderReact" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stopColor="#a78bfa"/><stop offset="100%" stopColor="#8b5cf6"/></linearGradient></defs>
@@ -346,15 +455,24 @@ function MovieApp() {
             {user && (
                 <div className="flex items-center gap-2 md:gap-3">
                     <div className="flex items-center gap-2 px-3 md:px-4 py-2 bg-gradient-to-r from-purple-500/20 to-pink-500/20 rounded-lg border border-purple-500/30">
-                        <Avatar src={user.avatar} size="sm" />
-                        <span className="text-white font-semibold text-sm md:text-base block">{user.username}</span>
+                        <Avatar src={viewingUser ? viewingUser.avatar : user.avatar} size="sm" />
+                        <span className="text-white font-semibold text-sm md:text-base block">{viewingUser ? viewingUser.username : user.username}</span>
                     </div>
-                    <button onClick={() => alert('Просмотр друзей и их досок с фильмами скоро появится!')} className="p-2 hover:bg-gray-800 rounded-lg border border-purple-500/30 relative">
-                        <Icon name="users" className="w-4 h-4 md:w-5 md:h-5 text-purple-400" />
-                    </button>
-                    <button onClick={() => alert('Настройки профиля скоро появятся!')} className="p-2 hover:bg-gray-800 rounded-lg border border-purple-500/30">
-                        <Icon name="settings" className="w-4 h-4 md:w-5 md:h-5 text-purple-400" />
-                    </button>
+                    {viewingUser ? (
+                       <button onClick={() => { setViewingUser(null); loadBoards(); }} className="p-2 bg-gray-800 hover:bg-gray-700 rounded-lg border border-gray-700">
+                           <Icon name="x" className="w-4 h-4 md:w-5 md:h-5 text-gray-400" />
+                       </button>
+                    ) : (
+                       <Fragment>
+                           <button onClick={() => { setShowUserHub(true); loadAllUsers(); }} className="p-2 hover:bg-gray-800 rounded-lg border border-purple-500/30 relative">
+                               <Icon name="users" className="w-4 h-4 md:w-5 md:h-5 text-purple-400" />
+                               {friendRequests.length > 0 && <span className="absolute top-0 right-0 block h-2.5 w-2.5 rounded-full bg-red-500 ring-2 ring-white"></span>}
+                           </button>
+                           <button onClick={() => setShowProfile(true)} className="p-2 hover:bg-gray-800 rounded-lg border border-purple-500/30">
+                               <Icon name="settings" className="w-4 h-4 md:w-5 md:h-5 text-purple-400" />
+                           </button>
+                       </Fragment>
+                    )}
                     <button onClick={handleLogout} className="p-2 hover:bg-red-900/50 rounded-lg border border-red-500/30">
                         <Icon name="logout" className="w-4 h-4 md:w-5 md:h-5 text-red-400" />
                     </button>
@@ -400,10 +518,7 @@ function MovieApp() {
             </div>
         </div>
         
-        <div className="bg-gray-900/50 backdrop-blur-xl rounded-xl border border-purple-500/30 p-6">
-            <h3 className="text-xl font-bold text-white mb-4">Активность друзей</h3>
-            <p className="text-gray-400">Лента активности по фильмам и сериалам скоро появится здесь!</p>
-        </div>
+        {!viewingUser && <ActivityFeed token={token} />}
 
       </main>
 
