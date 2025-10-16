@@ -1,35 +1,18 @@
-// Этот скрипт ждет, пока основной сайт (созданный на React)
-// отрисует все элементы, и только потом запускает игру.
-const startGameRunner = () => {
-    const canvas = document.getElementById('gameCanvas');
-    if (!canvas) {
-        // Если элемент canvas еще не создан, подождем немного и попробуем снова.
-        setTimeout(startGameRunner, 100);
-        return;
-    }
+// Игровой модуль, управляемый React-приложением
+window.GameRunner = (function() {
+    // Переменные, которые будут доступны во всем модуле
+    let canvas, ctx, gameContainer, gameOverlay, overlayTitle, finalScoreDisplay, highScoresDisplay, friendRecordDisplay, globalRecordDisplay, restartButton;
+    
+    let score, lives, gameSpeed;
+    let gameOver, gameStarted;
+    let player, playerTrail;
+    let obstacles, obstacleTimer, nextObstacleInterval;
+    let stars;
+    let animationFrameId; // ID для управления игровым циклом
 
-    const ctx = canvas.getContext('2d');
-    const gameContainer = document.getElementById('game-container');
-
-    // UI элементы из твоего index.html
-    const gameOverlay = document.getElementById('game-overlay');
-    const overlayTitle = document.getElementById('overlay-title');
-    const finalScoreDisplay = document.getElementById('final-score');
-    const highScoresDisplay = document.getElementById('high-scores');
-    const friendRecordDisplay = document.getElementById('friend-record');
-    const globalRecordDisplay = document.getElementById('global-record');
-    const restartButton = document.getElementById('restart-button');
-
-    // URL твоего бэкенда
     const API_URL = 'https://gametracker-backend-production.up.railway.app';
-
-    // Настройки холста
     const GAME_WIDTH = 900;
     const GAME_HEIGHT = 250;
-    canvas.width = GAME_WIDTH;
-    canvas.height = GAME_HEIGHT;
-
-    // Цветовая палитра
     const COLORS = {
         PLAYER: '#f472b6',
         PLAYER_GLOW: 'rgba(244, 114, 182, 0.5)',
@@ -44,36 +27,20 @@ const startGameRunner = () => {
         UI_ACCENT: '#a78bfa',
     };
 
-    // Состояние игры
-    let score = 0,
-        lives = 3,
-        gameSpeed = 5;
-    let gameOver = false,
-        gameStarted = false;
-
-    // Игрок
-    const player = {
-        x: 50, y: GAME_HEIGHT - 50, width: 30, height: 35,
-        velocityY: 0, gravity: 0.6, jumpStrength: -12, jumpsLeft: 2, isJumping: false
+    // --- ИМЕНОВАННЫЕ ОБРАБОТЧИКИ СОБЫТИЙ ---
+    // Они должны быть именованными, чтобы их можно было удалить при очистке
+    const handleKeyDown = (e) => {
+        if (e.code === 'Space') {
+            e.preventDefault();
+            if (!gameStarted) {
+                startGame();
+            } else {
+                jump();
+            }
+        }
     };
-    let playerTrail = [];
-
-    // Препятствия
-    let obstacles = [],
-        obstacleTimer = 0,
-        nextObstacleInterval = 120;
-
-    // Фон (звезды)
-    let stars = [];
-    for (let i = 0; i < 100; i++) {
-        stars.push({
-            x: Math.random() * GAME_WIDTH, y: Math.random() * GAME_HEIGHT,
-            radius: Math.random() * 1.5, alpha: Math.random()
-        });
-    }
-
+    
     // --- ФУНКЦИИ ОТРИСОВКИ ---
-
     function drawPlayer() {
         ctx.fillStyle = COLORS.PLAYER_GLOW;
         playerTrail.forEach((p, index) => {
@@ -173,7 +140,6 @@ const startGameRunner = () => {
     }
 
     // --- ФУНКЦИИ ОБНОВЛЕНИЯ ИГРЫ ---
-
     function updatePlayer() {
         player.velocityY += player.gravity;
         player.y += player.velocityY;
@@ -222,7 +188,6 @@ const startGameRunner = () => {
     }
 
     // --- УПРАВЛЕНИЕ ИГРОВЫМ ПРОЦЕССОМ ---
-
     function jump() {
         if (!gameStarted || gameOver) return;
         if (player.jumpsLeft > 0) {
@@ -261,7 +226,9 @@ const startGameRunner = () => {
         player.velocityY = 0; player.jumpsLeft = 2; playerTrail = [];
         gameOver = false;
         gameOverlay.style.display = 'none';
-        requestAnimationFrame(gameLoop);
+        
+        if (animationFrameId) cancelAnimationFrame(animationFrameId);
+        gameLoop();
     }
 
     function startGame() {
@@ -272,12 +239,12 @@ const startGameRunner = () => {
 
     function endGame() {
         gameOver = true;
+        gameStarted = false;
         submitScore(score);
         showGameOverScreen();
     }
     
     // --- ИНТЕГРАЦИЯ С СЕРВЕРОМ ---
-
     async function submitScore(finalScore) {
         const token = localStorage.getItem('token');
         if (!token) return;
@@ -317,7 +284,6 @@ const startGameRunner = () => {
     }
 
     // --- УПРАВЛЕНИЕ UI ---
-
     function showGameOverScreen() {
         overlayTitle.textContent = 'Игра окончена';
         finalScoreDisplay.textContent = `Ваши очки: ${score}`;
@@ -335,10 +301,12 @@ const startGameRunner = () => {
         gameOverlay.style.display = 'flex';
     }
 
-    // --- ГЛАВНЫЙ ЦИКЛ И СЛУШАТЕЛИ СОБЫТИЙ ---
-
+    // --- ГЛАВНЫЙ ЦИКЛ И ФУНКЦИИ МОДУЛЯ ---
     function gameLoop() {
-        if (gameOver) return;
+        if (gameOver) {
+            animationFrameId = null;
+            return;
+        }
         ctx.clearRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
         drawBackground();
         updatePlayer();
@@ -347,22 +315,74 @@ const startGameRunner = () => {
         drawObstacles();
         checkCollisions();
         drawUI();
-        requestAnimationFrame(gameLoop);
+        animationFrameId = requestAnimationFrame(gameLoop);
     }
     
-    window.addEventListener('keydown', (e) => {
-        if (e.code === 'Space') {
-            e.preventDefault();
-            startGame();
-            jump();
+    // Функция очистки
+    function destroy() {
+        if (animationFrameId) {
+            cancelAnimationFrame(animationFrameId);
+            animationFrameId = null;
         }
-    });
+        window.removeEventListener('keydown', handleKeyDown);
+        restartButton.removeEventListener('click', startGame);
+        console.log("Game instance destroyed.");
+    }
 
-    restartButton.addEventListener('click', startGame);
+    // Главная функция инициализации, вызываемая из React
+    function init(canvasElement) {
+        canvas = canvasElement;
+        if (!canvas) {
+            console.error("GameRunner init failed: canvas element not provided.");
+            return;
+        }
 
-    // Показываем стартовый экран при первой загрузке
-    showStartScreen();
-};
+        ctx = canvas.getContext('2d');
+        gameContainer = document.getElementById('game-container');
+        gameOverlay = document.getElementById('game-overlay');
+        overlayTitle = document.getElementById('overlay-title');
+        finalScoreDisplay = document.getElementById('final-score');
+        highScoresDisplay = document.getElementById('high-scores');
+        friendRecordDisplay = document.getElementById('friend-record');
+        globalRecordDisplay = document.getElementById('global-record');
+        restartButton = document.getElementById('restart-button');
+        
+        // Сбрасываем состояние игры
+        score = 0; lives = 3; gameSpeed = 5;
+        gameOver = false; gameStarted = false;
+        player = {
+            x: 50, y: GAME_HEIGHT - 50, width: 30, height: 35,
+            velocityY: 0, gravity: 0.6, jumpStrength: -12, jumpsLeft: 2, isJumping: false
+        };
+        playerTrail = [];
+        obstacles = []; obstacleTimer = 0; nextObstacleInterval = 120;
+        stars = [];
+        for (let i = 0; i < 100; i++) {
+            stars.push({
+                x: Math.random() * GAME_WIDTH, y: Math.random() * GAME_HEIGHT,
+                radius: Math.random() * 1.5, alpha: Math.random()
+            });
+        }
 
-// Запускаем игру
-startGameRunner();
+        canvas.width = GAME_WIDTH;
+        canvas.height = GAME_HEIGHT;
+
+        const reloadHint = document.getElementById('game-reload-hint');
+        if(reloadHint) reloadHint.style.display = 'none';
+
+        window.addEventListener('keydown', handleKeyDown);
+        restartButton.addEventListener('click', startGame);
+
+        showStartScreen();
+
+        console.log("Game instance initialized.");
+        
+        // Возвращаем объект с функцией очистки
+        return { destroy };
+    }
+
+    // Публичный API модуля
+    return {
+        init,
+    };
+})();
