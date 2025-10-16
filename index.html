@@ -60,13 +60,54 @@
     .liquid-eye button.bg-gradient-to-r { background: var(--button-bg) !important; color: var(--button-text) !important; }
     .liquid-eye button.bg-gradient-to-r:hover { background: var(--button-hover-bg) !important; }
     .liquid-eye .hover\:border-purple-500:hover { border-color: var(--primary-color) !important; }
+
+    /* СТИЛИ ДЛЯ ИГРЫ */
+    #game-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        background-color: rgba(0, 0, 0, 0.75);
+        color: white;
+        text-align: center;
+        z-index: 10;
+        font-family: 'Inter', sans-serif;
+    }
+    #game-overlay h2 {
+        font-size: 1.5em; 
+        margin-bottom: 0.5em;
+        text-shadow: 0 0 10px #8b5cf6;
+    }
+    #game-overlay p {
+        font-size: 1em;
+        margin: 0.2em 0;
+    }
+    #game-overlay button {
+        margin-top: 1.5em;
+        padding: 8px 18px; 
+        font-size: 0.75em;
+        font-weight: bold;
+        color: #000;
+        background: #ffffff;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        transition: background-color 0.3s;
+    }
+    #game-overlay button:hover {
+        background-color: #e0e0e0;
+    }
   </style>
 </head>
 <body>
   <div id="root"></div>
   <script type="text/babel">
     const { useState, useEffect, useRef, Fragment, useCallback } = React;
-    // IMPORTANT: Replace this with your actual API URL
     const API_URL = 'https://gametracker-backend-production.up.railway.app';
     const REACTION_EMOJIS = ['😍', '🔥', '👍', '😮', '😂', '👎', '❤️', '🤔', '😢', '🤯', '😴', '💯', '💀', '🤨', '🥳'];
     const GAMES_PER_COLUMN = 5;
@@ -183,7 +224,7 @@
                 }
             };
             fetchActivities();
-            const interval = setInterval(fetchActivities, 60000); // Refresh every minute
+            const interval = setInterval(fetchActivities, 60000);
             return () => clearInterval(interval);
         }, [token]);
         
@@ -580,7 +621,7 @@
           } catch(err) {
               console.error('Ошибка удаления отзыва:', err);
               alert('Не удалось удалить отзыв');
-              loadBoards(token); // Revert on error
+              loadBoards(token);
           }
       }, [loadBoards]);
 
@@ -1300,6 +1341,36 @@
                   </div>
                   
                   {!viewingUser && <ActivityFeed token={localStorage.getItem('token')} />}
+
+                  {/* V-- БЛОК С ИГРОЙ --V */}
+                  {!viewingUser && (
+                    <div className="mt-8">
+                      <div id="game-container" style={{
+                          border: '2px solid #8b5cf6',
+                          borderRadius: '12px',
+                          overflow: 'hidden',
+                          boxShadow: '0 0 20px rgba(139, 92, 246, 0.5)',
+                          background: '#111',
+                          position: 'relative',
+                          width: '100%',
+                          maxWidth: '900px',
+                          margin: '0 auto'
+                      }}>
+                          <canvas id="gameCanvas" style={{ width: '100%', display: 'block' }}></canvas>
+                          <div id="game-overlay" style={{ display: 'none' }}>
+                              <h2 id="overlay-title"></h2>
+                              <p id="final-score"></p>
+                              <div id="high-scores" style={{ marginTop: '20px', display: 'none' }}>
+                                   <p id="friend-record"><strong>Рекорд друзей:</strong> Загрузка...</p>
+                                   <p id="global-record"><strong>Общий рекорд:</strong> Загрузка...</p>
+                              </div>
+                              <button id="restart-button"></button>
+                          </div>
+                      </div>
+                    </div>
+                  )}
+                  {/* A-- КОНЕЦ БЛОКА ИГРЫ --A */}
+
               </div>
           </main>
         </div>
@@ -1308,7 +1379,6 @@
 
     const DEEP_REVIEW_QUESTIONS = [
         { block: 'Первое Впечатление и Сюжет', questions: [
-            // Ответы изменены, чтобы быть частью предложения, а не целым предложением
             { id: 1, text: "Что вас больше всего зацепило в самом начале игры?", answers: ["атмосфера и мир, в который сразу хочется погрузиться", "интригующая завязка сюжета", "динамичный геймплей с первых минут", "потрясающий визуальный стиль и графика", "ничего особенного, игра разгонялась медленно", "скучное и затянутое вступление"] },
             { id: 2, text: "Как бы вы описали сюжет игры?", answers: ["глубоким и многослойным, заставляющим задуматься", "простым, но увлекательным и хорошо поданным", "эпичным и захватывающим, с неожиданными поворотами", "предсказуемым, но служащим хорошим фоном", "вторичным, существующим лишь для галочки", "слабым, нелогичным или попросту отсутствующим"] },
             { id: 3, text: "Насколько хорошо проработаны персонажи?", answers: ["очень живыми и запоминающимися, им сопереживаешь", "харизматичными, хоть и немного шаблонными", "простыми функциями для продвижения сюжета", "только главный герой/героиня были интересными", "неважными или отсутствующими", "плоскими и невыразительными, скорее раздражающими"] },
@@ -1414,8 +1484,6 @@
 
         const allQuestions = DEEP_REVIEW_QUESTIONS.flatMap(b => b.questions);
         
-        // Helper function to get the answer text and its sentiment
-        // sentiment: 1 (positive), 0 (neutral), -1 (negative)
         const getAnswer = (qId) => {
             const answerIndex = answers[qId - 1];
             if (answerIndex === null) return { text: '', sentiment: 0 };
@@ -1430,7 +1498,6 @@
 
         let paragraphs = [];
 
-        // Block 1: Story and first impression
         const intro = getAnswer(1);
         const plot = getAnswer(2);
         const chars = getAnswer(3);
@@ -1452,7 +1519,6 @@
         }
         paragraphs.push(p1);
 
-        // Block 2: Gameplay
         const gameplay = getAnswer(5);
         const mechanics = getAnswer(6);
         const controls = getAnswer(7);
@@ -1469,7 +1535,6 @@
         }
         paragraphs.push(p2);
         
-        // Block 3: Audiovisual
         const visual = getAnswer(10);
         const sound = getAnswer(11);
         const tech = getAnswer(13);
@@ -1486,7 +1551,6 @@
         }
         paragraphs.push(p3);
 
-        // Block 4: Conclusion
         const difficulty = getAnswer(14);
         const recommendation = getAnswer(19);
         const summary = getAnswer(20);
@@ -1527,5 +1591,7 @@
 
     ReactDOM.render(<GameKanban />, document.getElementById('root'));
   </script>
+  
+  <script src="game.js"></script>
 </body>
 </html>
