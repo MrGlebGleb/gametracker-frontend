@@ -119,7 +119,7 @@ function Column({ title, emoji, items, columnKey, isExpanded, onToggleExpand, is
 
 function MediaDetailsModal({ item, onClose, onUpdate, onReact, isViewingFriend, user }) {
   if (!item) return null;
-  const userReaction = item.reactions.find(r => r.user_id === user?.id);
+  const userReaction = (item.reactions || []).find(r => r.user_id === user?.id);
 
   return (
     <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-[100] p-4" onClick={onClose}>
@@ -376,9 +376,7 @@ function MovieApp() {
       body: JSON.stringify(updates)
     });
     await loadBoards(viewingUser?.id);
-    if(selectedMedia && selectedMedia.id === item.id) {
-        setSelectedMedia(prev => ({...prev, ...updates}));
-    }
+    setSelectedMedia(prev => (prev && prev.id === item.id) ? { ...prev, ...updates } : prev);
   };
   
   const removeItem = async (e, item) => {
@@ -395,13 +393,24 @@ function MovieApp() {
       body: JSON.stringify({ emoji })
     });
     await loadBoards(viewingUser?.id);
-    if (selectedMedia && selectedMedia.id === item.id) {
-        // Optimistically update reactions in modal
-        const res = await fetch(`${API_URL}/api/user/media/boards`, { headers: { Authorization: `Bearer ${token}` } });
-        const data = await res.json();
-        const allItems = [...data.boards.movies.wishlist, ...data.boards.movies.watched, ...data.boards.tv.wishlist, ...data.boards.tv.watched];
-        const updatedItem = allItems.find(i => i.id === item.id);
-        if(updatedItem) setSelectedMedia(updatedItem);
+    try {
+      const res = await fetch(`${API_URL}/api/user/media/boards`, { headers: { Authorization: `Bearer ${token}` } });
+      if (!res.ok) return;
+      const data = await res.json();
+      if (!data || !data.boards) return;
+      const allItems = [
+        ...(data.boards.movies?.wishlist || []),
+        ...(data.boards.movies?.watched || []),
+        ...(data.boards.tv?.wishlist || []),
+        ...(data.boards.tv?.watched || [])
+      ];
+      const updatedItem = allItems.find(i => i.id === item.id);
+      if (updatedItem) {
+        setSelectedMedia(prev => (prev && prev.id === item.id) ? updatedItem : prev);
+      }
+    } catch (e) {
+      // swallow; non-critical UI update
+      console.error(e);
     }
   };
 
@@ -518,7 +527,7 @@ function MovieApp() {
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between flex-wrap gap-4">
             <div className="flex items-center gap-4 flex-wrap">
-              <button onClick={() => { setViewingUser(null); loadBoards(); }} className="text-2xl md:text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 via-pink-400 to-blue-400 active:scale-95 transition-transform cursor-pointer">🎮 GameTracker</button>
+              <a href="/index.html" className="text-2xl md:text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 via-pink-400 to-blue-400 active:scale-95 transition-transform cursor-pointer">🎮 GameTracker</a>
               <a href="./movies.html" className="inline-flex items-center gap-2 active:scale-95 transition-transform">
                 <svg className="w-7 h-7" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
                   <defs><linearGradient id="camGradHeaderReact" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stopColor="#a78bfa"/><stop offset="100%" stopColor="#8b5cf6"/></linearGradient></defs>
@@ -802,3 +811,4 @@ function MovieApp() {
 }
 
 ReactDOM.createRoot(document.getElementById('root')).render(<MovieApp />);
+
