@@ -2004,6 +2004,133 @@
       );
     };
 
+    // Компонент модалки игры
+    const GameModal = ({ game, onClose, onUpdate, onReact, isViewingFriend, user, token }) => {
+      const { touchOffset, isMobile, handleTouchStart, handleTouchMove, handleTouchEnd } = useSwipeToClose(onClose);
+      
+      return (
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-[100] md:p-4" onClick={onClose}>
+          <div 
+            className={`bg-gray-900 rounded-2xl p-6 w-full max-w-md border border-purple-500/30 max-h-[90vh] overflow-y-auto elevation-3 ${isMobile ? 'mobile-fullscreen-modal' : ''}`}
+            style={isMobile ? { transform: `translateY(${touchOffset}px)`, transition: touchOffset === 0 ? 'transform 0.3s ease' : 'none' } : {}}
+            onClick={e => e.stopPropagation()}
+            onTouchStart={handleTouchStart}
+            onTouchMove={handleTouchMove}
+            onTouchEnd={handleTouchEnd}
+          >
+            {isMobile && <div className="swipe-indicator"></div>}
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-bold text-white">{game.name}</h2>
+              <button onClick={onClose} className="p-2 hover:bg-gray-800 rounded-lg">
+                <Icon name="x" className="w-5 h-5 text-gray-400" />
+              </button>
+            </div>
+            <div className="space-y-4">
+              {!isViewingFriend ? (
+                <Fragment>
+                  <div>
+                    <p className="text-gray-400 text-sm mb-2">Рейтинг:</p>
+                    <div className="flex gap-2">
+                      {[1, 2, 3, 4, 5].map(star => (
+                        <button key={star} onClick={() => onUpdate(game.id, { rating: star })} className="transition-transform hover:scale-110">
+                          <Icon name="star" className={`w-8 h-8 ${star <= (game.rating || 0) ? 'text-yellow-400' : 'text-gray-600'}`} />
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <div>
+                    <label className="text-gray-400 text-sm">Заметки:</label>
+                    <textarea defaultValue={game.notes || ''} onBlur={(e) => onUpdate(game.id, { notes: e.target.value })} className="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg focus:border-purple-500 focus:outline-none text-white mt-1" rows="3" placeholder="Твои впечатления..." />
+                  </div>
+                </Fragment>
+              ) : (
+                <Fragment>
+                  {game.rating && 
+                    <div>
+                      <p className="text-gray-400 text-sm mb-2">Рейтинг от {user.username}:</p>
+                      <div className="flex gap-1">
+                        {[...Array(5)].map((_, i) => (<Icon key={i} name="star" className={`w-6 h-6 ${i < game.rating ? 'text-yellow-400' : 'text-gray-600'}`} />))}
+                      </div>
+                    </div>
+                  }
+                  {game.notes &&
+                    <div>
+                      <p className="text-gray-400 text-sm mb-1">Заметки от {user.username}:</p>
+                      <p className="text-white bg-gray-800 p-3 rounded-lg border border-gray-700">{game.notes}</p>
+                    </div>
+                  }
+                  {(!game.notes && !game.rating) && <p className="text-gray-400">Пользователь не оставил отзыва.</p>}
+                  <div className="pt-2">
+                    <p className="text-gray-400 text-sm mb-2">Ваша реакция:</p>
+                    <div className="flex flex-wrap gap-2">
+                      {REACTION_EMOJIS.map(emoji => (
+                        <button
+                          key={emoji}
+                          onClick={() => onReact(game.id, emoji)}
+                          className={`text-2xl transform hover:scale-125 transition-transform p-1 rounded-full ${game.reactions?.find(r => r.user_id === user.id && r.emoji === emoji) ? 'bg-purple-500/30' : ''}`}
+                          title={`React with ${emoji}`}
+                        >
+                          {emoji}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </Fragment>
+              )}
+              
+              {game.deep_review_answers && <DisplayDeepReview answers={game.deep_review_answers} />}
+              
+              {game.reactions && game.reactions.length > 0 && (
+                <div>
+                  <p className="text-gray-400 text-sm mb-2">Все реакции:</p>
+                  <div className="flex flex-wrap gap-2">
+                    {game.reactions.map((reaction, idx) => (
+                      <div key={idx} className="flex items-center gap-1 bg-gray-800 px-3 py-1 rounded-full">
+                        <span className="text-xl">{reaction.emoji}</span>
+                        <span className="text-xs text-gray-400">{reaction.username}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              <div className="flex gap-2 mt-4">
+                <a 
+                  href={game.videoId ? `https://www.youtube.com/watch?v=${game.videoId}` : `https://www.youtube.com/results?search_query=${encodeURIComponent(game.name + ' trailer')}`} 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="flex-1 flex items-center justify-center gap-2 py-2 bg-red-600 text-white font-bold rounded-lg hover:bg-red-700 transition-colors">
+                  <Icon name="youtube" className="w-6 h-6" />
+                  Трейлер
+                </a>
+                {!isViewingFriend && (
+                  <button 
+                    onClick={() => {
+                      setHistoryGame(game);
+                      setShowHistoryLog(true);
+                    }}
+                    className="px-4 py-2 bg-blue-500/20 hover:bg-blue-500/30 text-blue-400 rounded-lg transition-colors flex items-center gap-2"
+                    title="История изменений"
+                  >
+                    <Icon name="clock" className="w-4 h-4" />
+                    История
+                  </button>
+                )}
+                {!isViewingFriend && game.deep_review_answers && (
+                  <button 
+                    onClick={() => handleDeleteReview(game.id)}
+                    className="p-2 bg-red-500/20 hover:bg-red-500/30 rounded-lg"
+                    title="Удалить детальный отзыв"
+                  >
+                    <Icon name="trash" className="w-5 h-5 text-red-400"/>
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    };
+
     const GameKanban = () => {
       const [user, setUser] = useState(null);
       const [showAuth, setShowAuth] = useState(true);
@@ -3280,128 +3407,17 @@
                   </div>
               )}
 
-              {selectedGame && (() => {
-                const { touchOffset, isMobile, handleTouchStart, handleTouchMove, handleTouchEnd } = useSwipeToClose(() => setSelectedGame(null));
-                return (
-                  <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-[100] md:p-4" onClick={() => setSelectedGame(null)}>
-                  <div 
-                    className={`bg-gray-900 rounded-2xl p-6 w-full max-w-md border border-purple-500/30 max-h-[90vh] overflow-y-auto elevation-3 ${isMobile ? 'mobile-fullscreen-modal' : ''}`}
-                    style={isMobile ? { transform: `translateY(${touchOffset}px)`, transition: touchOffset === 0 ? 'transform 0.3s ease' : 'none' } : {}}
-                    onClick={e => e.stopPropagation()}
-                    onTouchStart={handleTouchStart}
-                    onTouchMove={handleTouchMove}
-                    onTouchEnd={handleTouchEnd}
-                  >
-                      {isMobile && <div className="swipe-indicator"></div>}
-                      <div className="flex justify-between items-center mb-4">
-                      <h2 className="text-xl font-bold text-white">{selectedGame.name}</h2>
-                      <button onClick={() => setSelectedGame(null)} className="p-2 hover:bg-gray-800 rounded-lg"><Icon name="x" className="w-5 h-5 text-gray-400" /></button>
-                      </div>
-                      <div className="space-y-4">
-                      {!viewingUser ? (
-                          <Fragment>
-                          <div>
-                              <p className="text-gray-400 text-sm mb-2">Рейтинг:</p>
-                              <div className="flex gap-2">
-                              {[1, 2, 3, 4, 5].map(star => (
-                                  <button key={star} onClick={() => updateGame(selectedGame.id, { rating: star })} className="transition-transform hover:scale-110">
-                                  <Icon name="star" className={`w-8 h-8 ${star <= (selectedGame.rating || 0) ? 'text-yellow-400' : 'text-gray-600'}`} />
-                                  </button>
-                              ))}
-                              </div>
-                          </div>
-                          <div>
-                              <label className="text-gray-400 text-sm">Заметки:</label>
-                              <textarea defaultValue={selectedGame.notes || ''} onBlur={(e) => updateGame(selectedGame.id, { notes: e.target.value })} className="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg focus:border-purple-500 focus:outline-none text-white mt-1" rows="3" placeholder="Твои впечатления..." />
-                          </div>
-                          </Fragment>
-                      ) : (
-                          <Fragment>
-                              {selectedGame.rating && 
-                                  <div>
-                                      <p className="text-gray-400 text-sm mb-2">Рейтинг от {viewingUser.username}:</p>
-                                      <div className="flex gap-1">
-                                          {[...Array(5)].map((_, i) => (<Icon key={i} name="star" className={`w-6 h-6 ${i < selectedGame.rating ? 'text-yellow-400' : 'text-gray-600'}`} />))}
-                                      </div>
-                                  </div>
-                              }
-                              {selectedGame.notes &&
-                                  <div>
-                                      <p className="text-gray-400 text-sm mb-1">Заметки от {viewingUser.username}:</p>
-                                      <p className="text-white bg-gray-800 p-3 rounded-lg border border-gray-700">{selectedGame.notes}</p>
-                                  </div>
-                              }
-                              {(!selectedGame.notes && !selectedGame.rating) && <p className="text-gray-400">Пользователь не оставил отзыва.</p>}
-                              <div className="pt-2">
-                                <p className="text-gray-400 text-sm mb-2">Ваша реакция:</p>
-                                <div className="flex flex-wrap gap-2">
-                                  {REACTION_EMOJIS.map(emoji => (
-                                      <button
-                                          key={emoji}
-                                          onClick={() => addReaction(selectedGame.id, emoji)}
-                                          className={`text-2xl transform hover:scale-125 transition-transform p-1 rounded-full ${selectedGame.reactions.find(r => r.user_id === user.id && r.emoji === emoji) ? 'bg-purple-500/30' : ''}`}
-                                          title={`React with ${emoji}`}
-                                      >
-                                          {emoji}
-                                      </button>
-                                  ))}
-                                </div>
-                              </div>
-                          </Fragment>
-                      )}
-                      
-                      {selectedGame.deep_review_answers && <DisplayDeepReview answers={selectedGame.deep_review_answers} />}
-                      
-                      {selectedGame.reactions && selectedGame.reactions.length > 0 && (
-                          <div>
-                          <p className="text-gray-400 text-sm mb-2">Все реакции:</p>
-                          <div className="flex flex-wrap gap-2">
-                              {selectedGame.reactions.map((reaction, idx) => (
-                              <div key={idx} className="flex items-center gap-1 bg-gray-800 px-3 py-1 rounded-full">
-                                  <span className="text-xl">{reaction.emoji}</span>
-                                  <span className="text-xs text-gray-400">{reaction.username}</span>
-                              </div>
-                              ))}
-                          </div>
-                          </div>
-                      )}
-                      <div className="flex gap-2 mt-4">
-                        <a 
-                            href={selectedGame.videoId ? `https://www.youtube.com/watch?v=${selectedGame.videoId}` : `https://www.youtube.com/results?search_query=${encodeURIComponent(selectedGame.name + ' trailer')}`} 
-                            target="_blank" 
-                            rel="noopener noreferrer"
-                            className="flex-1 flex items-center justify-center gap-2 py-2 bg-red-600 text-white font-bold rounded-lg hover:bg-red-700 transition-colors">
-                            <Icon name="youtube" className="w-6 h-6" />
-                            Трейлер
-                        </a>
-                        {!viewingUser && (
-                            <button 
-                                onClick={() => {
-                                    setHistoryGame(selectedGame);
-                                    setShowHistoryLog(true);
-                                }}
-                                className="px-4 py-2 bg-blue-500/20 hover:bg-blue-500/30 text-blue-400 rounded-lg transition-colors flex items-center gap-2"
-                                title="История изменений"
-                            >
-                                <Icon name="clock" className="w-4 h-4" />
-                                История
-                            </button>
-                        )}
-                        {!viewingUser && selectedGame.deep_review_answers && (
-                            <button 
-                                onClick={() => handleDeleteReview(selectedGame.id)}
-                                className="p-2 bg-red-500/20 hover:bg-red-500/30 rounded-lg"
-                                title="Удалить детальный отзыв"
-                            >
-                                <Icon name="trash" className="w-5 h-5 text-red-400"/>
-                            </button>
-                        )}
-                      </div>
-                      </div>
-                  </div>
-                  </div>
-                );
-              })()}
+              {selectedGame && (
+                <GameModal 
+                  game={selectedGame} 
+                  onClose={() => setSelectedGame(null)}
+                  onUpdate={updateGame}
+                  onReact={reactToGame}
+                  isViewingFriend={!!viewingUser}
+                  user={user}
+                  token={localStorage.getItem('token')}
+                />
+              )}
               
               {confirmingDeleteFriend && (
                   <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-[100] p-4">
