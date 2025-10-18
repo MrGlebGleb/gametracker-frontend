@@ -1721,13 +1721,11 @@
       );
     };
 
-    // Компонент dropdown для добавления тегов к игре
-    const TagDropdown = ({ game, token, onTagAdded }) => {
-      const [isOpen, setIsOpen] = useState(false);
+    // Компонент модального окна для добавления тегов к игре
+    const TagModal = ({ game, token, onTagAdded, isOpen, onClose }) => {
       const [tags, setTags] = useState([]);
       const [loading, setLoading] = useState(false);
       const [addingTag, setAddingTag] = useState(null);
-      const dropdownRef = useRef(null);
 
       // Загрузка тегов
       const loadTags = useCallback(async () => {
@@ -1757,7 +1755,7 @@
             headers: { 'Authorization': `Bearer ${token}` }
           });
           if (response.ok) {
-            setIsOpen(false);
+            onClose();
             if (onTagAdded) onTagAdded();
           }
         } catch (error) {
@@ -1767,22 +1765,10 @@
         }
       };
 
-      // Закрытие dropdown при клике вне его
       useEffect(() => {
-        const handleClickOutside = (event) => {
-          if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
-            setIsOpen(false);
-          }
-        };
-
         if (isOpen) {
-          document.addEventListener('mousedown', handleClickOutside);
           loadTags();
         }
-
-        return () => {
-          document.removeEventListener('mousedown', handleClickOutside);
-        };
       }, [isOpen, loadTags]);
 
       // Фильтрация тегов (исключаем уже прикрепленные)
@@ -1790,56 +1776,49 @@
         !game.tags || !game.tags.some(gameTag => gameTag.id === tag.id)
       );
 
-      return (
-        <div ref={dropdownRef} className="relative">
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              setIsOpen(!isOpen);
-            }}
-            className="p-1 text-gray-400 hover:text-white transition-colors"
-            title="Добавить тег"
-          >
-            <Icon name="tag" className="w-4 h-4" />
-          </button>
+      if (!isOpen) return null;
 
-          {isOpen && (
-            <div className="absolute right-0 top-full mt-2 w-48 bg-gray-800 rounded-lg border border-gray-700 z-50 elevation-4">
-              <div className="p-3 border-b border-gray-700">
-                <h3 className="text-sm font-semibold text-white">Добавить тег</h3>
-              </div>
-              <div className="max-h-48 overflow-y-auto">
-                {loading ? (
-                  <div className="p-3 text-center text-gray-400">
-                    <Icon name="loader" className="w-4 h-4 animate-spin mx-auto mb-1" />
-                    <p className="text-xs">Загрузка...</p>
-                  </div>
-                ) : availableTags.length === 0 ? (
-                  <div className="p-3 text-center text-gray-400">
-                    <p className="text-xs">Нет доступных тегов</p>
-                  </div>
-                ) : (
-                  availableTags.map(tag => (
-                    <button
-                      key={tag.id}
-                      onClick={() => addTagToGame(tag.id)}
-                      disabled={addingTag === tag.id}
-                      className="w-full px-3 py-2 text-left text-white hover:bg-gray-700 transition-colors flex items-center gap-2 disabled:opacity-50"
-                    >
-                      <div
-                        className="w-3 h-3 rounded-full flex-shrink-0"
-                        style={{ backgroundColor: tag.color }}
-                      />
-                      <span className="text-sm truncate">{tag.name}</span>
-                      {addingTag === tag.id && (
-                        <Icon name="loader" className="w-3 h-3 animate-spin ml-auto" />
-                      )}
-                    </button>
-                  ))
-                )}
-              </div>
+      return (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[100] p-4" onClick={onClose}>
+          <div className="bg-gray-900 rounded-2xl p-6 w-full max-w-md border border-purple-500/30 max-h-[80vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-bold text-white">Добавить тег к "{game.name}"</h2>
+              <button onClick={onClose} className="p-2 hover:bg-gray-800 rounded-lg">
+                <Icon name="x" className="w-5 h-5 text-gray-400" />
+              </button>
             </div>
-          )}
+            <div className="space-y-2 max-h-60 overflow-y-auto">
+              {loading ? (
+                <div className="flex items-center justify-center py-8">
+                  <Icon name="loader" className="w-8 h-8 text-purple-400 animate-spin" />
+                </div>
+              ) : availableTags.length === 0 ? (
+                <div className="text-center py-8">
+                  <div className="text-4xl mb-2">🏷️</div>
+                  <p className="text-gray-400">Нет доступных тегов</p>
+                  <p className="text-sm text-gray-500 mt-1">Все теги уже добавлены к игре</p>
+                </div>
+              ) : (
+                availableTags.map(tag => (
+                  <button
+                    key={tag.id}
+                    onClick={() => addTagToGame(tag.id)}
+                    disabled={addingTag === tag.id}
+                    className="w-full px-4 py-3 text-left text-white hover:bg-gray-800 rounded-lg border border-gray-700 transition-colors flex items-center gap-3 disabled:opacity-50"
+                  >
+                    <div
+                      className="w-4 h-4 rounded-full flex-shrink-0"
+                      style={{ backgroundColor: tag.color }}
+                    />
+                    <span className="text-sm font-medium">{tag.name}</span>
+                    {addingTag === tag.id && (
+                      <Icon name="loader" className="w-4 h-4 animate-spin ml-auto text-purple-400" />
+                    )}
+                  </button>
+                ))
+              )}
+            </div>
+          </div>
         </div>
       );
     };
@@ -2152,6 +2131,8 @@
       const [showTagsManager, setShowTagsManager] = useState(false);
       const [showHistoryLog, setShowHistoryLog] = useState(false);
       const [historyGame, setHistoryGame] = useState(null);
+      const [showTagModal, setShowTagModal] = useState(false);
+      const [selectedGameForTag, setSelectedGameForTag] = useState(null);
       const [showMobileMenu, setShowMobileMenu] = useState(false);
       const [showCardMenu, setShowCardMenu] = useState(null);
       const [selectedCard, setSelectedCard] = useState(null);
@@ -3747,16 +3728,17 @@
                                     )}
                                     <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity self-end flex-shrink-0 z-10">
                                         {!viewingUser && (
-                                            <div onClick={(e) => e.stopPropagation()}>
-                                                <TagDropdown 
-                                                    game={card} 
-                                                    token={localStorage.getItem('token')}
-                                                    onTagAdded={() => {
-                                                        // Обновить доски после добавления тега
-                                                        loadBoards(localStorage.getItem('token'));
-                                                    }}
-                                                />
-                                            </div>
+                                            <button
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    setSelectedGameForTag(card);
+                                                    setShowTagModal(true);
+                                                }}
+                                                className="p-1 text-gray-400 hover:text-white transition-colors"
+                                                title="Добавить тег"
+                                            >
+                                                <Icon name="tag" className="w-4 h-4" />
+                                            </button>
                                         )}
                                         {board.id === 'completed' && !viewingUser && (
                                             <button 
@@ -4547,6 +4529,22 @@
                     </button>
                 )}
             </div>
+
+            {/* Модалка для добавления тегов */}
+            {showTagModal && selectedGameForTag && (
+              <TagModal
+                game={selectedGameForTag}
+                token={localStorage.getItem('token')}
+                onTagAdded={() => {
+                  loadBoards(localStorage.getItem('token'));
+                }}
+                isOpen={showTagModal}
+                onClose={() => {
+                  setShowTagModal(false);
+                  setSelectedGameForTag(null);
+                }}
+              />
+            )}
         );
     };
 
