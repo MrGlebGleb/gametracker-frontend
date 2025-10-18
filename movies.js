@@ -1424,71 +1424,62 @@ function MovieApp() {
       )}
 
       {/* Модальное окно для добавления карточки на свою доску */}
-      <AddToMyBoardModal />
-    </div>
-  );
-}
-
-// Модальное окно для выбора доски при добавлении карточки с чужой доски
-const AddToMyBoardModal = () => {
-  if (!showAddToMyBoard || !cardToAdd) return null;
-
-  const boards = [
-    { key: 'movie:wishlist', title: '🎬 Хочу посмотреть', emoji: '🎬', type: 'movie', boardType: 'wishlist' },
-    { key: 'movie:watched', title: '🍿 Посмотрел', emoji: '🍿', type: 'movie', boardType: 'watched' },
-    { key: 'tv:wishlist', title: '📺 Хочу посмотреть', emoji: '📺', type: 'tv', boardType: 'wishlist' },
-    { key: 'tv:watched', title: '✅ Посмотрел', emoji: '✅', type: 'tv', boardType: 'watched' }
-  ];
-
-  return (
-    <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-[100] p-4">
-      <div className="bg-gray-900 rounded-2xl p-6 w-full max-w-md border border-purple-500/30 elevation-3">
-        <h2 className="text-xl font-bold text-white mb-4">Добавить медиа к себе</h2>
-        <div className="mb-4">
-          <div className="flex gap-3 mb-3">
-            {cardToAdd.poster && (
-              <img src={cardToAdd.poster} alt={cardToAdd.title} className="w-16 h-24 object-cover rounded-lg" />
-            )}
-            <div>
-              <h3 className="text-white font-semibold">{cardToAdd.title}</h3>
-              {cardToAdd.media_type && (
-                <p className="text-gray-400 text-sm mt-1">{cardToAdd.media_type === 'movie' ? 'Фильм' : 'Сериал'}</p>
-              )}
+      {showAddToMyBoard && cardToAdd && (
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-[100] p-4">
+          <div className="bg-gray-900 rounded-2xl p-6 w-full max-w-md border border-purple-500/30 elevation-3">
+            <h2 className="text-xl font-bold text-white mb-4">Добавить медиа к себе</h2>
+            <div className="mb-4">
+              <div className="flex gap-3 mb-3">
+                {cardToAdd.poster && (
+                  <img src={cardToAdd.poster} alt={cardToAdd.title} className="w-16 h-24 object-cover rounded-lg" />
+                )}
+                <div>
+                  <h3 className="text-white font-semibold">{cardToAdd.title}</h3>
+                  {cardToAdd.media_type && (
+                    <p className="text-gray-400 text-sm mt-1">{cardToAdd.media_type === 'movie' ? 'Фильм' : 'Сериал'}</p>
+                  )}
+                </div>
+              </div>
+            </div>
+            
+            <div className="mb-6">
+              <label className="block text-white font-medium mb-3">Выберите доску:</label>
+              <div className="grid grid-cols-2 gap-3">
+                {[
+                  { key: 'movie:wishlist', title: '🎬 Хочу посмотреть', emoji: '🎬', type: 'movie', boardType: 'wishlist' },
+                  { key: 'movie:watched', title: '🍿 Посмотрел', emoji: '🍿', type: 'movie', boardType: 'watched' },
+                  { key: 'tv:wishlist', title: '📺 Хочу посмотреть', emoji: '📺', type: 'tv', boardType: 'wishlist' },
+                  { key: 'tv:watched', title: '✅ Посмотрел', emoji: '✅', type: 'tv', boardType: 'watched' }
+                ].map(board => (
+                  <button
+                    key={board.key}
+                    onClick={() => addCardToMyBoard(cardToAdd, board.key)}
+                    className="p-3 bg-gray-800 hover:bg-gray-700 rounded-lg border border-gray-700 hover:border-purple-500 transition-all text-left"
+                  >
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="text-xl">{board.emoji}</span>
+                      <span className="text-white font-medium text-sm">{board.title}</span>
+                    </div>
+                    <span className="text-gray-400 text-xs">{board.type === 'movie' ? 'Фильмы' : 'Сериалы'}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+            
+            <div className="flex gap-2">
+              <button 
+                onClick={() => { setShowAddToMyBoard(false); setCardToAdd(null); }}
+                className="flex-1 py-2 bg-gray-800 text-white rounded-lg hover:bg-gray-700 transition-colors"
+              >
+                Отмена
+              </button>
             </div>
           </div>
         </div>
-        
-        <div className="mb-6">
-          <label className="block text-white font-medium mb-3">Выберите доску:</label>
-          <div className="grid grid-cols-2 gap-3">
-            {boards.map(board => (
-              <button
-                key={board.key}
-                onClick={() => addCardToMyBoard(cardToAdd, board.key)}
-                className="p-3 bg-gray-800 hover:bg-gray-700 rounded-lg border border-gray-700 hover:border-purple-500 transition-all text-left"
-              >
-                <div className="flex items-center gap-2 mb-1">
-                  <span className="text-xl">{board.emoji}</span>
-                  <span className="text-white font-medium text-sm">{board.title}</span>
-                </div>
-                <span className="text-gray-400 text-xs">{board.type === 'movie' ? 'Фильмы' : 'Сериалы'}</span>
-              </button>
-            ))}
-          </div>
-        </div>
-        
-        <div className="flex gap-2">
-          <button 
-            onClick={() => { setShowAddToMyBoard(false); setCardToAdd(null); }}
-            className="flex-1 py-2 bg-gray-800 text-white rounded-lg hover:bg-gray-700 transition-colors"
-          >
-            Отмена
-          </button>
-        </div>
-      </div>
+      )}
     </div>
   );
-};
+}
 
 ReactDOM.createRoot(document.getElementById('root')).render(<MovieApp />);
 
