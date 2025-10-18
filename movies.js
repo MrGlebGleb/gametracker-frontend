@@ -103,8 +103,19 @@ function StarRating({ value = 0, onChange }) {
   return (
     <div className="flex items-center gap-1">
       {[1, 2, 3, 4, 5].map(star => (
-        <button key={star} onClick={() => onChange(star)} className="transition-transform hover:scale-110">
-          <Icon name="star" className={`w-8 h-8 ${star <= value ? 'text-yellow-400' : 'text-gray-600'}`} />
+        <button 
+          key={star} 
+          onClick={() => onChange(star)} 
+          className="transition-all duration-200 hover:scale-110 active:scale-95"
+        >
+          <Icon 
+            name="star" 
+            className={`w-8 h-8 transition-all duration-300 ${
+              star <= value 
+                ? 'text-yellow-400 drop-shadow-lg' 
+                : 'text-gray-600 hover:text-gray-400'
+            }`} 
+          />
         </button>
       ))}
     </div>
@@ -409,6 +420,7 @@ function MediaDetailsModal({ item, onClose, onUpdate, onReact, isViewingFriend, 
   const [touchStart, setTouchStart] = useState(0);
   const [touchOffset, setTouchOffset] = useState(0);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+  const [removingTag, setRemovingTag] = useState(null);
 
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth < 768);
@@ -436,6 +448,15 @@ function MediaDetailsModal({ item, onClose, onUpdate, onReact, isViewingFriend, 
       onClose();
     }
     setTouchOffset(0);
+  };
+
+  const handleRemoveTag = async (tagId, mediaId) => {
+    setRemovingTag(tagId);
+    // Небольшая задержка для анимации
+    setTimeout(() => {
+      onRemoveTag(tagId, mediaId);
+      setRemovingTag(null);
+    }, 300);
   };
 
   return (
@@ -505,16 +526,19 @@ function MediaDetailsModal({ item, onClose, onUpdate, onReact, isViewingFriend, 
               <div className="flex flex-wrap gap-2">
                 {item.tags.map((tag, i) => (
                   <div 
-                    key={i} 
-                    className="flex items-center gap-2 text-sm px-3 py-1 rounded-full text-white font-medium"
+                    key={tag.id} 
+                    className={`flex items-center gap-2 text-sm px-3 py-1 rounded-full text-white font-medium transition-all duration-300 ${
+                      removingTag === tag.id ? 'opacity-0 scale-0 transform rotate-12' : 'opacity-100 scale-100'
+                    }`}
                     style={{ backgroundColor: tag.color + '40', border: `1px solid ${tag.color}` }}
                   >
                     <span>{tag.name}</span>
                     {!isViewingFriend && onRemoveTag && (
                       <button
-                        onClick={() => onRemoveTag(tag.id, item.id)}
+                        onClick={() => handleRemoveTag(tag.id, item.id)}
                         className="text-red-400 hover:text-red-300 transition-colors"
                         title="Удалить тег"
+                        disabled={removingTag === tag.id}
                       >
                         <Icon name="x" className="w-3 h-3" />
                       </button>
@@ -772,12 +796,20 @@ function MovieApp() {
   };
 
   const updateItem = async (item, updates) => {
-    await fetch(`${API_URL}/api/user/media/${item.id}`, {
-      method: 'PUT', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-      body: JSON.stringify(updates)
-    });
-    await loadBoards(viewingUser?.id);
+    // Сначала обновляем UI локально для мгновенного отклика
     setSelectedMedia(prev => (prev && prev.id === item.id) ? { ...prev, ...updates } : prev);
+    
+    try {
+      await fetch(`${API_URL}/api/user/media/${item.id}`, {
+        method: 'PUT', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify(updates)
+      });
+      await loadBoards(viewingUser?.id);
+    } catch (error) {
+      console.error('Ошибка обновления:', error);
+      // В случае ошибки перезагружаем данные
+      await loadBoards(viewingUser?.id);
+    }
   };
   
   const removeItem = async (e, item) => {
@@ -970,6 +1002,15 @@ function MovieApp() {
   // Удаление тега с медиа
   const removeTagFromMedia = async (tagId, mediaId) => {
     try {
+      // Сначала обновляем UI локально для мгновенного отклика
+      setSelectedMedia(prev => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          tags: prev.tags ? prev.tags.filter(tag => tag.id !== tagId) : []
+        };
+      });
+      
       const response = await fetch(`${API_URL}/api/media/${mediaId}/tags/${tagId}`, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${token}` }
@@ -983,6 +1024,8 @@ function MovieApp() {
       }
     } catch (error) {
       console.error('Ошибка удаления тега:', error);
+      // В случае ошибки перезагружаем данные
+      loadBoards();
     }
   };
 

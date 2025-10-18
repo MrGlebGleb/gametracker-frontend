@@ -2221,6 +2221,16 @@
     // Компонент модалки игры
     const GameModal = ({ game, onClose, onUpdate, onReact, isViewingFriend, user, token, onRemoveTag }) => {
       const { touchOffset, isMobile, handleTouchStart, handleTouchMove, handleTouchEnd } = useSwipeToClose(onClose);
+      const [removingTag, setRemovingTag] = useState(null);
+      
+      const handleRemoveTag = async (tagId, gameId) => {
+        setRemovingTag(tagId);
+        // Небольшая задержка для анимации
+        setTimeout(() => {
+          onRemoveTag(tagId, gameId);
+          setRemovingTag(null);
+        }, 300);
+      };
       
       return (
         <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-[100] md:p-4" onClick={onClose}>
@@ -2246,8 +2256,19 @@
                     <p className="text-gray-400 text-sm mb-2">Рейтинг:</p>
                     <div className="flex gap-2">
                       {[1, 2, 3, 4, 5].map(star => (
-                        <button key={star} onClick={() => onUpdate(game.id, { rating: star })} className="transition-transform hover:scale-110">
-                          <Icon name="star" className={`w-8 h-8 ${star <= (game.rating || 0) ? 'text-yellow-400' : 'text-gray-600'}`} />
+                        <button 
+                          key={star} 
+                          onClick={() => onUpdate(game.id, { rating: star })} 
+                          className="transition-all duration-200 hover:scale-110 active:scale-95"
+                        >
+                          <Icon 
+                            name="star" 
+                            className={`w-8 h-8 transition-all duration-300 ${
+                              star <= (game.rating || 0) 
+                                ? 'text-yellow-400 drop-shadow-lg' 
+                                : 'text-gray-600 hover:text-gray-400'
+                            }`} 
+                          />
                         </button>
                       ))}
                     </div>
@@ -2335,16 +2356,19 @@
                   <div className="flex flex-wrap gap-2">
                     {game.tags.map((tag, i) => (
                       <div 
-                        key={i} 
-                        className="flex items-center gap-2 text-sm px-3 py-1 rounded-full text-white font-medium"
+                        key={tag.id} 
+                        className={`flex items-center gap-2 text-sm px-3 py-1 rounded-full text-white font-medium transition-all duration-300 ${
+                          removingTag === tag.id ? 'opacity-0 scale-0 transform rotate-12' : 'opacity-100 scale-100'
+                        }`}
                         style={{ backgroundColor: tag.color + '40', border: `1px solid ${tag.color}` }}
                       >
                         <span>{tag.name}</span>
                         {!isViewingFriend && onRemoveTag && (
                           <button
-                            onClick={() => onRemoveTag(tag.id, game.id)}
+                            onClick={() => handleRemoveTag(tag.id, game.id)}
                             className="text-red-400 hover:text-red-300 transition-colors"
                             title="Удалить тег"
+                            disabled={removingTag === tag.id}
                           >
                             <Icon name="x" className="w-3 h-3" />
                           </button>
@@ -2865,6 +2889,9 @@
       };
 
       const updateGame = useCallback(async (gameId, updates) => {
+        // Сначала обновляем UI локально для мгновенного отклика
+        setSelectedGame(prev => prev && prev.id === gameId ? { ...prev, ...updates } : prev);
+        
         setBoards(prevBoards => {
             const newBoards = JSON.parse(JSON.stringify(prevBoards));
             for (const boardId in newBoards) {
@@ -2963,6 +2990,15 @@
       // Удаление тега с игры
       const removeTagFromGame = async (tagId, gameId) => {
         try {
+          // Сначала обновляем UI локально для мгновенного отклика
+          setSelectedGame(prev => {
+            if (!prev) return prev;
+            return {
+              ...prev,
+              tags: prev.tags ? prev.tags.filter(tag => tag.id !== tagId) : []
+            };
+          });
+          
           const response = await fetch(`${API_URL}/api/games/${gameId}/tags/${tagId}`, {
             method: 'DELETE',
             headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
@@ -2976,6 +3012,8 @@
           }
         } catch (error) {
           console.error('Ошибка удаления тега:', error);
+          // В случае ошибки перезагружаем данные
+          loadBoards(localStorage.getItem('token'), viewingUser?.id);
         }
       };
 
