@@ -1190,9 +1190,6 @@ function MovieApp() {
                 </svg>
                 <span className="text-2xl md:text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 via-pink-400 to-blue-400">MovieTracker</span>
               </a>
-              <button onClick={() => setShowStatistics(true)} className="p-2 hover:bg-gray-800 rounded-lg border border-purple-500/30">
-                <Icon name="barChart" className="w-4 h-4 md:w-5 md:h-5 text-purple-400" />
-              </button>
             </div>
             {user && (
                 <div className="flex items-center gap-2 md:gap-3">
@@ -1224,12 +1221,15 @@ function MovieApp() {
                        </Fragment>
                     ) : (
                        <Fragment>
-                           <button onClick={() => { setShowUserHub(true); loadAllUsers(); }} className="p-2 hover:bg-gray-800 rounded-lg border border-purple-500/30 relative">
-                               <Icon name="users" className="w-4 h-4 md:w-5 md:h-5 text-purple-400" />
-                               {friendRequests.length > 0 && <span className="absolute top-0 right-0 block h-2.5 w-2.5 rounded-full bg-red-500 ring-2 ring-white"></span>}
+                           <button onClick={() => setShowStatistics(true)} className="p-2 hover:bg-gray-800 rounded-lg border border-purple-500/30" title="Статистика фильмов">
+                               <Icon name="barChart" className="w-4 h-4 md:w-5 md:h-5 text-purple-400" />
                            </button>
                            <button onClick={() => setShowProfile(true)} className="p-2 hover:bg-gray-800 rounded-lg border border-purple-500/30">
                                <Icon name="settings" className="w-4 h-4 md:w-5 md:h-5 text-purple-400" />
+                           </button>
+                           <button onClick={() => { setShowUserHub(true); loadAllUsers(); }} className="p-2 hover:bg-gray-800 rounded-lg border border-purple-500/30 relative">
+                               <Icon name="users" className="w-4 h-4 md:w-5 md:h-5 text-purple-400" />
+                               {friendRequests.length > 0 && <span className="absolute top-0 right-0 block h-2.5 w-2.5 rounded-full bg-red-500 ring-2 ring-white"></span>}
                            </button>
                        </Fragment>
                     )}
@@ -1316,6 +1316,12 @@ function MovieApp() {
               <div className="flex gap-2 mt-6">
                 <button onClick={updateProfile} className="flex-1 py-2 bg-gradient-to-r from-purple-500 to-pink-500 text-white font-bold rounded-lg hover:from-purple-600 hover:to-pink-600">Сохранить</button>
                 <button onClick={() => setShowProfile(false)} className="flex-1 py-2 bg-gray-800 text-white font-bold rounded-lg hover:bg-gray-700">Отмена</button>
+              </div>
+              <div className="mt-4 pt-4 border-t border-gray-700">
+                <button onClick={handleLogout} className="w-full py-2 bg-red-600 hover:bg-red-700 text-white font-bold rounded-lg flex items-center justify-center gap-2">
+                  <Icon name="logout" className="w-4 h-4" />
+                  Выйти из аккаунта
+                </button>
               </div>
             </div>
           </div>

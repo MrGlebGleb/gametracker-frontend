@@ -3394,16 +3394,15 @@
                     </Fragment>
                   ) : (
                     <Fragment>
-                      <button onClick={() => { setShowUserHub(true); loadAllUsers(); }} className="p-2 hover:bg-gray-800 rounded-lg border border-purple-500/30 relative">
-                        <Icon name="users" className="w-4 h-4 md:w-5 md:h-5 text-purple-400" />
-                        {friendRequests.length > 0 && <span className="absolute top-0 right-0 block h-2.5 w-2.5 rounded-full bg-red-500 ring-2 ring-white"></span>}
-                      </button>
-                      <button onClick={() => setShowStatistics(true)} className="p-2 hover:bg-gray-800 rounded-lg border border-purple-500/30 flex items-center gap-2" title="Статистика">
+                      <button onClick={() => setShowStatistics(true)} className="p-2 hover:bg-gray-800 rounded-lg border border-purple-500/30" title="Статистика игр">
                         <Icon name="barChart" className="w-4 h-4 md:w-5 md:h-5 text-purple-400" />
-                        <span className="hidden md:inline text-sm text-purple-400 font-medium">Статистика</span>
                       </button>
                       <button onClick={() => setShowProfile(true)} className="p-2 hover:bg-gray-800 rounded-lg border border-purple-500/30">
                         <Icon name="settings" className="w-4 h-4 md:w-5 md:h-5 text-purple-400" />
+                      </button>
+                      <button onClick={() => { setShowUserHub(true); loadAllUsers(); }} className="p-2 hover:bg-gray-800 rounded-lg border border-purple-500/30 relative">
+                        <Icon name="users" className="w-4 h-4 md:w-5 md:h-5 text-purple-400" />
+                        {friendRequests.length > 0 && <span className="absolute top-0 right-0 block h-2.5 w-2.5 rounded-full bg-red-500 ring-2 ring-white"></span>}
                       </button>
                     </Fragment>
                   )}
