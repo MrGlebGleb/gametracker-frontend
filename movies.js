@@ -108,18 +108,13 @@ function MediaCard({ item, onSelect, onRemove, onDragStart, onDragEnd, isViewing
         <div>
           <h3 className="text-white font-semibold text-base md:text-sm line-clamp-2">{item.title}</h3>
         </div>
-        {/* Подсказка с реакциями при наведении */}
         {item.reactions && item.reactions.length > 0 && (
-          <div className="group-hover:opacity-100 opacity-0 transition-opacity duration-200 absolute top-full left-0 right-0 z-20 mt-2 pointer-events-none">
-            <div className="bg-gray-900/95 backdrop-blur-sm rounded-lg p-3 border border-gray-700 shadow-lg">
-              <div className="flex gap-1 flex-wrap">
-                {Object.entries(groupReactions(item.reactions)).map(([emoji, count]) => (
-                  <span key={emoji} className="text-sm">
-                    {emoji}{count > 1 && <span className="text-xs text-gray-400">×{count}</span>}
-                  </span>
-                ))}
-              </div>
-            </div>
+          <div className="flex gap-1 mt-1 flex-wrap items-center">
+            {Object.entries(groupReactions(item.reactions)).map(([emoji, count]) => (
+              <span key={emoji} className="text-base">
+                {emoji}{count > 1 && <span className="text-xs text-gray-400">×{count}</span>}
+              </span>
+            ))}
           </div>
         )}
       </div>
@@ -1432,9 +1427,7 @@ function MovieApp() {
       {showAddToMyBoard && cardToAdd && (
         <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-[100] p-4">
           <div className="bg-gray-900 rounded-2xl p-6 w-full max-w-md border border-purple-500/30 elevation-3">
-            <h2 className="text-xl font-bold text-white mb-4">
-              Добавить {cardToAdd.media_type === 'movie' ? 'фильм' : 'сериал'} к себе
-            </h2>
+            <h2 className="text-xl font-bold text-white mb-4">Добавить медиа к себе</h2>
             <div className="mb-4">
               <div className="flex gap-3 mb-3">
                 {cardToAdd.poster && (
@@ -1452,13 +1445,12 @@ function MovieApp() {
             <div className="mb-6">
               <label className="block text-white font-medium mb-3">Выберите доску:</label>
               <div className="grid grid-cols-2 gap-3">
-                {(cardToAdd.media_type === 'movie' ? [
+                {[
                   { key: 'movie:wishlist', title: '🎬 Хочу посмотреть', emoji: '🎬', type: 'movie', boardType: 'wishlist' },
-                  { key: 'movie:watched', title: '🍿 Посмотрел', emoji: '🍿', type: 'movie', boardType: 'watched' }
-                ] : [
+                  { key: 'movie:watched', title: '🍿 Посмотрел', emoji: '🍿', type: 'movie', boardType: 'watched' },
                   { key: 'tv:wishlist', title: '📺 Хочу посмотреть', emoji: '📺', type: 'tv', boardType: 'wishlist' },
                   { key: 'tv:watched', title: '✅ Посмотрел', emoji: '✅', type: 'tv', boardType: 'watched' }
-                ]).map(board => (
+                ].map(board => (
                   <button
                     key={board.key}
                     onClick={() => addCardToMyBoard(cardToAdd, board.key)}
