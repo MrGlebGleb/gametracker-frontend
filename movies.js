@@ -302,6 +302,15 @@ const StatisticsPage = ({ isOpen, onClose, token, boards, showMediaTab = true })
       poster: movie.poster,
       rating: movie.rating || 0
     })).sort((a, b) => (b.rating || 0) - (a.rating || 0)).slice(0, 10);
+    
+    // Создаем топ сериалов из просмотренных
+    const topTv = tv.watched.map(series => ({
+      id: series.id,
+      title: series.title,
+      year: series.year,
+      poster: series.poster,
+      rating: series.rating || 0
+    })).sort((a, b) => (b.rating || 0) - (a.rating || 0)).slice(0, 10);
 
     // Создаем месячную статистику (последние 6 месяцев)
     const monthlyStats = [];
@@ -345,6 +354,7 @@ const StatisticsPage = ({ isOpen, onClose, token, boards, showMediaTab = true })
         averageRating: averageRating
       },
       topMovies: topMovies,
+      topTv: topTv,
       monthlyStats: monthlyStats
     };
   }, [boards]);
@@ -497,32 +507,70 @@ const MediaStatsContent = ({ stats }) => {
         </div>
       </div>
 
-      {/* Топ-10 фильмов */}
-      <div className="bg-gray-800/50 rounded-xl p-6 border border-gray-700">
-        <h3 className="text-lg font-semibold text-white mb-4">🏆 Топ-10 фильмов</h3>
-        <div className="space-y-3">
-          {stats.topMovies && stats.topMovies.length > 0 ? (
-            stats.topMovies.slice(0, 10).map((movie, index) => (
-              <div key={movie.id} className="flex items-center gap-4 p-3 bg-gray-700/50 rounded-lg">
-                <div className="w-8 h-8 bg-purple-500/20 rounded-full flex items-center justify-center text-sm font-bold text-purple-400">
-                  {index + 1}
+      {/* Топ фильмов и сериалов */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Топ фильмов */}
+        <div className="bg-gray-800/50 rounded-xl p-6 border border-gray-700">
+          <div className="flex items-center gap-2 mb-4">
+            <Icon name="film" className="w-5 h-5 text-blue-400" />
+            <h3 className="text-lg font-semibold text-white">Топ-10 фильмов</h3>
+          </div>
+          <div className="space-y-3">
+            {stats.topMovies && stats.topMovies.length > 0 ? (
+              stats.topMovies.slice(0, 10).map((movie, index) => (
+                <div key={movie.id} className="flex items-center gap-4 p-3 bg-gray-700/50 rounded-lg">
+                  <div className="w-8 h-8 bg-blue-500/20 rounded-full flex items-center justify-center text-sm font-bold text-blue-400">
+                    {index + 1}
+                  </div>
+                  <img src={movie.poster || 'https://placehold.co/40x56/1f2937/ffffff?text=?'} alt={movie.title} className="w-12 h-16 object-cover rounded" />
+                  <div className="flex-1 min-w-0">
+                    <h4 className="text-white font-medium truncate">{movie.title}</h4>
+                    <p className="text-gray-400 text-sm">{movie.year}</p>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    {[...Array(5)].map((_, i) => (
+                      <Icon key={i} name="star" className={`w-4 h-4 ${i < (movie.rating || 0) ? 'text-yellow-400' : 'text-gray-600'}`} />
+                    ))}
+                    <span className="ml-2 text-white font-medium">{movie.rating || 0}</span>
+                  </div>
                 </div>
-                <img src={movie.poster || 'https://placehold.co/40x56/1f2937/ffffff?text=?'} alt={movie.title} className="w-12 h-16 object-cover rounded" />
-                <div className="flex-1 min-w-0">
-                  <h4 className="text-white font-medium truncate">{movie.title}</h4>
-                  <p className="text-gray-400 text-sm">{movie.year}</p>
+              ))
+            ) : (
+              <div className="text-gray-400 text-center py-8">Нет рейтинговых фильмов</div>
+            )}
+          </div>
+        </div>
+
+        {/* Топ сериалов */}
+        <div className="bg-gray-800/50 rounded-xl p-6 border border-gray-700">
+          <div className="flex items-center gap-2 mb-4">
+            <Icon name="tv" className="w-5 h-5 text-purple-400" />
+            <h3 className="text-lg font-semibold text-white">Топ-10 сериалов</h3>
+          </div>
+          <div className="space-y-3">
+            {stats.topTv && stats.topTv.length > 0 ? (
+              stats.topTv.slice(0, 10).map((series, index) => (
+                <div key={series.id} className="flex items-center gap-4 p-3 bg-gray-700/50 rounded-lg">
+                  <div className="w-8 h-8 bg-purple-500/20 rounded-full flex items-center justify-center text-sm font-bold text-purple-400">
+                    {index + 1}
+                  </div>
+                  <img src={series.poster || 'https://placehold.co/40x56/1f2937/ffffff?text=?'} alt={series.title} className="w-12 h-16 object-cover rounded" />
+                  <div className="flex-1 min-w-0">
+                    <h4 className="text-white font-medium truncate">{series.title}</h4>
+                    <p className="text-gray-400 text-sm">{series.year}</p>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    {[...Array(5)].map((_, i) => (
+                      <Icon key={i} name="star" className={`w-4 h-4 ${i < (series.rating || 0) ? 'text-yellow-400' : 'text-gray-600'}`} />
+                    ))}
+                    <span className="ml-2 text-white font-medium">{series.rating || 0}</span>
+                  </div>
                 </div>
-                <div className="flex items-center gap-1">
-                  {[...Array(5)].map((_, i) => (
-                    <Icon key={i} name="star" className={`w-4 h-4 ${i < (movie.rating || 0) ? 'text-yellow-400' : 'text-gray-600'}`} />
-                  ))}
-                  <span className="ml-2 text-white font-medium">{movie.rating || 0}</span>
-                </div>
-              </div>
-            ))
-          ) : (
-            <div className="text-gray-400 text-center py-8">Нет данных</div>
-          )}
+              ))
+            ) : (
+              <div className="text-gray-400 text-center py-8">Нет рейтинговых сериалов</div>
+            )}
+          </div>
         </div>
       </div>
     </div>
