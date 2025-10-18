@@ -66,7 +66,7 @@ function StarRating({ value = 0, onChange }) {
   );
 }
 
-function MediaCard({ item, onSelect, onRemove, onDragStart, onDragEnd, isViewingFriend, boardId, onMobileClick, boardKey }) {
+function MediaCard({ item, onSelect, onRemove, onDragStart, onDragEnd, isViewingFriend, boardId, onMobileClick, boardKey, onAddToMyBoard }) {
   const type = item.media_type || 'movie'; // Определяем тип медиа
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   
@@ -118,9 +118,16 @@ function MediaCard({ item, onSelect, onRemove, onDragStart, onDragEnd, isViewing
           </div>
         )}
       </div>
-       {!isViewingFriend && (
+       {!isViewingFriend ? (
             <button onClick={(e) => onRemove(e, item)} className="absolute top-1 right-1 p-1.5 bg-red-600/80 hover:bg-red-500 rounded-full opacity-0 group-hover:opacity-100 transition-opacity self-start flex-shrink-0 z-10">
                 <Icon name="trash" className="w-3 h-3 text-white" />
+            </button>
+       ) : (
+            <button onClick={(e) => {
+                e.stopPropagation();
+                onAddToMyBoard(item);
+            }} className="absolute top-1 right-1 p-1.5 bg-green-600/80 hover:bg-green-500 rounded-full opacity-0 group-hover:opacity-100 transition-opacity self-start flex-shrink-0 z-10" title="Добавить к себе">
+                <Icon name="plus" className="w-3 h-3 text-white" />
             </button>
        )}
 
@@ -160,7 +167,7 @@ function Column({ title, emoji, items, columnKey, isExpanded, onToggleExpand, is
         </div>
         <div className="accordion-content">
           <div className="space-y-2 flex-grow min-h-[150px]">
-              {visibleItems.map(it => <MediaCard key={it.id} item={it} isViewingFriend={isViewingFriend} boardId={boardId} boardKey={columnKey} onMobileClick={handlers.onMobileClick} {...handlers} />)}
+              {visibleItems.map(it => <MediaCard key={it.id} item={it} isViewingFriend={isViewingFriend} boardId={boardId} boardKey={columnKey} onMobileClick={handlers.onMobileClick} onAddToMyBoard={handlers.onAddToMyBoard} {...handlers} />)}
               
               {items.length === 0 && (
                 <div className="flex flex-col items-center justify-center py-12 text-center">
@@ -456,6 +463,8 @@ function MovieApp() {
   const [viewingUser, setViewingUser] = useState(null);
   const [showProfile, setShowProfile] = useState(false);
   const [showUserHub, setShowUserHub] = useState(false);
+  const [showAddToMyBoard, setShowAddToMyBoard] = useState(false);
+  const [cardToAdd, setCardToAdd] = useState(null);
   const dragItem = useRef(null);
   const [expandedColumns, setExpandedColumns] = useState({});
   const [friends, setFriends] = useState([]);
@@ -583,6 +592,43 @@ function MovieApp() {
     if (confirm(`Вы уверены, что хотите удалить "${item.title}"?`)) {
       await fetch(`${API_URL}/api/user/media/${item.id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } });
       await loadBoards();
+    }
+  };
+
+  const handleAddToMyBoard = (card) => {
+    setCardToAdd(card);
+    setShowAddToMyBoard(true);
+  };
+
+  const addCardToMyBoard = async (card, targetBoardKey) => {
+    const token = localStorage.getItem('token');
+    try {
+      const [mediaType, boardType] = targetBoardKey.split(':');
+      
+      const response = await fetch(`${API_URL}/api/user/media`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({
+          title: card.title,
+          media_type: mediaType,
+          board_type: boardType,
+          poster: card.poster,
+          tmdb_id: card.tmdb_id,
+          rating: card.rating
+        })
+      });
+      
+      if (response.ok) {
+        await loadBoards();
+        setShowAddToMyBoard(false);
+        setCardToAdd(null);
+        alert('Медиа успешно добавлено на вашу доску!');
+      } else {
+        throw new Error('Failed to add media');
+      }
+    } catch (err) {
+      console.error('Ошибка добавления медиа:', err);
+      alert('Ошибка при добавлении медиа. Попробуйте еще раз.');
     }
   };
 
@@ -864,16 +910,16 @@ function MovieApp() {
             
             {/* Desktop: 4 columns side by side, Tablet: 2x2 grid, Mobile: 1 column stack */}
             <div className="md:col-span-2 lg:col-span-1" onDrop={(e) => onDrop(e, 'movie:wishlist')} onDragEnter={onDragEnterColumn} onDragLeave={onDragLeaveColumn}>
-                <Column title="🎬 Хочу посмотреть" emoji="" items={movies.wishlist} columnKey="movie:wishlist" isExpanded={!!expandedColumns['movie:wishlist']} onToggleExpand={toggleColumnExpansion} onSelect={setSelectedMedia} onRemove={removeItem} onDragStart={onDragStart} onDragEnd={onDragEnd} onMobileClick={handleMobileCardClick} onSearch={() => setShowSearch(true)} isViewingFriend={!!viewingUser} />
+                <Column title="🎬 Хочу посмотреть" emoji="" items={movies.wishlist} columnKey="movie:wishlist" isExpanded={!!expandedColumns['movie:wishlist']} onToggleExpand={toggleColumnExpansion} onSelect={setSelectedMedia} onRemove={removeItem} onDragStart={onDragStart} onDragEnd={onDragEnd} onMobileClick={handleMobileCardClick} onSearch={() => setShowSearch(true)} onAddToMyBoard={handleAddToMyBoard} isViewingFriend={!!viewingUser} />
             </div>
             <div className="md:col-span-2 lg:col-span-1" onDrop={(e) => onDrop(e, 'movie:watched')} onDragEnter={onDragEnterColumn} onDragLeave={onDragLeaveColumn}>
-                <Column title="🍿 Посмотрел" emoji="" items={movies.watched} columnKey="movie:watched" isExpanded={!!expandedColumns['movie:watched']} onToggleExpand={toggleColumnExpansion} onSelect={setSelectedMedia} onRemove={removeItem} onDragStart={onDragStart} onDragEnd={onDragEnd} onMobileClick={handleMobileCardClick} isViewingFriend={!!viewingUser} />
+                <Column title="🍿 Посмотрел" emoji="" items={movies.watched} columnKey="movie:watched" isExpanded={!!expandedColumns['movie:watched']} onToggleExpand={toggleColumnExpansion} onSelect={setSelectedMedia} onRemove={removeItem} onDragStart={onDragStart} onDragEnd={onDragEnd} onMobileClick={handleMobileCardClick} onAddToMyBoard={handleAddToMyBoard} isViewingFriend={!!viewingUser} />
             </div>
             <div className="md:col-span-2 lg:col-span-1" onDrop={(e) => onDrop(e, 'tv:wishlist')} onDragEnter={onDragEnterColumn} onDragLeave={onDragLeaveColumn}>
-                <Column title="📺 Хочу посмотреть" emoji="" items={tv.wishlist} columnKey="tv:wishlist" isExpanded={!!expandedColumns['tv:wishlist']} onToggleExpand={toggleColumnExpansion} onSelect={setSelectedMedia} onRemove={removeItem} onDragStart={onDragStart} onDragEnd={onDragEnd} onMobileClick={handleMobileCardClick} onSearch={() => setShowSearch(true)} isViewingFriend={!!viewingUser} />
+                <Column title="📺 Хочу посмотреть" emoji="" items={tv.wishlist} columnKey="tv:wishlist" isExpanded={!!expandedColumns['tv:wishlist']} onToggleExpand={toggleColumnExpansion} onSelect={setSelectedMedia} onRemove={removeItem} onDragStart={onDragStart} onDragEnd={onDragEnd} onMobileClick={handleMobileCardClick} onSearch={() => setShowSearch(true)} onAddToMyBoard={handleAddToMyBoard} isViewingFriend={!!viewingUser} />
             </div>
             <div className="md:col-span-2 lg:col-span-1" onDrop={(e) => onDrop(e, 'tv:watched')} onDragEnter={onDragEnterColumn} onDragLeave={onDragLeaveColumn}>
-                <Column title="✅ Посмотрел" emoji="" items={tv.watched} columnKey="tv:watched" isExpanded={!!expandedColumns['tv:watched']} onToggleExpand={toggleColumnExpansion} onSelect={setSelectedMedia} onRemove={removeItem} onDragStart={onDragStart} onDragEnd={onDragEnd} onMobileClick={handleMobileCardClick} isViewingFriend={!!viewingUser} />
+                <Column title="✅ Посмотрел" emoji="" items={tv.watched} columnKey="tv:watched" isExpanded={!!expandedColumns['tv:watched']} onToggleExpand={toggleColumnExpansion} onSelect={setSelectedMedia} onRemove={removeItem} onDragStart={onDragStart} onDragEnd={onDragEnd} onMobileClick={handleMobileCardClick} onAddToMyBoard={handleAddToMyBoard} isViewingFriend={!!viewingUser} />
             </div>
         </div>
         
@@ -1376,9 +1422,73 @@ function MovieApp() {
           </div>
         </>
       )}
+
+      {/* Модальное окно для добавления карточки на свою доску */}
+      <AddToMyBoardModal />
     </div>
   );
 }
+
+// Модальное окно для выбора доски при добавлении карточки с чужой доски
+const AddToMyBoardModal = () => {
+  if (!showAddToMyBoard || !cardToAdd) return null;
+
+  const boards = [
+    { key: 'movie:wishlist', title: '🎬 Хочу посмотреть', emoji: '🎬', type: 'movie', boardType: 'wishlist' },
+    { key: 'movie:watched', title: '🍿 Посмотрел', emoji: '🍿', type: 'movie', boardType: 'watched' },
+    { key: 'tv:wishlist', title: '📺 Хочу посмотреть', emoji: '📺', type: 'tv', boardType: 'wishlist' },
+    { key: 'tv:watched', title: '✅ Посмотрел', emoji: '✅', type: 'tv', boardType: 'watched' }
+  ];
+
+  return (
+    <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-[100] p-4">
+      <div className="bg-gray-900 rounded-2xl p-6 w-full max-w-md border border-purple-500/30 elevation-3">
+        <h2 className="text-xl font-bold text-white mb-4">Добавить медиа к себе</h2>
+        <div className="mb-4">
+          <div className="flex gap-3 mb-3">
+            {cardToAdd.poster && (
+              <img src={cardToAdd.poster} alt={cardToAdd.title} className="w-16 h-24 object-cover rounded-lg" />
+            )}
+            <div>
+              <h3 className="text-white font-semibold">{cardToAdd.title}</h3>
+              {cardToAdd.media_type && (
+                <p className="text-gray-400 text-sm mt-1">{cardToAdd.media_type === 'movie' ? 'Фильм' : 'Сериал'}</p>
+              )}
+            </div>
+          </div>
+        </div>
+        
+        <div className="mb-6">
+          <label className="block text-white font-medium mb-3">Выберите доску:</label>
+          <div className="grid grid-cols-2 gap-3">
+            {boards.map(board => (
+              <button
+                key={board.key}
+                onClick={() => addCardToMyBoard(cardToAdd, board.key)}
+                className="p-3 bg-gray-800 hover:bg-gray-700 rounded-lg border border-gray-700 hover:border-purple-500 transition-all text-left"
+              >
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="text-xl">{board.emoji}</span>
+                  <span className="text-white font-medium text-sm">{board.title}</span>
+                </div>
+                <span className="text-gray-400 text-xs">{board.type === 'movie' ? 'Фильмы' : 'Сериалы'}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+        
+        <div className="flex gap-2">
+          <button 
+            onClick={() => { setShowAddToMyBoard(false); setCardToAdd(null); }}
+            className="flex-1 py-2 bg-gray-800 text-white rounded-lg hover:bg-gray-700 transition-colors"
+          >
+            Отмена
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 ReactDOM.createRoot(document.getElementById('root')).render(<MovieApp />);
 
