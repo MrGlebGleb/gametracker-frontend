@@ -160,7 +160,7 @@ function MediaCard({ item, onSelect, onRemove, onDragStart, onDragEnd, isViewing
         </div>
         {/* Рейтинг внизу справа */}
         {item.rating && (
-          <div className="flex justify-end mt-2">
+          <div className="flex justify-end mt-4">
             <div className="flex gap-0.5">
               {[...Array(5)].map((_, i) => (
                 <Icon 
