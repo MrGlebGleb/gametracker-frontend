@@ -510,9 +510,11 @@ function MovieApp() {
   const onDragStart = (e, item) => {
     if(viewingUser) return;
     dragItem.current = { item };
-    e.currentTarget.classList.add('dragging-card');
     e.dataTransfer.effectAllowed = 'move';
     e.dataTransfer.setData('text/html', e.currentTarget.outerHTML);
+    setTimeout(() => {
+      e.currentTarget.classList.add('dragging-card');
+    }, 0);
   };
   
   const onDragEnd = (e) => {
