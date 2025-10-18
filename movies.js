@@ -157,21 +157,19 @@ function MediaCard({ item, onSelect, onRemove, onDragStart, onDragEnd, isViewing
       <div className="flex flex-col justify-between flex-grow min-w-0 py-1">
         <div>
           <h3 className="text-white font-semibold text-base md:text-sm line-clamp-2">{item.title}</h3>
-        </div>
-        {/* Рейтинг внизу справа */}
-        {item.rating && (
-          <div className="flex justify-end mt-4">
-            <div className="flex gap-0.5">
+          {/* Рейтинг под названием */}
+          {item.rating && (
+            <div className="flex gap-0.5 mt-1">
               {[...Array(5)].map((_, i) => (
                 <Icon 
                   key={i} 
                   name="star" 
-                  className={`w-3.5 h-3.5 ${i < item.rating ? 'text-yellow-400' : 'text-gray-500'}`} 
+                  className={`w-3 h-3 ${i < item.rating ? 'text-yellow-400' : 'text-gray-500'}`} 
                 />
               ))}
             </div>
-          </div>
-        )}
+          )}
+        </div>
       </div>
        {!isViewingFriend ? (
             <button onClick={(e) => onRemove(e, item)} className="absolute top-1 right-1 p-1.5 bg-red-600/80 hover:bg-red-500 rounded-full opacity-0 group-hover:opacity-100 transition-opacity self-start flex-shrink-0 z-10">
