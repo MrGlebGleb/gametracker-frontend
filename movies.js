@@ -661,8 +661,8 @@ function MovieApp() {
           token={token} 
           boardType="media" 
           onNavigateToUser={(userId) => {
-            setViewingUser({ id: userId });
-            loadBoards(token, userId);
+            console.log('Navigating to user:', userId);
+            loadBoards(userId);
           }}
         />}
 
