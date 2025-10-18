@@ -72,21 +72,21 @@ function MediaCard({ item, onSelect, onRemove, onDragStart, onDragEnd, isViewing
         style={{ backgroundColor: boardId === 'wishlist' ? '#3B82F6' : '#10B981' }}
       ></div>
       <div className="relative flex-shrink-0">
-        <img src={item.poster || 'https://placehold.co/96x128/1f2937/ffffff?text=?'} alt={item.title} className="w-20 h-28 object-cover rounded-lg flex-shrink-0" />
+        <img src={item.poster || 'https://placehold.co/96x128/1f2937/ffffff?text=?'} alt={item.title} className="w-16 h-24 object-cover rounded-lg flex-shrink-0" />
         {/* Рейтинг звездами как overlay */}
         {item.rating && (
           <div className="absolute bottom-2 left-2 bg-black/70 backdrop-blur-sm rounded px-1.5 py-0.5 flex gap-0.5">
-            {[...Array(5)].map((_, i) => (<Icon key={i} name="star" className={`w-2.5 h-2.5 ${i < item.rating ? 'text-yellow-400' : 'text-gray-400'}`} />))}
+            {[...Array(5)].map((_, i) => (<Icon key={i} name="star" className={`w-2 h-2 ${i < item.rating ? 'text-yellow-400' : 'text-gray-400'}`} />))}
           </div>
         )}
       </div>
       <div className="flex flex-col justify-between flex-grow min-w-0 py-1">
         <div>
-          <h3 className="text-white font-semibold text-base line-clamp-2">{item.title}</h3>
+          <h3 className="text-white font-semibold text-sm line-clamp-2">{item.title}</h3>
         </div>
         {item.reactions && item.reactions.length > 0 && (
           <div className="flex gap-1.5 mt-1 flex-wrap items-center">
-            {item.reactions.slice(0, 4).map((r, i) => <span key={i} className="text-lg">{r.emoji}</span>)}
+            {item.reactions.slice(0, 4).map((r, i) => <span key={i} className="text-sm">{r.emoji}</span>)}
             {item.reactions.length > 4 && <span className="text-xs text-gray-400 self-center">+{item.reactions.length - 4}</span>}
           </div>
         )}
@@ -106,15 +106,15 @@ function Column({ title, emoji, items, columnKey, isExpanded, onToggleExpand, is
   const visibleItems = isExpanded ? items : items.slice(0, MEDIA_PER_COLUMN);
     
   return (
-    <div className="bg-gradient-to-br from-purple-500/10 to-pink-500/10 backdrop-blur-xl rounded-xl p-5 border border-purple-500/30 flex flex-col h-full elevation-1 board-column">
+    <div className="bg-gradient-to-br from-purple-500/10 to-pink-500/10 backdrop-blur-xl rounded-xl p-4 border border-purple-500/30 flex flex-col h-full elevation-1 board-column">
         <div className="flex items-center justify-between mb-4">
-            <h3 className="text-2xl font-extrabold text-white flex items-center gap-2 tracking-wide whitespace-nowrap">
+            <h3 className="text-lg font-extrabold text-white flex items-center gap-2 tracking-wide whitespace-nowrap">
                 <span className="text-xl">{emoji}</span>
                 <span>{title}</span>
             </h3>
-            <span className="bg-white/10 text-white px-3 py-1 rounded-full text-sm font-bold">{items.length}</span>
+            <span className="bg-white/10 text-white px-2 py-1 rounded-full text-xs font-bold">{items.length}</span>
         </div>
-        <div className="space-y-3 flex-grow min-h-[150px]">
+        <div className="space-y-2 flex-grow min-h-[150px]">
             {visibleItems.map(it => <MediaCard key={it.id} item={it} isViewingFriend={isViewingFriend} boardId={boardId} {...handlers} />)}
         </div>
         {items.length > MEDIA_PER_COLUMN && (
