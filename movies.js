@@ -100,16 +100,16 @@ function MediaCard({ item, onSelect, onRemove, onDragStart, onDragEnd, isViewing
               const reactionGroups = Object.entries(groupedReactions).slice(0, 4);
               const totalGroups = Object.keys(groupedReactions).length;
               
-              return reactionGroups.map(([emoji, reactions]) => (
-                <span 
-                  key={emoji} 
-                  className="text-[10px] hover:scale-110 transition-transform cursor-help relative group"
-                  title={reactions.map(r => r.username).join(', ')}
-                >
-                  {emoji}
-                  {reactions.length > 1 && <span className="ml-0.5 text-[9px] text-gray-400">×{reactions.length}</span>}
-                </span>
-              ));
+               return reactionGroups.map(([emoji, reactions]) => (
+                 <span 
+                   key={emoji} 
+                   className="text-[8px] hover:scale-110 transition-transform cursor-help relative group reaction-group"
+                   title={reactions.map(r => r.username).join(', ')}
+                 >
+                   {emoji}
+                   {reactions.length > 1 && <span className="ml-0.5 text-[7px] text-gray-400">×{reactions.length}</span>}
+                 </span>
+               ));
             })()}
             {(() => {
               const groupedReactions = {};
@@ -120,7 +120,7 @@ function MediaCard({ item, onSelect, onRemove, onDragStart, onDragEnd, isViewing
                 groupedReactions[r.emoji].push(r);
               });
               const totalGroups = Object.keys(groupedReactions).length;
-              return totalGroups > 4 && <span className="text-[9px] text-gray-400 self-center">+{totalGroups - 4}</span>;
+               return totalGroups > 4 && <span className="text-[7px] text-gray-400 self-center">+{totalGroups - 4}</span>;
             })()}
           </div>
         )}
@@ -256,7 +256,7 @@ function MediaDetailsModal({ item, onClose, onUpdate, onReact, isViewingFriend, 
   );
 }
 
-function ActivityFeed({ token, boardType = 'media' }) {
+function ActivityFeed({ token, boardType = 'media', onNavigateToUser }) {
     const [activities, setActivities] = useState([]);
     const [loading, setLoading] = useState(true);
 
@@ -287,20 +287,29 @@ function ActivityFeed({ token, boardType = 'media' }) {
     const mediaTypes = { movie: 'фильм', tv: 'сериал'};
 
     const formatActivity = (act) => {
-        const { username, action_type, details } = act;
+        const { username, action_type, details, user_id } = act;
         const mediaName = <span className="font-bold text-purple-300">{details.title}</span>;
         const mediaType = mediaTypes[details.mediaType] || 'медиа';
+        const clickableUsername = (
+            <button 
+                onClick={() => onNavigateToUser && onNavigateToUser(user_id)}
+                className="text-blue-400 hover:text-blue-300 underline cursor-pointer font-semibold"
+            >
+                {username}
+            </button>
+        );
+        
         switch (action_type) {
             case 'add_media':
-                return <>{username} добавил {mediaType} {mediaName} в <span className="italic">{boardTitles[details.board]}</span></>;
+                return <>{clickableUsername} добавил {mediaType} {mediaName} в <span className="italic">{boardTitles[details.board]}</span></>;
             case 'complete_media':
-                return <><span className="text-green-400 font-semibold">{username}</span> посмотрел {mediaType} {mediaName}! 🎉</>;
+                return <><span className="text-green-400 font-semibold">{clickableUsername}</span> посмотрел {mediaType} {mediaName}! 🎉</>;
             case 'move_media':
-                return <>{username} вернул {mediaType} {mediaName} в <span className="italic">"{boardTitles.wishlist}"</span></>;
+                return <>{clickableUsername} вернул {mediaType} {mediaName} в <span className="italic">"{boardTitles.wishlist}"</span></>;
              case 'remove_media':
-                return <>{username} удалил {mediaName}</>;
+                return <>{clickableUsername} удалил {mediaName}</>;
             default:
-                return `${username} ${action_type}`;
+                return <>{clickableUsername} {action_type}</>;
         }
     };
     
@@ -736,7 +745,14 @@ function MovieApp() {
             </div>
         </div>
         
-        {!viewingUser && <ActivityFeed token={token} boardType="media" />}
+        {!viewingUser && <ActivityFeed 
+          token={token} 
+          boardType="media" 
+          onNavigateToUser={(userId) => {
+            console.log('Navigating to user:', userId);
+            loadBoards(userId);
+          }}
+        />}
 
       </main>
 
