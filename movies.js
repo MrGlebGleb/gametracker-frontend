@@ -334,7 +334,7 @@ const StatisticsPage = ({ isOpen, onClose, token, boards, showMediaTab = true })
     const allWatchedMedia = [...movies.watched, ...tv.watched];
     const ratedMedia = allWatchedMedia.filter(media => media.rating && media.rating > 0);
     const averageRating = ratedMedia.length > 0 
-      ? (ratedMedia.reduce((sum, media) => sum + (media.rating || 0), 0) / ratedMedia.length).toFixed(1)
+      ? parseFloat((ratedMedia.reduce((sum, media) => sum + (media.rating || 0), 0) / ratedMedia.length).toFixed(1))
       : 0;
 
     return {
@@ -458,7 +458,7 @@ const MediaStatsContent = ({ stats }) => {
         <div className="bg-gradient-to-br from-yellow-500/20 to-orange-500/20 backdrop-blur-xl rounded-xl p-6 border border-yellow-500/30">
           <div className="text-3xl mb-2">⭐</div>
           <h3 className="text-sm font-semibold text-gray-300 mb-1">Средний рейтинг</h3>
-          <p className="text-3xl font-bold text-white">{stats.summary?.averageRating?.toFixed(1) || '0.0'}</p>
+          <p className="text-3xl font-bold text-white">{typeof stats.summary?.averageRating === 'number' ? stats.summary.averageRating.toFixed(1) : stats.summary?.averageRating || '0.0'}</p>
         </div>
         <div className="bg-gradient-to-br from-purple-500/20 to-pink-500/20 backdrop-blur-xl rounded-xl p-6 border border-purple-500/30">
           <div className="text-3xl mb-2">📺</div>
