@@ -829,6 +829,7 @@ const Icon = ({ name, className = "w-5 h-5" }) => {
     userClock: <svg className={className} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><circle cx="18" cy="18" r="3" /><path d="M20.5 16.5 18 18l.5 2.5"/></svg>,
     chevronUp: <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M5 15l7-7 7 7" /></svg>,
     chevronDown: <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" /></svg>,
+    youtube: <svg className={className} fill="currentColor" viewBox="0 0 24 24"><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg>,
   };
   return icons[name] || null;
 };
@@ -1068,6 +1069,18 @@ function MediaDetailsModal({ item, onClose, onUpdate, onReact, isViewingFriend, 
               </div>
             </div>
           )}
+
+          {/* Кнопка трейлера */}
+          <div className="flex gap-2 mt-4">
+            <a 
+              href={`https://www.youtube.com/results?search_query=${encodeURIComponent(item.title + ' trailer')}`} 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="flex-1 flex items-center justify-center gap-2 py-2 bg-red-600 text-white font-bold rounded-lg hover:bg-red-700 transition-colors">
+              <Icon name="youtube" className="w-6 h-6" />
+              Трейлер
+            </a>
+          </div>
         </div>
       </div>
     </div>
