@@ -14,7 +14,6 @@ window.GameRunner = (function() {
     const API_URL = 'https://gametracker-backend-production.up.railway.app';
     let GAME_WIDTH = Math.min(900, window.innerWidth - 40);
     const GAME_HEIGHT = 250;
-    const MIN_GAME_WIDTH = 320; // Минимальная ширина для очень маленьких экранов
     const COLORS = {
         PLAYER: '#f472b6',
         PLAYER_GLOW: 'rgba(244, 114, 182, 0.5)',
@@ -62,7 +61,7 @@ window.GameRunner = (function() {
 
     // Обработчик изменения размера окна
     const handleResize = () => {
-        const newWidth = Math.max(MIN_GAME_WIDTH, Math.min(900, window.innerWidth - 40));
+        const newWidth = Math.min(900, window.innerWidth - 40);
         if (newWidth !== GAME_WIDTH) {
             GAME_WIDTH = newWidth;
             updateScaleFactor();
@@ -177,11 +176,11 @@ window.GameRunner = (function() {
         }
         
         // Показываем подсказку для touch на мобильных устройствах
-        if (showTouchHint && isMobile && gameStarted && !gameOver) {
-            ctx.font = `bold ${16 * scaleFactor}px Inter`;
-            ctx.fillStyle = "rgba(255, 255, 255, 0.9)";
+        if (showTouchHint && isMobile) {
+            ctx.font = `bold ${18 * scaleFactor}px Inter`;
+            ctx.fillStyle = "rgba(255, 255, 255, 0.8)";
             ctx.textAlign = "center";
-            ctx.fillText("👆 TAP TO JUMP", GAME_WIDTH / 2, GAME_HEIGHT - 50);
+            ctx.fillText("👆 Tap to jump", GAME_WIDTH / 2, GAME_HEIGHT - 40 * scaleFactor);
         }
     }
 

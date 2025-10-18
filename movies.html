@@ -199,6 +199,30 @@
     .liquid-eye button.bg-gradient-to-r { background: var(--button-bg) !important; color: var(--button-text) !important; }
     .liquid-eye button.bg-gradient-to-r:hover { background: var(--button-hover-bg) !important; }
     .liquid-eye .hover\:border-purple-500:hover { border-color: var(--primary-color) !important; }
+    
+    /* Reaction Animation Styles */
+    .reaction-add-animation {
+      animation: reactionBounce 0.6s ease-out;
+    }
+    
+    @keyframes reactionBounce {
+      0% { transform: scale(0.3); opacity: 0; }
+      50% { transform: scale(1.4); opacity: 1; }
+      70% { transform: scale(0.9); opacity: 1; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+    
+    .reaction-button {
+      transition: all 0.2s ease;
+    }
+    
+    .reaction-button:hover {
+      transform: scale(1.2);
+    }
+    
+    .reaction-button:active {
+      transform: scale(0.9);
+    }
   </style>
 </head>
 <body>

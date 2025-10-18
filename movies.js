@@ -86,8 +86,42 @@ function MediaCard({ item, onSelect, onRemove, onDragStart, onDragEnd, isViewing
         </div>
         {item.reactions && item.reactions.length > 0 && (
           <div className="flex gap-1.5 mt-1 flex-wrap items-center">
-            {item.reactions.slice(0, 4).map((r, i) => <span key={i} className="text-sm">{r.emoji}</span>)}
-            {item.reactions.length > 4 && <span className="text-xs text-gray-400 self-center">+{item.reactions.length - 4}</span>}
+            {(() => {
+              // Группируем реакции по emoji
+              const groupedReactions = {};
+              item.reactions.forEach(r => {
+                if (!groupedReactions[r.emoji]) {
+                  groupedReactions[r.emoji] = [];
+                }
+                groupedReactions[r.emoji].push(r);
+              });
+              
+              // Показываем максимум 4 группы реакций
+              const reactionGroups = Object.entries(groupedReactions).slice(0, 4);
+              const totalGroups = Object.keys(groupedReactions).length;
+              
+              return reactionGroups.map(([emoji, reactions]) => (
+                <span 
+                  key={emoji} 
+                  className="text-[10px] hover:scale-110 transition-transform cursor-help relative group"
+                  title={reactions.map(r => r.username).join(', ')}
+                >
+                  {emoji}
+                  {reactions.length > 1 && <span className="ml-0.5 text-[9px] text-gray-400">×{reactions.length}</span>}
+                </span>
+              ));
+            })()}
+            {(() => {
+              const groupedReactions = {};
+              item.reactions.forEach(r => {
+                if (!groupedReactions[r.emoji]) {
+                  groupedReactions[r.emoji] = [];
+                }
+                groupedReactions[r.emoji].push(r);
+              });
+              const totalGroups = Object.keys(groupedReactions).length;
+              return totalGroups > 4 && <span className="text-[9px] text-gray-400 self-center">+{totalGroups - 4}</span>;
+            })()}
           </div>
         )}
       </div>
@@ -162,7 +196,12 @@ function MediaDetailsModal({ item, onClose, onUpdate, onReact, isViewingFriend, 
             <p className="text-gray-400 text-sm mb-2">Ваша реакция:</p>
             <div className="flex flex-wrap gap-2">
               {REACTION_EMOJIS.map(emoji => (
-                <button key={emoji} onClick={() => onReact(item, emoji)} className={`text-2xl transform hover:scale-125 transition-transform p-1 rounded-full ${userReaction?.emoji === emoji ? 'bg-purple-500/30' : ''}`}>
+                <button 
+                  key={emoji} 
+                  data-reaction-emoji={emoji}
+                  onClick={() => onReact(item, emoji)} 
+                  className={`text-2xl reaction-button p-1 rounded-full ${userReaction?.emoji === emoji ? 'bg-purple-500/30' : 'hover:bg-gray-700/50'}`}
+                >
                   {emoji}
                 </button>
               ))}
@@ -172,12 +211,42 @@ function MediaDetailsModal({ item, onClose, onUpdate, onReact, isViewingFriend, 
             <div>
               <p className="text-gray-400 text-sm mb-2">Все реакции:</p>
               <div className="flex flex-wrap gap-2">
-                {item.reactions.map((reaction, idx) => (
-                  <div key={idx} className="flex items-center gap-1 bg-gray-800 px-3 py-1 rounded-full" title={reaction.username}>
-                     <Avatar src={reaction.avatar} size="sm" className="w-5 h-5" />
-                    <span className="text-xl">{reaction.emoji}</span>
-                  </div>
-                ))}
+                {(() => {
+                  // Группируем реакции по emoji
+                  const groupedReactions = {};
+                  item.reactions.forEach(r => {
+                    if (!groupedReactions[r.emoji]) {
+                      groupedReactions[r.emoji] = [];
+                    }
+                    groupedReactions[r.emoji].push(r);
+                  });
+                  
+                  return Object.entries(groupedReactions).map(([emoji, reactions]) => (
+                    <div 
+                      key={emoji} 
+                      className="flex items-center gap-1 bg-gray-800 px-3 py-1 rounded-full group cursor-pointer hover:bg-gray-700 transition-colors" 
+                      title={`${reactions.map(r => r.username).join(', ')}`}
+                    >
+                      <div className="flex -space-x-1">
+                        {reactions.slice(0, 3).map((reaction, idx) => (
+                          <Avatar 
+                            key={idx} 
+                            src={reaction.avatar} 
+                            size="sm" 
+                            className="w-6 h-6 border-2 border-gray-800" 
+                          />
+                        ))}
+                        {reactions.length > 3 && (
+                          <div className="w-6 h-6 bg-gray-600 rounded-full border-2 border-gray-800 flex items-center justify-center text-xs text-white">
+                            +{reactions.length - 3}
+                          </div>
+                        )}
+                      </div>
+                      <span className="text-xl">{emoji}</span>
+                      {reactions.length > 1 && <span className="text-sm text-gray-400">×{reactions.length}</span>}
+                    </div>
+                  ));
+                })()}
               </div>
             </div>
           )}
@@ -413,10 +482,29 @@ function MovieApp() {
   };
 
   const reactToItem = async (item, emoji) => {
-    await fetch(`${API_URL}/api/media/${item.id}/reactions`, {
-      method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-      body: JSON.stringify({ emoji })
-    });
+    const userReaction = (item.reactions || []).find(r => r.user_id === user?.id);
+    
+    // Если пользователь кликает на свою текущую реакцию, удаляем её
+    if (userReaction && userReaction.emoji === emoji) {
+      await fetch(`${API_URL}/api/media/${item.id}/reactions`, {
+        method: 'DELETE', headers: { Authorization: `Bearer ${token}` }
+      });
+    } else {
+      // Добавляем анимацию к кнопке реакции
+      const reactionButton = document.querySelector(`[data-reaction-emoji="${emoji}"]`);
+      if (reactionButton) {
+        reactionButton.classList.add('reaction-add-animation');
+        setTimeout(() => {
+          reactionButton.classList.remove('reaction-add-animation');
+        }, 600);
+      }
+      
+      await fetch(`${API_URL}/api/media/${item.id}/reactions`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ emoji })
+      });
+    }
+    
     await loadBoards(viewingUser?.id);
     try {
       const res = await fetch(`${API_URL}/api/user/media/boards`, { headers: { Authorization: `Bearer ${token}` } });
