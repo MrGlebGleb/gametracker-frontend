@@ -696,6 +696,7 @@ function MediaStatisticsModal({ isOpen, onClose }) {
       });
       if (response.ok) {
         const data = await response.json();
+        console.log('Statistics data received:', data);
         setStatistics(data);
       } else {
         console.error('Ошибка загрузки статистики медиа');
@@ -727,6 +728,13 @@ function MediaStatisticsModal({ isOpen, onClose }) {
             <Icon name="loader" className="w-8 h-8 text-purple-400 animate-spin" />
           </div>
         ) : statistics ? (
+          <div>
+            {/* Отладочная информация */}
+            <div className="mb-4 p-3 bg-gray-800 rounded-lg text-xs text-gray-400">
+              <p>Debug: general = {JSON.stringify(statistics.general)}</p>
+              <p>Debug: monthly = {JSON.stringify(statistics.monthly)}</p>
+              <p>Debug: topRated = {JSON.stringify(statistics.topRated)}</p>
+            </div>
           <div className="space-y-6">
             {/* Общая статистика */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -738,7 +746,7 @@ function MediaStatisticsModal({ isOpen, onClose }) {
                   <div>
                     <p className="text-gray-400 text-sm">Фильмы</p>
                     <p className="text-white font-bold text-xl">
-                      {(statistics.general?.filter(s => s.media_type === 'movie').reduce((sum, s) => sum + (s.count || 0), 0)) || 0}
+                      {statistics.general?.filter(s => s.media_type === 'movie').reduce((sum, s) => sum + parseInt(s.count || 0), 0) || 0}
                     </p>
                   </div>
                 </div>
@@ -752,7 +760,7 @@ function MediaStatisticsModal({ isOpen, onClose }) {
                   <div>
                     <p className="text-gray-400 text-sm">Сериалы</p>
                     <p className="text-white font-bold text-xl">
-                      {(statistics.general?.filter(s => s.media_type === 'tv').reduce((sum, s) => sum + (s.count || 0), 0)) || 0}
+                      {statistics.general?.filter(s => s.media_type === 'tv').reduce((sum, s) => sum + parseInt(s.count || 0), 0) || 0}
                     </p>
                   </div>
                 </div>
@@ -766,7 +774,7 @@ function MediaStatisticsModal({ isOpen, onClose }) {
                   <div>
                     <p className="text-gray-400 text-sm">Посмотрено</p>
                     <p className="text-white font-bold text-xl">
-                      {statistics.general?.filter(s => s.board === 'watched').reduce((sum, s) => sum + (s.count || 0), 0) || 0}
+                      {statistics.general?.filter(s => s.board === 'watched').reduce((sum, s) => sum + parseInt(s.count || 0), 0) || 0}
                     </p>
                   </div>
                 </div>
@@ -780,7 +788,7 @@ function MediaStatisticsModal({ isOpen, onClose }) {
                   <div>
                     <p className="text-gray-400 text-sm">В планах</p>
                     <p className="text-white font-bold text-xl">
-                      {statistics.general?.filter(s => s.board === 'wishlist').reduce((sum, s) => sum + (s.count || 0), 0) || 0}
+                      {statistics.general?.filter(s => s.board === 'wishlist').reduce((sum, s) => sum + parseInt(s.count || 0), 0) || 0}
                     </p>
                   </div>
                 </div>
@@ -839,6 +847,7 @@ function MediaStatisticsModal({ isOpen, onClose }) {
                 <p className="text-gray-400">Добавьте фильмы и сериалы, чтобы увидеть статистику</p>
               </div>
             )}
+          </div>
           </div>
         ) : (
           <div className="text-center py-12">
