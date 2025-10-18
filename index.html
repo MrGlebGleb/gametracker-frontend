@@ -1813,6 +1813,15 @@
       const [tags, setTags] = useState([]);
       const [loading, setLoading] = useState(false);
       const [addingTag, setAddingTag] = useState(null);
+      const [showCreateForm, setShowCreateForm] = useState(false);
+      const [newTagName, setNewTagName] = useState('');
+      const [newTagColor, setNewTagColor] = useState('#3B82F6');
+      const [isCreating, setIsCreating] = useState(false);
+
+      const predefinedColors = [
+        '#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', 
+        '#06B6D4', '#84CC16', '#F97316', '#EC4899', '#6B7280'
+      ];
 
       // Загрузка тегов
       const loadTags = useCallback(async () => {
@@ -1852,6 +1861,36 @@
         }
       };
 
+      // Создание нового тега
+      const createTag = async () => {
+        if (!newTagName.trim()) return;
+        
+        setIsCreating(true);
+        try {
+          const response = await fetch(`${API_URL}/api/tags`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+            body: JSON.stringify({ name: newTagName.trim(), color: newTagColor })
+          });
+          
+          if (response.ok) {
+            const data = await response.json();
+            setTags(prev => [...prev, data.tag]);
+            setNewTagName('');
+            setNewTagColor('#3B82F6');
+            setShowCreateForm(false);
+            // Автоматически добавляем новый тег к игре
+            await addTagToGame(data.tag.id);
+          } else {
+            throw new Error('Ошибка создания тега');
+          }
+        } catch (error) {
+          console.error('Ошибка создания тега:', error);
+        } finally {
+          setIsCreating(false);
+        }
+      };
+
       useEffect(() => {
         if (isOpen) {
           loadTags();
@@ -1869,42 +1908,115 @@
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[100] p-4" onClick={onClose}>
           <div className="bg-gray-900 rounded-2xl p-6 w-full max-w-md border border-purple-500/30 max-h-[80vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-bold text-white">Добавить тег к "{game.name}"</h2>
+              <h2 className="text-xl font-bold text-white">Управление тегами</h2>
               <button onClick={onClose} className="p-2 hover:bg-gray-800 rounded-lg">
                 <Icon name="x" className="w-5 h-5 text-gray-400" />
               </button>
             </div>
-            <div className="space-y-2 max-h-60 overflow-y-auto">
-              {loading ? (
-                <div className="flex items-center justify-center py-8">
-                  <Icon name="loader" className="w-8 h-8 text-purple-400 animate-spin" />
-                </div>
-              ) : availableTags.length === 0 ? (
-                <div className="text-center py-8">
-                  <div className="text-4xl mb-2">🏷️</div>
-                  <p className="text-gray-400">Нет доступных тегов</p>
-                  <p className="text-sm text-gray-500 mt-1">Все теги уже добавлены к игре</p>
-                </div>
-              ) : (
-                availableTags.map(tag => (
-                  <button
-                    key={tag.id}
-                    onClick={() => addTagToGame(tag.id)}
-                    disabled={addingTag === tag.id}
-                    className="w-full px-4 py-3 text-left text-white hover:bg-gray-800 rounded-lg border border-gray-700 transition-colors flex items-center gap-3 disabled:opacity-50"
-                  >
-                    <div
-                      className="w-4 h-4 rounded-full flex-shrink-0"
-                      style={{ backgroundColor: tag.color }}
-                    />
-                    <span className="text-sm font-medium">{tag.name}</span>
-                    {addingTag === tag.id && (
-                      <Icon name="loader" className="w-4 h-4 animate-spin ml-auto text-purple-400" />
-                    )}
-                  </button>
-                ))
-              )}
+            
+            <div className="mb-4">
+              <p className="text-gray-400 text-sm">Игра: {game.name}</p>
             </div>
+
+            {!showCreateForm ? (
+              <div className="space-y-4">
+                {/* Существующие теги */}
+                {availableTags.length > 0 && (
+                  <div>
+                    <p className="text-gray-400 text-sm mb-2">Выберите существующий тег:</p>
+                    <div className="space-y-2 max-h-40 overflow-y-auto">
+                      {availableTags.map(tag => (
+                        <button
+                          key={tag.id}
+                          onClick={() => addTagToGame(tag.id)}
+                          disabled={addingTag === tag.id}
+                          className="w-full px-4 py-3 text-left text-white hover:bg-gray-800 rounded-lg border border-gray-700 transition-colors flex items-center gap-3 disabled:opacity-50"
+                        >
+                          <div
+                            className="w-4 h-4 rounded-full flex-shrink-0"
+                            style={{ backgroundColor: tag.color }}
+                          />
+                          <span className="text-sm font-medium">{tag.name}</span>
+                          {addingTag === tag.id && (
+                            <Icon name="loader" className="w-4 h-4 animate-spin ml-auto text-purple-400" />
+                          )}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Кнопка создания нового тега */}
+                <div className="border-t border-gray-700 pt-4">
+                  <button
+                    onClick={() => setShowCreateForm(true)}
+                    className="w-full py-2 bg-purple-500 hover:bg-purple-600 text-white rounded-lg transition-colors flex items-center justify-center gap-2"
+                  >
+                    <Icon name="plus" className="w-4 h-4" />
+                    Создать новый тег
+                  </button>
+                </div>
+
+                {availableTags.length === 0 && (
+                  <div className="text-center py-8">
+                    <div className="text-4xl mb-2">🏷️</div>
+                    <p className="text-gray-400">Нет доступных тегов</p>
+                    <p className="text-sm text-gray-500 mt-1">Создайте новый тег</p>
+                  </div>
+                )}
+              </div>
+            ) : (
+              /* Форма создания нового тега */
+              <div className="space-y-4">
+                <div>
+                  <label className="text-gray-400 text-sm">Название тега:</label>
+                  <input
+                    type="text"
+                    value={newTagName}
+                    onChange={(e) => setNewTagName(e.target.value)}
+                    placeholder="Введите название тега"
+                    className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg focus:border-purple-500 focus:outline-none text-white mt-1"
+                    maxLength={50}
+                  />
+                </div>
+                
+                <div>
+                  <label className="text-gray-400 text-sm">Цвет тега:</label>
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    {predefinedColors.map(color => (
+                      <button
+                        key={color}
+                        onClick={() => setNewTagColor(color)}
+                        className={`w-8 h-8 rounded-full border-2 transition-all ${
+                          newTagColor === color ? 'border-white scale-110' : 'border-gray-600'
+                        }`}
+                        style={{ backgroundColor: color }}
+                      />
+                    ))}
+                  </div>
+                </div>
+                
+                <div className="flex gap-2">
+                  <button
+                    onClick={createTag}
+                    disabled={!newTagName.trim() || isCreating}
+                    className="flex-1 py-2 bg-purple-500 hover:bg-purple-600 disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-lg transition-colors"
+                  >
+                    {isCreating ? 'Создание...' : 'Создать тег'}
+                  </button>
+                  <button
+                    onClick={() => {
+                      setShowCreateForm(false);
+                      setNewTagName('');
+                      setNewTagColor('#3B82F6');
+                    }}
+                    className="flex-1 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg transition-colors"
+                  >
+                    Отмена
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       );
