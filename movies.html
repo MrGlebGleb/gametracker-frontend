@@ -3,7 +3,31 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>MovieTracker</title>
+  <title>MovieTracker - Отслеживание фильмов и сериалов</title>
+  
+  <!-- SEO Meta Tags -->
+  <meta name="description" content="MovieTracker - современное приложение для отслеживания фильмов и сериалов. Управляйте своей коллекцией, делитесь с друзьями и следите за прогрессом.">
+  <meta name="keywords" content="фильмы, сериалы, трекер, коллекция, друзья, рейтинги, отзывы, кино">
+  <meta name="author" content="MovieTracker">
+  <meta name="robots" content="index, follow">
+  
+  <!-- Open Graph Meta Tags -->
+  <meta property="og:title" content="MovieTracker - Отслеживание фильмов и сериалов">
+  <meta property="og:description" content="Современное приложение для отслеживания фильмов и сериалов. Управляйте коллекцией, делитесь с друзьями.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://gametracker-backend-production.up.railway.app/movies.html">
+  <meta property="og:image" content="https://gametracker-backend-production.up.railway.app/favicon.ico">
+  <meta property="og:site_name" content="MovieTracker">
+  <meta property="og:locale" content="ru_RU">
+  
+  <!-- Twitter Card Meta Tags -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="MovieTracker - Отслеживание фильмов и сериалов">
+  <meta name="twitter:description" content="Современное приложение для отслеживания фильмов и сериалов.">
+  <meta name="twitter:image" content="https://gametracker-backend-production.up.railway.app/favicon.ico">
+  
+  <!-- Favicon -->
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎬</text></svg>">
   <!-- Подключаем те же стили и скрипты, что и на странице с играми -->
   <link href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css" rel="stylesheet">
   <script src="https://cdn.tailwindcss.com"></script>
@@ -22,6 +46,77 @@
     .cropper-container { max-width: 100%; }
     .img-container { max-height: 50vh; margin-bottom: 1rem; }
     .img-container > img { max-width: 100%; }
+    
+    /* Modal Transitions */
+    .modal-enter {
+        opacity: 0;
+        transform: scale(0.9);
+    }
+    .modal-enter-active {
+        opacity: 1;
+        transform: scale(1);
+        transition: opacity 200ms ease-out, transform 200ms ease-out;
+    }
+    .modal-exit {
+        opacity: 1;
+        transform: scale(1);
+    }
+    .modal-exit-active {
+        opacity: 0;
+        transform: scale(0.9);
+        transition: opacity 200ms ease-in, transform 200ms ease-in;
+    }
+    
+    /* Toast Notifications */
+    .toast {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        z-index: 9999;
+        padding: 12px 20px;
+        border-radius: 8px;
+        color: white;
+        font-weight: 500;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        transform: translateX(100%);
+        transition: transform 300ms ease-out;
+    }
+    .toast.show {
+        transform: translateX(0);
+    }
+    .toast.success {
+        background: linear-gradient(135deg, #10b981, #059669);
+    }
+    .toast.error {
+        background: linear-gradient(135deg, #ef4444, #dc2626);
+    }
+    .toast.info {
+        background: linear-gradient(135deg, #3b82f6, #2563eb);
+    }
+    
+    /* Loading Button States */
+    .btn-loading {
+        position: relative;
+        pointer-events: none;
+        opacity: 0.7;
+    }
+    .btn-loading::after {
+        content: '';
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        width: 16px;
+        height: 16px;
+        margin: -8px 0 0 -8px;
+        border: 2px solid transparent;
+        border-top: 2px solid currentColor;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+    }
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
     
     /* Тема Liquid Eye */
     .liquid-eye {

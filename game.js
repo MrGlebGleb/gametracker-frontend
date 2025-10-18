@@ -9,9 +9,10 @@ window.GameRunner = (function() {
     let obstacles, obstacleTimer, nextObstacleInterval;
     let stars;
     let animationFrameId; // ID для управления игровым циклом
+    let isMobile, scaleFactor, showTouchHint, touchHintTimer;
 
     const API_URL = 'https://gametracker-backend-production.up.railway.app';
-    const GAME_WIDTH = 900;
+    let GAME_WIDTH = Math.min(900, window.innerWidth - 40);
     const GAME_HEIGHT = 250;
     const COLORS = {
         PLAYER: '#f472b6',
@@ -47,31 +48,69 @@ window.GameRunner = (function() {
             jump();
         }
     };
+
+    // Обработчик touch событий для мобильных устройств
+    const handleTouchStart = (e) => {
+        e.preventDefault();
+        if (gameStarted && !gameOver) {
+            jump();
+        } else if (!gameStarted || gameOver) {
+            startGame();
+        }
+    };
+
+    // Обработчик изменения размера окна
+    const handleResize = () => {
+        const newWidth = Math.min(900, window.innerWidth - 40);
+        if (newWidth !== GAME_WIDTH) {
+            GAME_WIDTH = newWidth;
+            updateScaleFactor();
+            resizeCanvas();
+        }
+    };
+
+    // Функция обновления масштабного коэффициента
+    function updateScaleFactor() {
+        isMobile = window.innerWidth < 768;
+        scaleFactor = isMobile ? Math.min(1, GAME_WIDTH / 900) : 1;
+    }
+
+    // Функция изменения размера canvas
+    function resizeCanvas() {
+        if (canvas) {
+            canvas.width = GAME_WIDTH;
+            canvas.height = GAME_HEIGHT;
+            // Обновляем позицию игрока при изменении размера
+            if (player) {
+                player.y = GAME_HEIGHT - player.height - 20;
+            }
+        }
+    }
     
     // --- ФУНКЦИИ ОТРИСОВКИ ---
     function drawPlayer() {
         ctx.fillStyle = COLORS.PLAYER_GLOW;
         playerTrail.forEach((p, index) => {
-            const size = (player.width / 2) * (index / playerTrail.length);
+            const size = (player.width / 2) * (index / playerTrail.length) * scaleFactor;
             ctx.globalAlpha = 0.1 * (index / playerTrail.length);
             ctx.beginPath();
             ctx.arc(p.x + player.width / 2, p.y + player.height / 2, size, 0, Math.PI * 2);
             ctx.fill();
         });
         ctx.globalAlpha = 1;
-        ctx.shadowBlur = 15;
+        ctx.shadowBlur = 15 * scaleFactor;
         ctx.shadowColor = COLORS.PLAYER_GLOW;
         ctx.fillStyle = COLORS.PLAYER;
         ctx.beginPath();
         ctx.moveTo(player.x, player.y + player.height);
-        ctx.quadraticCurveTo(player.x + player.width / 2, player.y - 10, player.x + player.width, player.y + player.height);
+        ctx.quadraticCurveTo(player.x + player.width / 2, player.y - 10 * scaleFactor, player.x + player.width, player.y + player.height);
         ctx.closePath();
         ctx.fill();
         ctx.shadowBlur = 0;
     }
 
     function drawCrystalObstacle(obstacle) {
-        ctx.shadowBlur = 15;
+        ctx.shadowBlur = 15 * scaleFactor;
         ctx.shadowColor = COLORS.OBSTACLE_GLOW_1;
         ctx.fillStyle = obstacle.color;
         ctx.beginPath();
@@ -86,7 +125,7 @@ window.GameRunner = (function() {
     }
 
     function drawAnomalyObstacle(obstacle) {
-        ctx.shadowBlur = 15;
+        ctx.shadowBlur = 15 * scaleFactor;
         ctx.shadowColor = COLORS.OBSTACLE_GLOW_2;
         ctx.fillStyle = obstacle.color;
         const centerX = obstacle.x + obstacle.width / 2;
@@ -128,11 +167,21 @@ window.GameRunner = (function() {
     }
 
     function drawUI() {
-        ctx.font = "bold 24px Inter";
+        ctx.font = `bold ${24 * scaleFactor}px Inter`;
         ctx.fillStyle = "white";
         ctx.textAlign = "left";
-        ctx.fillText(`Очки: ${score}`, 20, 35);
-        for (let i = 0; i < lives; i++) drawHeart(GAME_WIDTH - 35 - (i * 30), 22, 12, 12);
+        ctx.fillText(`Очки: ${score}`, 20 * scaleFactor, 35 * scaleFactor);
+        for (let i = 0; i < lives; i++) {
+            drawHeart(GAME_WIDTH - 35 * scaleFactor - (i * 30 * scaleFactor), 22 * scaleFactor, 12 * scaleFactor, 12 * scaleFactor);
+        }
+        
+        // Показываем подсказку для touch на мобильных устройствах
+        if (showTouchHint && isMobile) {
+            ctx.font = `bold ${18 * scaleFactor}px Inter`;
+            ctx.fillStyle = "rgba(255, 255, 255, 0.8)";
+            ctx.textAlign = "center";
+            ctx.fillText("👆 Tap to jump", GAME_WIDTH / 2, GAME_HEIGHT - 40 * scaleFactor);
+        }
     }
 
     function drawHeart(x, y, width, height) {
@@ -185,13 +234,19 @@ window.GameRunner = (function() {
     }
 
     function spawnObstacle() {
-        const obstacleTypes = [
+        const baseObstacleTypes = [
             { width: 40, height: 50, color: COLORS.OBSTACLE_1, drawFunc: drawCrystalObstacle },
             { width: 45, height: 45, color: COLORS.OBSTACLE_2, drawFunc: drawAnomalyObstacle },
         ];
-        const type = obstacleTypes[Math.floor(Math.random() * obstacleTypes.length)];
+        const type = baseObstacleTypes[Math.floor(Math.random() * baseObstacleTypes.length)];
         obstacles.push({
-            x: GAME_WIDTH, y: GAME_HEIGHT - type.height - 20, ...type, passed: false
+            x: GAME_WIDTH, 
+            y: GAME_HEIGHT - (type.height * scaleFactor) - 20, 
+            width: type.width * scaleFactor,
+            height: type.height * scaleFactor,
+            color: type.color,
+            drawFunc: type.drawFunc,
+            passed: false
         });
     }
 
@@ -234,6 +289,14 @@ window.GameRunner = (function() {
         player.velocityY = 0; player.jumpsLeft = 2; playerTrail = [];
         gameOver = false;
         gameOverlay.style.display = 'none';
+        
+        // Инициализируем подсказку для touch на мобильных
+        if (isMobile) {
+            showTouchHint = true;
+            touchHintTimer = setTimeout(() => {
+                showTouchHint = false;
+            }, 3000);
+        }
         
         if (animationFrameId) cancelAnimationFrame(animationFrameId);
         gameLoop();
@@ -332,7 +395,15 @@ window.GameRunner = (function() {
             cancelAnimationFrame(animationFrameId);
             animationFrameId = null;
         }
+        if (touchHintTimer) {
+            clearTimeout(touchHintTimer);
+            touchHintTimer = null;
+        }
         window.removeEventListener('keydown', handleKeyDown);
+        window.removeEventListener('resize', handleResize);
+        if (canvas) {
+            canvas.removeEventListener('touchstart', handleTouchStart);
+        }
         restartButton.removeEventListener('click', startGame);
         console.log("Game instance destroyed.");
     }
@@ -355,11 +426,16 @@ window.GameRunner = (function() {
         globalRecordDisplay = document.getElementById('global-record');
         restartButton = document.getElementById('restart-button');
         
+        // Инициализируем responsive переменные
+        updateScaleFactor();
+        showTouchHint = false;
+        touchHintTimer = null;
+        
         // Сбрасываем состояние игры
         score = 0; lives = 3; gameSpeed = 5;
         gameOver = false; gameStarted = false;
         player = {
-            x: 50, y: GAME_HEIGHT - 50, width: 30, height: 35,
+            x: 50, y: GAME_HEIGHT - 50 * scaleFactor, width: 30 * scaleFactor, height: 35 * scaleFactor,
             velocityY: 0, gravity: 0.6, jumpStrength: -12, jumpsLeft: 2, isJumping: false
         };
         playerTrail = [];
@@ -378,7 +454,10 @@ window.GameRunner = (function() {
         const reloadHint = document.getElementById('game-reload-hint');
         if(reloadHint) reloadHint.style.display = 'none';
 
+        // Добавляем обработчики событий
         window.addEventListener('keydown', handleKeyDown);
+        window.addEventListener('resize', handleResize);
+        canvas.addEventListener('touchstart', handleTouchStart, { passive: false });
         restartButton.addEventListener('click', startGame);
 
         showStartScreen();
