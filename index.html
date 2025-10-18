@@ -2830,7 +2830,7 @@
             gameName={historyGame?.name}
             token={localStorage.getItem('token')}
           />
-          <header className="bg-gray-900/50 backdrop-blur-xl border-b border-purple-500/30 sticky top-0 z-50 flex-shrink-0">
+          <header className="hidden md:block bg-gray-900/50 backdrop-blur-xl border-b border-purple-500/30 sticky top-0 z-50 flex-shrink-0">
             <div className="container mx-auto px-4 py-4">
               <div className="flex items-center justify-between flex-wrap gap-4">
                 <div className="flex items-center gap-4 flex-wrap">
@@ -3735,7 +3735,7 @@
                     })
                   )}
                   </div>
-                  <div className="mt-6 md:mt-8 grid grid-cols-2 gap-3 md:gap-4">
+                  <div className="hidden md:grid mt-6 md:mt-8 grid-cols-2 gap-3 md:gap-4">
                   <div className="bg-gradient-to-br from-blue-500/20 to-cyan-500/20 backdrop-blur-xl rounded-xl p-4 md:p-6 border border-blue-500/30">
                       <div className="text-2xl md:text-4xl mb-2">📊</div>
                       <h3 className="text-xs md:text-sm font-semibold text-gray-300 mb-1">Всего</h3>
