@@ -510,12 +510,13 @@ function MovieApp() {
   const onDragStart = (e, item) => {
     if(viewingUser) return;
     dragItem.current = { item };
-    setTimeout(() => e.target.classList.add('dragging'), 0);
+    e.currentTarget.classList.add('dragging-card');
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/html', e.currentTarget.outerHTML);
   };
   
   const onDragEnd = (e) => {
-    const draggingElement = document.querySelector('.dragging');
-    if(draggingElement) draggingElement.classList.remove('dragging');
+    document.querySelectorAll('.dragging-card').forEach(el => el.classList.remove('dragging-card'));
     dragItem.current = null;
     document.querySelectorAll('.drag-over-column').forEach(el => el.classList.remove('drag-over-column'));
   };

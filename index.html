@@ -2448,10 +2448,11 @@
       };
       
       const handleDragStart = (e, card, boardId, index) => {
+        console.log('Drag start:', card.name, boardId, index);
         dragItem.current = { card, sourceBoardId: boardId, sourceIndex: index };
-        e.target.classList.add('dragging-card');
+        e.currentTarget.classList.add('dragging-card');
         e.dataTransfer.effectAllowed = 'move';
-        e.dataTransfer.setData('text/html', e.target.outerHTML);
+        e.dataTransfer.setData('text/html', e.currentTarget.outerHTML);
       };
 
       const handleDragOver = (e) => e.preventDefault();
@@ -2464,6 +2465,7 @@
       const handleDrop = (e, targetBoardId, targetIndex) => {
         e.preventDefault();
         e.stopPropagation();
+        console.log('Drop:', targetBoardId, targetIndex, dragItem.current);
 
         if (!dragItem.current) return;
         const { card: draggedCard, sourceBoardId, sourceIndex } = dragItem.current;
