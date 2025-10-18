@@ -5,6 +5,15 @@ const API_URL = 'https://gametracker-backend-production.up.railway.app';
 const REACTION_EMOJIS = ['😍', '🔥', '👍', '😮', '😂', '👎', '❤️', '🤔', '😢', '🤯'];
 const MEDIA_PER_COLUMN = 5;
 
+// Функция группировки реакций
+const groupReactions = (reactions) => {
+  if (!reactions || reactions.length === 0) return {};
+  return reactions.reduce((acc, r) => {
+    acc[r.emoji] = (acc[r.emoji] || 0) + 1;
+    return acc;
+  }, {});
+};
+
 // --- Переиспользуемые UI-компоненты (идентичны странице игр) ---
 
 const Icon = ({ name, className = "w-5 h-5" }) => {
@@ -26,6 +35,8 @@ const Icon = ({ name, className = "w-5 h-5" }) => {
     userClock: <svg className={className} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><circle cx="18" cy="18" r="3" /><path d="M20.5 16.5 18 18l.5 2.5"/></svg>,
     chevronUp: <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M5 15l7-7 7 7" /></svg>,
     chevronDown: <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" /></svg>,
+    menu: <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" /></svg>,
+    moreVertical: <svg className={className} fill="currentColor" viewBox="0 0 16 16"><circle cx="8" cy="3" r="1.5"/><circle cx="8" cy="8" r="1.5"/><circle cx="8" cy="13" r="1.5"/></svg>,
   };
   return icons[name] || null;
 };
@@ -55,15 +66,28 @@ function StarRating({ value = 0, onChange }) {
   );
 }
 
-function MediaCard({ item, onSelect, onRemove, onDragStart, onDragEnd, isViewingFriend, boardId }) {
+function MediaCard({ item, onSelect, onRemove, onDragStart, onDragEnd, isViewingFriend, boardId, onMobileClick, boardKey }) {
   const type = item.media_type || 'movie'; // Определяем тип медиа
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+  
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
   
   return (
     <div
       draggable={!isViewingFriend}
       onDragStart={(e) => !isViewingFriend && onDragStart(e, item)}
       onDragEnd={onDragEnd}
-      onClick={() => onSelect(item)}
+      onClick={() => {
+        if (isMobile && onMobileClick) {
+          onMobileClick(item, boardKey);
+        } else {
+          onSelect(item);
+        }
+      }}
           className="bg-gray-800/80 rounded-xl border border-gray-700 hover:border-purple-500 hover:-translate-y-1 transition-all duration-200 cursor-pointer flex gap-3 p-2 group relative elevation-1 hover:elevation-2 shadow-transition media-card"
     >
       {/* Цветная полоска слева */}
@@ -72,56 +96,25 @@ function MediaCard({ item, onSelect, onRemove, onDragStart, onDragEnd, isViewing
         style={{ backgroundColor: boardId === 'wishlist' ? '#3B82F6' : '#10B981' }}
       ></div>
       <div className="relative flex-shrink-0">
-        <img src={item.poster || 'https://placehold.co/96x128/1f2937/ffffff?text=?'} alt={item.title} className="w-16 h-24 object-cover rounded-lg flex-shrink-0" />
+        <img src={item.poster || 'https://placehold.co/96x128/1f2937/ffffff?text=?'} alt={item.title} className="w-20 h-28 md:w-16 md:h-24 object-cover rounded-lg flex-shrink-0" />
         {/* Рейтинг звездами как overlay */}
         {item.rating && (
-          <div className="absolute bottom-2 left-2 bg-black/70 backdrop-blur-sm rounded px-1.5 py-0.5 flex gap-0.5">
+          <div className="absolute bottom-2 left-1/2 transform -translate-x-1/2 bg-black/70 backdrop-blur-sm rounded px-1.5 py-0.5 flex gap-0.5">
             {[...Array(5)].map((_, i) => (<Icon key={i} name="star" className={`w-2 h-2 ${i < item.rating ? 'text-yellow-400' : 'text-gray-400'}`} />))}
           </div>
         )}
       </div>
       <div className="flex flex-col justify-between flex-grow min-w-0 py-1">
         <div>
-          <h3 className="text-white font-semibold text-sm line-clamp-2">{item.title}</h3>
+          <h3 className="text-white font-semibold text-base md:text-sm line-clamp-2">{item.title}</h3>
         </div>
         {item.reactions && item.reactions.length > 0 && (
-          <div className="flex gap-1.5 mt-1 flex-wrap items-center">
-            {(() => {
-              // Группируем реакции по emoji
-              const groupedReactions = {};
-              item.reactions.forEach(r => {
-                if (!groupedReactions[r.emoji]) {
-                  groupedReactions[r.emoji] = [];
-                }
-                groupedReactions[r.emoji].push(r);
-              });
-              
-              // Показываем максимум 4 группы реакций
-              const reactionGroups = Object.entries(groupedReactions).slice(0, 4);
-              const totalGroups = Object.keys(groupedReactions).length;
-              
-              return reactionGroups.map(([emoji, reactions]) => (
-                <span 
-                  key={emoji} 
-                  className="text-[10px] hover:scale-110 transition-transform cursor-help relative group"
-                  title={reactions.map(r => r.username).join(', ')}
-                >
-                  {emoji}
-                  {reactions.length > 1 && <span className="ml-0.5 text-[9px] text-gray-400">×{reactions.length}</span>}
-                </span>
-              ));
-            })()}
-            {(() => {
-              const groupedReactions = {};
-              item.reactions.forEach(r => {
-                if (!groupedReactions[r.emoji]) {
-                  groupedReactions[r.emoji] = [];
-                }
-                groupedReactions[r.emoji].push(r);
-              });
-              const totalGroups = Object.keys(groupedReactions).length;
-              return totalGroups > 4 && <span className="text-[9px] text-gray-400 self-center">+{totalGroups - 4}</span>;
-            })()}
+          <div className="flex gap-1 mt-1 flex-wrap items-center">
+            {Object.entries(groupReactions(item.reactions)).map(([emoji, count]) => (
+              <span key={emoji} className="text-base">
+                {emoji}{count > 1 && <span className="text-xs text-gray-400">×{count}</span>}
+              </span>
+            ))}
           </div>
         )}
       </div>
@@ -130,6 +123,7 @@ function MediaCard({ item, onSelect, onRemove, onDragStart, onDragEnd, isViewing
                 <Icon name="trash" className="w-3 h-3 text-white" />
             </button>
        )}
+
     </div>
   );
 }
@@ -138,25 +132,116 @@ function Column({ title, emoji, items, columnKey, isExpanded, onToggleExpand, is
   // Определяем boardId на основе columnKey
   const boardId = columnKey.includes('wishlist') ? 'wishlist' : 'watched';
   const visibleItems = isExpanded ? items : items.slice(0, MEDIA_PER_COLUMN);
+  const [isMobileAccordionOpen, setIsMobileAccordionOpen] = useState(true);
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+  
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
     
   return (
-    <div className="bg-gradient-to-br from-purple-500/10 to-pink-500/10 backdrop-blur-xl rounded-xl p-4 border border-purple-500/30 flex flex-col h-full elevation-1 board-column">
-        <div className="flex items-center justify-between mb-4">
+    <div className={`bg-gradient-to-br from-purple-500/10 to-pink-500/10 backdrop-blur-xl rounded-xl p-4 border border-purple-500/30 flex flex-col h-full elevation-1 board-column accordion-column ${isMobile && isMobileAccordionOpen ? 'expanded' : 'collapsed'}`}>
+        <div 
+          className="flex items-center justify-between mb-4 accordion-header" 
+          onClick={() => isMobile && setIsMobileAccordionOpen(!isMobileAccordionOpen)}
+        >
             <h3 className="text-lg font-extrabold text-white flex items-center gap-2 tracking-wide whitespace-nowrap">
                 <span className="text-xl">{emoji}</span>
                 <span>{title}</span>
             </h3>
-            <span className="bg-white/10 text-white px-2 py-1 rounded-full text-xs font-bold">{items.length}</span>
+            <div className="flex items-center gap-2">
+              <span className="bg-white/10 text-white px-2 py-1 rounded-full text-xs font-bold">{items.length}</span>
+              {isMobile && (
+                <Icon name={isMobileAccordionOpen ? 'chevronUp' : 'chevronDown'} className="w-4 h-4 text-purple-400" />
+              )}
+            </div>
         </div>
-        <div className="space-y-2 flex-grow min-h-[150px]">
-            {visibleItems.map(it => <MediaCard key={it.id} item={it} isViewingFriend={isViewingFriend} boardId={boardId} {...handlers} />)}
+        <div className="accordion-content">
+          <div className="space-y-2 flex-grow min-h-[150px]">
+              {visibleItems.map(it => <MediaCard key={it.id} item={it} isViewingFriend={isViewingFriend} boardId={boardId} boardKey={columnKey} onMobileClick={handlers.onMobileClick} {...handlers} />)}
+              
+              {items.length === 0 && (
+                <div className="flex flex-col items-center justify-center py-12 text-center">
+                  <div className="w-16 h-16 mb-4 flex items-center justify-center">
+                    {columnKey === 'movie:wishlist' && (
+                      <svg className="w-full h-full" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <defs>
+                          <linearGradient id="movieWishlistGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                            <stop offset="0%" style={{stopColor: '#3B82F6', stopOpacity: 0.8}} />
+                            <stop offset="100%" style={{stopColor: '#1E40AF', stopOpacity: 0.6}} />
+                          </linearGradient>
+                        </defs>
+                        <path d="M15 2H9C7.89543 2 7 2.89543 7 4V20C7 21.1046 7.89543 22 9 22H15C16.1046 22 17 21.1046 17 20V4C17 2.89543 16.1046 2 15 2Z" stroke="url(#movieWishlistGrad)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
+                        <path d="M7 7H17M7 11H17M7 15H13" stroke="url(#movieWishlistGrad)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" opacity="0.6"/>
+                      </svg>
+                    )}
+                    {columnKey === 'movie:watched' && (
+                      <svg className="w-full h-full" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <defs>
+                          <linearGradient id="movieWatchedGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                            <stop offset="0%" style={{stopColor: '#10B981', stopOpacity: 0.8}} />
+                            <stop offset="100%" style={{stopColor: '#059669', stopOpacity: 0.6}} />
+                          </linearGradient>
+                        </defs>
+                        <path d="M15 2H9C7.89543 2 7 2.89543 7 4V20C7 21.1046 7.89543 22 9 22H15C16.1046 22 17 21.1046 17 20V4C17 2.89543 16.1046 2 15 2Z" stroke="url(#movieWatchedGrad)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
+                        <path d="M9 8L11 10L15 6" stroke="url(#movieWatchedGrad)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
+                      </svg>
+                    )}
+                    {columnKey === 'tv:wishlist' && (
+                      <svg className="w-full h-full" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <defs>
+                          <linearGradient id="tvWishlistGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                            <stop offset="0%" style={{stopColor: '#F59E0B', stopOpacity: 0.8}} />
+                            <stop offset="100%" style={{stopColor: '#D97706', stopOpacity: 0.6}} />
+                          </linearGradient>
+                        </defs>
+                        <rect x="2" y="4" width="20" height="12" rx="2" stroke="url(#tvWishlistGrad)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
+                        <path d="M8 20L12 16L16 20" stroke="url(#tvWishlistGrad)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
+                        <circle cx="6" cy="8" r="1" fill="url(#tvWishlistGrad)" opacity="0.6"/>
+                        <circle cx="18" cy="8" r="1" fill="url(#tvWishlistGrad)" opacity="0.6"/>
+                      </svg>
+                    )}
+                    {columnKey === 'tv:watched' && (
+                      <svg className="w-full h-full" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <defs>
+                          <linearGradient id="tvWatchedGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                            <stop offset="0%" style={{stopColor: '#10B981', stopOpacity: 0.8}} />
+                            <stop offset="100%" style={{stopColor: '#059669', stopOpacity: 0.6}} />
+                          </linearGradient>
+                        </defs>
+                        <rect x="2" y="4" width="20" height="12" rx="2" stroke="url(#tvWatchedGrad)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
+                        <path d="M8 20L12 16L16 20" stroke="url(#tvWatchedGrad)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
+                        <path d="M9 8L11 10L15 6" stroke="url(#tvWatchedGrad)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
+                      </svg>
+                    )}
+                  </div>
+                  <p className="text-gray-400 text-lg mb-2">Здесь пока пусто</p>
+                  <p className="text-gray-500 text-sm mb-4">
+                    {columnKey === 'movie:wishlist' && 'Добавьте фильмы которые хотите посмотреть'}
+                    {columnKey === 'movie:watched' && 'Сюда попадут просмотренные фильмы 🍿'}
+                    {columnKey === 'tv:wishlist' && 'Добавьте сериалы которые хотите посмотреть'}
+                    {columnKey === 'tv:watched' && 'Сюда попадут просмотренные сериалы ✅'}
+                  </p>
+                  {!isViewingFriend && columnKey.includes('wishlist') && (
+                    <button 
+                      onClick={() => handlers.onSearch && handlers.onSearch()}
+                      className="px-4 py-2 bg-purple-500 hover:bg-purple-600 rounded-lg text-white text-sm transition-colors"
+                    >
+                      + Добавить первый {columnKey.includes('movie') ? 'фильм' : 'сериал'}
+                    </button>
+                  )}
+                </div>
+              )}
+          </div>
+          {items.length > MEDIA_PER_COLUMN && (
+            <button onClick={() => onToggleExpand(columnKey)} className="w-full text-center mt-3 py-1.5 text-xs font-semibold text-purple-300 bg-purple-500/10 hover:bg-purple-500/20 rounded-lg flex items-center justify-center gap-1">
+              {isExpanded ? 'Свернуть' : `Показать еще ${items.length - MEDIA_PER_COLUMN}`}
+              <Icon name={isExpanded ? 'chevronUp' : 'chevronDown'} className="w-3 h-3" />
+            </button>
+          )}
         </div>
-        {items.length > MEDIA_PER_COLUMN && (
-          <button onClick={() => onToggleExpand(columnKey)} className="w-full text-center mt-3 py-1.5 text-xs font-semibold text-purple-300 bg-purple-500/10 hover:bg-purple-500/20 rounded-lg flex items-center justify-center gap-1">
-            {isExpanded ? 'Свернуть' : `Показать еще ${items.length - MEDIA_PER_COLUMN}`}
-            <Icon name={isExpanded ? 'chevronUp' : 'chevronDown'} className="w-3 h-3" />
-          </button>
-        )}
     </div>
   );
 }
@@ -164,10 +249,51 @@ function Column({ title, emoji, items, columnKey, isExpanded, onToggleExpand, is
 function MediaDetailsModal({ item, onClose, onUpdate, onReact, isViewingFriend, user }) {
   if (!item) return null;
   const userReaction = (item.reactions || []).find(r => r.user_id === user?.id);
+  const modalRef = useRef(null);
+  const [touchStart, setTouchStart] = useState(0);
+  const [touchOffset, setTouchOffset] = useState(0);
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  const handleTouchStart = (e) => {
+    if (!isMobile) return;
+    setTouchStart(e.touches[0].clientY);
+  };
+
+  const handleTouchMove = (e) => {
+    if (!isMobile) return;
+    const currentTouch = e.touches[0].clientY;
+    const offset = currentTouch - touchStart;
+    if (offset > 0) {
+      setTouchOffset(offset);
+    }
+  };
+
+  const handleTouchEnd = () => {
+    if (!isMobile) return;
+    if (touchOffset > 100) {
+      onClose();
+    }
+    setTouchOffset(0);
+  };
 
   return (
-    <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-[100] p-4" onClick={onClose}>
-      <div className="bg-gray-900 rounded-2xl p-6 w-full max-w-md border border-purple-500/30 max-h-[90vh] overflow-y-auto elevation-3" onClick={e => e.stopPropagation()}>
+    <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-[100] md:p-4" onClick={onClose}>
+      <div 
+        ref={modalRef}
+        className={`bg-gray-900 rounded-2xl p-6 w-full max-w-md border border-purple-500/30 max-h-[90vh] overflow-y-auto elevation-3 ${isMobile ? 'mobile-fullscreen-modal' : ''}`}
+        style={isMobile ? { transform: `translateY(${touchOffset}px)`, transition: touchOffset === 0 ? 'transform 0.3s ease' : 'none' } : {}}
+        onClick={e => e.stopPropagation()}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+      >
+        {isMobile && <div className="swipe-indicator"></div>}
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-xl font-bold text-white">{item.title}</h2>
           <button onClick={onClose} className="p-2 hover:bg-gray-800 rounded-lg"><Icon name="x" className="w-5 h-5 text-gray-400" /></button>
@@ -196,12 +322,7 @@ function MediaDetailsModal({ item, onClose, onUpdate, onReact, isViewingFriend, 
             <p className="text-gray-400 text-sm mb-2">Ваша реакция:</p>
             <div className="flex flex-wrap gap-2">
               {REACTION_EMOJIS.map(emoji => (
-                <button 
-                  key={emoji} 
-                  data-reaction-emoji={emoji}
-                  onClick={() => onReact(item, emoji)} 
-                  className={`text-2xl reaction-button p-1 rounded-full ${userReaction?.emoji === emoji ? 'bg-purple-500/30' : 'hover:bg-gray-700/50'}`}
-                >
+                <button key={emoji} onClick={() => onReact(item, emoji)} className={`text-2xl transform hover:scale-125 transition-transform p-1 rounded-full ${userReaction?.emoji === emoji ? 'bg-purple-500/30' : ''}`}>
                   {emoji}
                 </button>
               ))}
@@ -211,42 +332,12 @@ function MediaDetailsModal({ item, onClose, onUpdate, onReact, isViewingFriend, 
             <div>
               <p className="text-gray-400 text-sm mb-2">Все реакции:</p>
               <div className="flex flex-wrap gap-2">
-                {(() => {
-                  // Группируем реакции по emoji
-                  const groupedReactions = {};
-                  item.reactions.forEach(r => {
-                    if (!groupedReactions[r.emoji]) {
-                      groupedReactions[r.emoji] = [];
-                    }
-                    groupedReactions[r.emoji].push(r);
-                  });
-                  
-                  return Object.entries(groupedReactions).map(([emoji, reactions]) => (
-                    <div 
-                      key={emoji} 
-                      className="flex items-center gap-1 bg-gray-800 px-3 py-1 rounded-full group cursor-pointer hover:bg-gray-700 transition-colors" 
-                      title={`${reactions.map(r => r.username).join(', ')}`}
-                    >
-                      <div className="flex -space-x-1">
-                        {reactions.slice(0, 3).map((reaction, idx) => (
-                          <Avatar 
-                            key={idx} 
-                            src={reaction.avatar} 
-                            size="sm" 
-                            className="w-6 h-6 border-2 border-gray-800" 
-                          />
-                        ))}
-                        {reactions.length > 3 && (
-                          <div className="w-6 h-6 bg-gray-600 rounded-full border-2 border-gray-800 flex items-center justify-center text-xs text-white">
-                            +{reactions.length - 3}
-                          </div>
-                        )}
-                      </div>
-                      <span className="text-xl">{emoji}</span>
-                      {reactions.length > 1 && <span className="text-sm text-gray-400">×{reactions.length}</span>}
-                    </div>
-                  ));
-                })()}
+                {item.reactions.map((reaction, idx) => (
+                  <div key={idx} className="flex items-center gap-1 bg-gray-800 px-3 py-1 rounded-full" title={reaction.username}>
+                     <Avatar src={reaction.avatar} size="sm" className="w-5 h-5" />
+                    <span className="text-xl">{reaction.emoji}</span>
+                  </div>
+                ))}
               </div>
             </div>
           )}
@@ -256,7 +347,7 @@ function MediaDetailsModal({ item, onClose, onUpdate, onReact, isViewingFriend, 
   );
 }
 
-function ActivityFeed({ token, boardType = 'media' }) {
+function ActivityFeed({ token, boardType = 'media', onNavigateToUser }) {
     const [activities, setActivities] = useState([]);
     const [loading, setLoading] = useState(true);
 
@@ -287,20 +378,29 @@ function ActivityFeed({ token, boardType = 'media' }) {
     const mediaTypes = { movie: 'фильм', tv: 'сериал'};
 
     const formatActivity = (act) => {
-        const { username, action_type, details } = act;
+        const { username, action_type, details, user_id } = act;
         const mediaName = <span className="font-bold text-purple-300">{details.title}</span>;
         const mediaType = mediaTypes[details.mediaType] || 'медиа';
+        const clickableUsername = (
+            <button 
+                onClick={() => onNavigateToUser && onNavigateToUser(user_id)}
+                className="text-blue-400 hover:text-blue-300 underline cursor-pointer font-semibold"
+            >
+                {username}
+            </button>
+        );
+        
         switch (action_type) {
             case 'add_media':
-                return <>{username} добавил {mediaType} {mediaName} в <span className="italic">{boardTitles[details.board]}</span></>;
+                return <>{clickableUsername} добавил {mediaType} {mediaName} в <span className="italic">{boardTitles[details.board]}</span></>;
             case 'complete_media':
-                return <><span className="text-green-400 font-semibold">{username}</span> посмотрел {mediaType} {mediaName}! 🎉</>;
+                return <><span className="text-green-400 font-semibold">{clickableUsername}</span> посмотрел {mediaType} {mediaName}! 🎉</>;
             case 'move_media':
-                return <>{username} вернул {mediaType} {mediaName} в <span className="italic">"{boardTitles.wishlist}"</span></>;
+                return <>{clickableUsername} вернул {mediaType} {mediaName} в <span className="italic">"{boardTitles.wishlist}"</span></>;
              case 'remove_media':
-                return <>{username} удалил {mediaName}</>;
+                return <>{clickableUsername} удалил {mediaName}</>;
             default:
-                return `${username} ${action_type}`;
+                return <>{clickableUsername} {action_type}</>;
         }
     };
     
@@ -364,6 +464,11 @@ function MovieApp() {
   const [allUsers, setAllUsers] = useState([]);
   const [userSearchQuery, setUserSearchQuery] = useState('');
   const [friendshipStatus, setFriendshipStatus] = useState('none');
+  const [showMobileActionMenu, setShowMobileActionMenu] = useState(false);
+  const [showMoveMenu, setShowMoveMenu] = useState(false);
+  const [selectedCard, setSelectedCard] = useState(null);
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+  const [showMobileMenu, setShowMobileMenu] = useState(false);
   const [userNickname, setUserNickname] = useState('');
   const [confirmingAddFriend, setConfirmingAddFriend] = useState(null);
   const [confirmingDeleteFriend, setConfirmingDeleteFriend] = useState(null);
@@ -482,29 +587,10 @@ function MovieApp() {
   };
 
   const reactToItem = async (item, emoji) => {
-    const userReaction = (item.reactions || []).find(r => r.user_id === user?.id);
-    
-    // Если пользователь кликает на свою текущую реакцию, удаляем её
-    if (userReaction && userReaction.emoji === emoji) {
-      await fetch(`${API_URL}/api/media/${item.id}/reactions`, {
-        method: 'DELETE', headers: { Authorization: `Bearer ${token}` }
-      });
-    } else {
-      // Добавляем анимацию к кнопке реакции
-      const reactionButton = document.querySelector(`[data-reaction-emoji="${emoji}"]`);
-      if (reactionButton) {
-        reactionButton.classList.add('reaction-add-animation');
-        setTimeout(() => {
-          reactionButton.classList.remove('reaction-add-animation');
-        }, 600);
-      }
-      
-      await fetch(`${API_URL}/api/media/${item.id}/reactions`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ emoji })
-      });
-    }
-    
+    await fetch(`${API_URL}/api/media/${item.id}/reactions`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ emoji })
+    });
     await loadBoards(viewingUser?.id);
     try {
       const res = await fetch(`${API_URL}/api/user/media/boards`, { headers: { Authorization: `Bearer ${token}` } });
@@ -617,6 +703,39 @@ function MovieApp() {
     setExpandedColumns(prev => ({...prev, [columnKey]: !prev[columnKey]}));
   };
 
+  // Обработчик изменения размера окна
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  // Функции для мобильного меню действий
+  const handleMobileCardClick = (item, boardKey) => {
+    if (!isMobile || viewingUser) return;
+    setSelectedCard({...item, boardKey});
+    setShowMobileActionMenu(true);
+  };
+
+  const closeMobileActionMenu = () => {
+    setShowMobileActionMenu(false);
+    setShowMoveMenu(false);
+    setSelectedCard(null);
+  };
+
+  const handleMoveToBoard = (targetBoardKey) => {
+    if (selectedCard && targetBoardKey !== selectedCard.boardKey) {
+      // TODO: Реализовать перемещение медиа
+      console.log(`Moving ${selectedCard.title} to board ${targetBoardKey}`);
+      closeMobileActionMenu();
+    }
+  };
+
+  const openEditModal = () => {
+    setShowMobileActionMenu(false);
+    setSelectedMedia(selectedCard);
+  };
+
   const onDragOver = (e) => e.preventDefault();
   const onDragEnterColumn = (e) => e.currentTarget.classList.add('drag-over-column');
   const onDragLeaveColumn = (e) => e.currentTarget.classList.remove('drag-over-column');
@@ -639,7 +758,37 @@ function MovieApp() {
   
   return (
     <div className={`min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-blue-900 ${theme} flex flex-col`}>
-      <header className="bg-gray-900/50 backdrop-blur-xl border-b border-purple-500/30 sticky top-0 z-50 flex-shrink-0">
+      {/* Мобильный header */}
+      <header className="md:hidden bg-gray-900/50 backdrop-blur-xl border-b border-purple-500/30 sticky top-0 z-50">
+        <div className="flex items-center justify-between px-4 py-3">
+          <div className="flex items-center gap-3">
+            <button onClick={() => setShowMobileMenu(true)} className="p-2 hover:bg-gray-800/50 rounded-lg">
+              <Icon name="menu" className="w-6 h-6 text-white" />
+            </button>
+            <div className="flex items-center gap-2">
+              <span className="text-2xl">🎬</span>
+              <span className="text-lg font-bold text-white">MovieTracker</span>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <button onClick={() => setShowSearch(true)} className="p-2 relative hover:bg-gray-800/50 rounded-lg">
+              <Icon name="search" className="w-5 h-5 text-purple-400" />
+            </button>
+            <button className="p-2 relative hover:bg-gray-800/50 rounded-lg">
+              <Icon name="bell" className="w-5 h-5 text-purple-400" />
+              {friendRequests.length > 0 && (
+                <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
+              )}
+            </button>
+            <button onClick={() => setShowMobileMenu(true)} className="p-1 hover:bg-gray-800/50 rounded-lg">
+              <Avatar src={user?.avatar} size="sm" />
+            </button>
+          </div>
+        </div>
+      </header>
+
+      {/* Desktop header */}
+      <header className="hidden md:block bg-gray-900/50 backdrop-blur-xl border-b border-purple-500/30 sticky top-0 z-50 flex-shrink-0">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between flex-wrap gap-4">
             <div className="flex items-center gap-4 flex-wrap">
@@ -710,33 +859,32 @@ function MovieApp() {
             </div>
         )}
         
-        <div className="relative grid grid-cols-1 lg:grid-cols-2 gap-x-8 gap-y-8">
+        <div className="relative grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             <div className="hidden lg:block absolute left-1/2 -ml-px top-0 h-full bg-gradient-to-b from-transparent via-purple-500/20 to-transparent w-px"></div>
-            <div className="space-y-4">
-                <h2 className="text-center text-3xl font-semibold tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-purple-300 to-pink-300 opacity-80 mb-4">Фильмы</h2>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6" onDragOver={onDragOver}>
-                    <div onDrop={(e) => onDrop(e, 'movie:wishlist')} onDragEnter={onDragEnterColumn} onDragLeave={onDragLeaveColumn}>
-                        <Column title="Хочу посмотреть" emoji="🎬" items={movies.wishlist} columnKey="movie:wishlist" isExpanded={!!expandedColumns['movie:wishlist']} onToggleExpand={toggleColumnExpansion} onSelect={setSelectedMedia} onRemove={removeItem} onDragStart={onDragStart} onDragEnd={onDragEnd} isViewingFriend={!!viewingUser} />
-                    </div>
-                    <div onDrop={(e) => onDrop(e, 'movie:watched')} onDragEnter={onDragEnterColumn} onDragLeave={onDragLeaveColumn}>
-                        <Column title="Посмотрел" emoji="🍿" items={movies.watched} columnKey="movie:watched" isExpanded={!!expandedColumns['movie:watched']} onToggleExpand={toggleColumnExpansion} onSelect={setSelectedMedia} onRemove={removeItem} onDragStart={onDragStart} onDragEnd={onDragEnd} isViewingFriend={!!viewingUser} />
-                    </div>
-                </div>
+            
+            {/* Desktop: 4 columns side by side, Tablet: 2x2 grid, Mobile: 1 column stack */}
+            <div className="md:col-span-2 lg:col-span-1" onDrop={(e) => onDrop(e, 'movie:wishlist')} onDragEnter={onDragEnterColumn} onDragLeave={onDragLeaveColumn}>
+                <Column title="🎬 Хочу посмотреть" emoji="" items={movies.wishlist} columnKey="movie:wishlist" isExpanded={!!expandedColumns['movie:wishlist']} onToggleExpand={toggleColumnExpansion} onSelect={setSelectedMedia} onRemove={removeItem} onDragStart={onDragStart} onDragEnd={onDragEnd} onMobileClick={handleMobileCardClick} onSearch={() => setShowSearch(true)} isViewingFriend={!!viewingUser} />
             </div>
-             <div className="space-y-4">
-                <h2 className="text-center text-3xl font-semibold tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-purple-300 to-pink-300 opacity-80 mb-4">Сериалы</h2>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6" onDragOver={onDragOver}>
-                    <div onDrop={(e) => onDrop(e, 'tv:wishlist')} onDragEnter={onDragEnterColumn} onDragLeave={onDragLeaveColumn}>
-                        <Column title="Хочу посмотреть" emoji="📺" items={tv.wishlist} columnKey="tv:wishlist" isExpanded={!!expandedColumns['tv:wishlist']} onToggleExpand={toggleColumnExpansion} onSelect={setSelectedMedia} onRemove={removeItem} onDragStart={onDragStart} onDragEnd={onDragEnd} isViewingFriend={!!viewingUser} />
-                    </div>
-                    <div onDrop={(e) => onDrop(e, 'tv:watched')} onDragEnter={onDragEnterColumn} onDragLeave={onDragLeaveColumn}>
-                        <Column title="Посмотрел" emoji="✅" items={tv.watched} columnKey="tv:watched" isExpanded={!!expandedColumns['tv:watched']} onToggleExpand={toggleColumnExpansion} onSelect={setSelectedMedia} onRemove={removeItem} onDragStart={onDragStart} onDragEnd={onDragEnd} isViewingFriend={!!viewingUser} />
-                    </div>
-                </div>
+            <div className="md:col-span-2 lg:col-span-1" onDrop={(e) => onDrop(e, 'movie:watched')} onDragEnter={onDragEnterColumn} onDragLeave={onDragLeaveColumn}>
+                <Column title="🍿 Посмотрел" emoji="" items={movies.watched} columnKey="movie:watched" isExpanded={!!expandedColumns['movie:watched']} onToggleExpand={toggleColumnExpansion} onSelect={setSelectedMedia} onRemove={removeItem} onDragStart={onDragStart} onDragEnd={onDragEnd} onMobileClick={handleMobileCardClick} isViewingFriend={!!viewingUser} />
+            </div>
+            <div className="md:col-span-2 lg:col-span-1" onDrop={(e) => onDrop(e, 'tv:wishlist')} onDragEnter={onDragEnterColumn} onDragLeave={onDragLeaveColumn}>
+                <Column title="📺 Хочу посмотреть" emoji="" items={tv.wishlist} columnKey="tv:wishlist" isExpanded={!!expandedColumns['tv:wishlist']} onToggleExpand={toggleColumnExpansion} onSelect={setSelectedMedia} onRemove={removeItem} onDragStart={onDragStart} onDragEnd={onDragEnd} onMobileClick={handleMobileCardClick} onSearch={() => setShowSearch(true)} isViewingFriend={!!viewingUser} />
+            </div>
+            <div className="md:col-span-2 lg:col-span-1" onDrop={(e) => onDrop(e, 'tv:watched')} onDragEnter={onDragEnterColumn} onDragLeave={onDragLeaveColumn}>
+                <Column title="✅ Посмотрел" emoji="" items={tv.watched} columnKey="tv:watched" isExpanded={!!expandedColumns['tv:watched']} onToggleExpand={toggleColumnExpansion} onSelect={setSelectedMedia} onRemove={removeItem} onDragStart={onDragStart} onDragEnd={onDragEnd} onMobileClick={handleMobileCardClick} isViewingFriend={!!viewingUser} />
             </div>
         </div>
         
-        {!viewingUser && <ActivityFeed token={token} boardType="media" />}
+        {!viewingUser && <ActivityFeed 
+          token={token} 
+          boardType="media" 
+          onNavigateToUser={(userId) => {
+            console.log('Navigating to user:', userId);
+            loadBoards(userId);
+          }}
+        />}
 
       </main>
 
@@ -888,8 +1036,9 @@ function MovieApp() {
         </div>
       )}
 
+      {/* Десктопная модалка поиска */}
       {showSearch && (
-        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-[100] p-4">
+        <div className="hidden md:flex fixed inset-0 bg-black/80 items-center justify-center z-[100] p-4">
           <div className="bg-gray-800/95 backdrop-blur-xl rounded-lg shadow-2xl border border-purple-500/30 p-4 z-50 w-full max-w-3xl">
             <div className="flex items-center gap-2 mb-3">
               <input type="text" value={query} onChange={e => handleSearch(e.target.value)} placeholder="Поиск TMDB..." className="flex-1 px-4 py-2 bg-gray-900 border border-gray-700 rounded-lg focus:border-purple-500 focus:outline-none text-white text-sm" autoFocus />
@@ -921,7 +1070,312 @@ function MovieApp() {
         </div>
       )}
 
+      {/* Мобильная модалка поиска */}
+      {showSearch && (
+        <div className="md:hidden fixed inset-0 bg-black/80 flex items-center justify-center z-[100] p-4">
+          <div className="bg-gray-900 rounded-2xl p-6 w-full max-w-md border border-purple-500/30 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-bold text-white">Поиск {type === 'movie' ? 'фильмов' : 'сериалов'}</h2>
+              <button onClick={() => { setShowSearch(false); setQuery(''); setSearchResults([]); }} className="p-2 hover:bg-gray-800 rounded-lg">
+                <Icon name="x" className="w-5 h-5 text-gray-400" />
+              </button>
+            </div>
+            <div className="space-y-4">
+              <div className="flex gap-2">
+                <input 
+                  type="text" 
+                  value={query} 
+                  onChange={e => handleSearch(e.target.value)} 
+                  placeholder="Поиск TMDB..." 
+                  className="flex-1 px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg focus:border-purple-500 focus:outline-none text-white placeholder-gray-500" 
+                  autoFocus 
+                />
+                <select className="px-3 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white" value={type} onChange={e => {setType(e.target.value); handleSearch(query)}}>
+                  <option value="movie">Фильмы</option>
+                  <option value="tv">Сериалы</option>
+                </select>
+              </div>
+              <div className="space-y-2 max-h-60 overflow-y-auto">
+                {searching ? (
+                  <div className="flex items-center justify-center py-8">
+                    <Icon name="loader" className="w-8 h-8 text-purple-400 animate-spin" />
+                  </div>
+                ) : searchResults.length > 0 ? (
+                  searchResults.map(it => (
+                    <div key={`${it.mediaType}-${it.tmdbId}`} className="bg-gray-800/50 rounded-lg p-3 border border-gray-700 hover:border-purple-500/50 transition-colors">
+                      <div className="flex items-start gap-3">
+                        <img 
+                          src={it.poster || 'https://placehold.co/40x56/1f2937/ffffff?text=?'} 
+                          alt={it.title} 
+                          className="w-12 h-16 object-cover rounded-lg flex-shrink-0"
+                        />
+                        <div className="flex-1 min-w-0">
+                          <h3 className="text-white font-semibold text-sm line-clamp-2 mb-1">
+                            {it.title} ({it.year})
+                          </h3>
+                          <p className="text-gray-400 text-xs mb-2 line-clamp-2">
+                            {it.overview}
+                          </p>
+                          <button
+                            onClick={() => addItem(it, 'wishlist')}
+                            className="px-3 py-1 bg-purple-500 hover:bg-purple-600 text-white text-xs rounded-lg transition-colors"
+                          >
+                            Добавить
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))
+                ) : query.length >= 2 && !searching && (
+                  <div className="text-center py-8">
+                    <div className="text-4xl mb-2">🔍</div>
+                    <p className="text-gray-400">Ничего не найдено</p>
+                    <p className="text-sm text-gray-500 mt-1">Попробуйте другой запрос</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       <MediaDetailsModal item={selectedMedia} onClose={() => setSelectedMedia(null)} onUpdate={updateItem} onReact={reactToItem} isViewingFriend={!!viewingUser} user={user}/>
+      {/* Мобильное меню выбора действия */}
+      {showMobileActionMenu && selectedCard && (
+        <>
+          {/* Backdrop */}
+          <div 
+            className="fixed inset-0 bg-black/60 z-40"
+            onClick={closeMobileActionMenu}
+          />
+          
+          {/* Action Menu */}
+          <div className="fixed bottom-0 left-0 right-0 bg-gray-900 rounded-t-3xl z-50 p-6 transform transition-transform">
+            {/* Handle (полоска для drag) */}
+            <div className="w-12 h-1 bg-gray-600 rounded-full mx-auto mb-4"></div>
+            
+            {/* Название медиа */}
+            <h3 className="text-white font-bold text-lg mb-4 text-center">
+              {selectedCard.title}
+            </h3>
+            
+            {/* Действия */}
+            <div className="space-y-3">
+              <button 
+                onClick={openEditModal}
+                className="w-full flex items-center gap-3 px-4 py-3 text-left text-white hover:bg-gray-800 rounded-lg border border-gray-700"
+              >
+                <div className="w-10 h-10 bg-purple-500/20 rounded-lg flex items-center justify-center">
+                  ✏️
+                </div>
+                <div>
+                  <p className="font-semibold">Редактировать</p>
+                  <p className="text-sm text-gray-400">Поставить рейтинг, написать отзыв</p>
+                </div>
+              </button>
+              
+              <button 
+                onClick={() => {setShowMoveMenu(true); setShowMobileActionMenu(false);}}
+                className="w-full flex items-center gap-3 px-4 py-3 text-left text-white hover:bg-gray-800 rounded-lg border border-gray-700"
+              >
+                <div className="w-10 h-10 bg-blue-500/20 rounded-lg flex items-center justify-center">
+                  ➡️
+                </div>
+                <div>
+                  <p className="font-semibold">Переместить</p>
+                  <p className="text-sm text-gray-400">Изменить статус просмотра</p>
+                </div>
+              </button>
+              
+              <button 
+                onClick={closeMobileActionMenu}
+                className="w-full py-3 text-gray-400 hover:text-white"
+              >
+                Отмена
+              </button>
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* Меню выбора колонки для перемещения */}
+      {showMoveMenu && selectedCard && (
+        <>
+          {/* Backdrop */}
+          <div 
+            className="fixed inset-0 bg-black/60 z-40"
+            onClick={() => {setShowMoveMenu(false); setSelectedCard(null);}}
+          />
+          
+          {/* Move Menu */}
+          <div className="fixed bottom-0 left-0 right-0 bg-gray-900 rounded-t-3xl z-50 p-6 transform transition-transform">
+            {/* Handle */}
+            <div className="w-12 h-1 bg-gray-600 rounded-full mx-auto mb-4"></div>
+            
+            <h3 className="text-white font-bold text-lg mb-4 text-center">
+              Переместить "{selectedCard.title}"
+            </h3>
+            
+            <div className="space-y-2">
+              {/* Фильмы */}
+              <div className="space-y-2">
+                <p className="text-sm text-gray-500 font-semibold">🎬 ФИЛЬМЫ</p>
+                <button 
+                  onClick={() => handleMoveToBoard('movie:wishlist')}
+                  disabled={selectedCard.boardKey === 'movie:wishlist'}
+                  className={`w-full flex items-center gap-3 px-4 py-3 text-left rounded-lg border transition-colors ${
+                    selectedCard.boardKey === 'movie:wishlist' 
+                      ? 'bg-gray-700/50 border-gray-600 text-gray-500 cursor-not-allowed' 
+                      : 'text-white hover:bg-gray-800 border-gray-700'
+                  }`}
+                >
+                  <span className="text-2xl">🎬</span>
+                  <div>
+                    <p className="font-semibold">Хочу посмотреть</p>
+                    <p className="text-sm text-gray-400">{boards.movies.wishlist.length} фильмов</p>
+                  </div>
+                  {selectedCard.boardKey === 'movie:wishlist' && (
+                    <span className="ml-auto text-xs bg-gray-600 px-2 py-1 rounded">Текущая</span>
+                  )}
+                </button>
+                <button 
+                  onClick={() => handleMoveToBoard('movie:watched')}
+                  disabled={selectedCard.boardKey === 'movie:watched'}
+                  className={`w-full flex items-center gap-3 px-4 py-3 text-left rounded-lg border transition-colors ${
+                    selectedCard.boardKey === 'movie:watched' 
+                      ? 'bg-gray-700/50 border-gray-600 text-gray-500 cursor-not-allowed' 
+                      : 'text-white hover:bg-gray-800 border-gray-700'
+                  }`}
+                >
+                  <span className="text-2xl">🍿</span>
+                  <div>
+                    <p className="font-semibold">Посмотрел</p>
+                    <p className="text-sm text-gray-400">{boards.movies.watched.length} фильмов</p>
+                  </div>
+                  {selectedCard.boardKey === 'movie:watched' && (
+                    <span className="ml-auto text-xs bg-gray-600 px-2 py-1 rounded">Текущая</span>
+                  )}
+                </button>
+              </div>
+
+              {/* Сериалы */}
+              <div className="space-y-2">
+                <p className="text-sm text-gray-500 font-semibold">📺 СЕРИАЛЫ</p>
+                <button 
+                  onClick={() => handleMoveToBoard('tv:wishlist')}
+                  disabled={selectedCard.boardKey === 'tv:wishlist'}
+                  className={`w-full flex items-center gap-3 px-4 py-3 text-left rounded-lg border transition-colors ${
+                    selectedCard.boardKey === 'tv:wishlist' 
+                      ? 'bg-gray-700/50 border-gray-600 text-gray-500 cursor-not-allowed' 
+                      : 'text-white hover:bg-gray-800 border-gray-700'
+                  }`}
+                >
+                  <span className="text-2xl">📺</span>
+                  <div>
+                    <p className="font-semibold">Хочу посмотреть</p>
+                    <p className="text-sm text-gray-400">{boards.tv.wishlist.length} сериалов</p>
+                  </div>
+                  {selectedCard.boardKey === 'tv:wishlist' && (
+                    <span className="ml-auto text-xs bg-gray-600 px-2 py-1 rounded">Текущая</span>
+                  )}
+                </button>
+                <button 
+                  onClick={() => handleMoveToBoard('tv:watched')}
+                  disabled={selectedCard.boardKey === 'tv:watched'}
+                  className={`w-full flex items-center gap-3 px-4 py-3 text-left rounded-lg border transition-colors ${
+                    selectedCard.boardKey === 'tv:watched' 
+                      ? 'bg-gray-700/50 border-gray-600 text-gray-500 cursor-not-allowed' 
+                      : 'text-white hover:bg-gray-800 border-gray-700'
+                  }`}
+                >
+                  <span className="text-2xl">✅</span>
+                  <div>
+                    <p className="font-semibold">Посмотрел</p>
+                    <p className="text-sm text-gray-400">{boards.tv.watched.length} сериалов</p>
+                  </div>
+                  {selectedCard.boardKey === 'tv:watched' && (
+                    <span className="ml-auto text-xs bg-gray-600 px-2 py-1 rounded">Текущая</span>
+                  )}
+                </button>
+              </div>
+              
+              <button 
+                onClick={() => {setShowMoveMenu(false); setSelectedCard(null);}}
+                className="w-full py-3 text-gray-400 hover:text-white mt-4"
+              >
+                Отмена
+              </button>
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* Мобильное меню */}
+      {showMobileMenu && (
+        <>
+          <div className="fixed inset-0 bg-black/60 z-40" onClick={() => setShowMobileMenu(false)} />
+          <div className="fixed top-0 left-0 h-full w-72 bg-gray-900 z-50 p-6 overflow-y-auto transform transition-transform">
+            {/* Профиль */}
+            <div className="flex items-center gap-3 mb-6 pb-6 border-b border-gray-700">
+              <Avatar src={user?.avatar} size="lg" />
+              <div>
+                <p className="text-white font-semibold">{user?.username}</p>
+                <p className="text-sm text-gray-400">{user?.email}</p>
+              </div>
+            </div>
+
+            {/* Переключение приложений */}
+            <div className="mb-6">
+              <p className="text-xs text-gray-500 mb-2">ПРИЛОЖЕНИЯ</p>
+              <button 
+                onClick={() => {window.location.href = '/index.html'; setShowMobileMenu(false);}}
+                className="w-full flex items-center gap-3 px-3 py-2 rounded-lg mb-2 text-gray-400 hover:bg-gray-800"
+              >
+                🎮 <span>GameTracker</span>
+              </button>
+              <button 
+                onClick={() => {window.location.href = '/movies.html'; setShowMobileMenu(false);}}
+                className="w-full flex items-center gap-3 px-3 py-2 rounded-lg bg-purple-500/20 text-purple-400"
+              >
+                🎬 <span>MovieTracker</span>
+              </button>
+            </div>
+
+            {/* Навигация */}
+            <div className="space-y-2 mb-6">
+              <button 
+                onClick={() => {setShowUserHub(true); setShowMobileMenu(false);}}
+                className="w-full flex items-center gap-3 px-3 py-2 text-gray-300 hover:bg-gray-800 rounded-lg"
+              >
+                👥 <span>Друзья</span>
+                {friendRequests.length > 0 && (
+                  <span className="ml-auto bg-red-500 text-white text-xs px-2 py-0.5 rounded-full">{friendRequests.length}</span>
+                )}
+              </button>
+              <button 
+                onClick={() => {/* Open Stats */; setShowMobileMenu(false);}}
+                className="w-full flex items-center gap-3 px-3 py-2 text-gray-300 hover:bg-gray-800 rounded-lg"
+              >
+                📊 <span>Статистика</span>
+              </button>
+              <button 
+                onClick={() => {setShowProfile(true); setShowMobileMenu(false);}}
+                className="w-full flex items-center gap-3 px-3 py-2 text-gray-300 hover:bg-gray-800 rounded-lg"
+              >
+                ⚙️ <span>Настройки</span>
+              </button>
+            </div>
+
+            {/* Выход */}
+            <button 
+              onClick={() => {/* handleLogout */; setShowMobileMenu(false);}}
+              className="w-full flex items-center gap-3 px-3 py-2 text-red-400 hover:bg-red-500/10 rounded-lg"
+            >
+              🚪 <span>Выйти</span>
+            </button>
+          </div>
+        </>
+      )}
     </div>
   );
 }
