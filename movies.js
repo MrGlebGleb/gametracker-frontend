@@ -55,7 +55,7 @@ function StarRating({ value = 0, onChange }) {
   );
 }
 
-function MediaCard({ item, onSelect, onRemove, onDragStart, onDragEnd, isViewingFriend }) {
+function MediaCard({ item, onSelect, onRemove, onDragStart, onDragEnd, isViewingFriend, boardId }) {
   const type = item.media_type || 'movie'; // Определяем тип медиа
   
   return (
@@ -69,7 +69,7 @@ function MediaCard({ item, onSelect, onRemove, onDragStart, onDragEnd, isViewing
       {/* Цветная полоска слева */}
       <div 
         className="w-1 rounded-l-xl flex-shrink-0" 
-        style={{ backgroundColor: type === 'movie' ? '#3B82F6' : '#F59E0B' }}
+        style={{ backgroundColor: boardId === 'wishlist' ? '#3B82F6' : '#10B981' }}
       ></div>
       <div className="relative flex-shrink-0">
         <img src={item.poster || 'https://placehold.co/96x128/1f2937/ffffff?text=?'} alt={item.title} className="w-20 h-28 object-cover rounded-lg flex-shrink-0" />
@@ -101,19 +101,21 @@ function MediaCard({ item, onSelect, onRemove, onDragStart, onDragEnd, isViewing
 }
 
 function Column({ title, emoji, items, columnKey, isExpanded, onToggleExpand, isViewingFriend, ...handlers }) {
+  // Определяем boardId на основе columnKey
+  const boardId = columnKey.includes('wishlist') ? 'wishlist' : 'watched';
   const visibleItems = isExpanded ? items : items.slice(0, MEDIA_PER_COLUMN);
     
   return (
     <div className="bg-gradient-to-br from-purple-500/10 to-pink-500/10 backdrop-blur-xl rounded-xl p-5 border border-purple-500/30 flex flex-col h-full elevation-1 board-column">
         <div className="flex items-center justify-between mb-4">
-            <h3 className="text-2xl font-extrabold text-white flex items-center gap-2 tracking-wide">
+            <h3 className="text-2xl font-extrabold text-white flex items-center gap-2 tracking-wide whitespace-nowrap">
                 <span className="text-xl">{emoji}</span>
                 <span>{title}</span>
             </h3>
             <span className="bg-white/10 text-white px-3 py-1 rounded-full text-sm font-bold">{items.length}</span>
         </div>
         <div className="space-y-3 flex-grow min-h-[150px]">
-            {visibleItems.map(it => <MediaCard key={it.id} item={it} isViewingFriend={isViewingFriend} {...handlers} />)}
+            {visibleItems.map(it => <MediaCard key={it.id} item={it} isViewingFriend={isViewingFriend} boardId={boardId} {...handlers} />)}
         </div>
         {items.length > MEDIA_PER_COLUMN && (
           <button onClick={() => onToggleExpand(columnKey)} className="w-full text-center mt-3 py-1.5 text-xs font-semibold text-purple-300 bg-purple-500/10 hover:bg-purple-500/20 rounded-lg flex items-center justify-center gap-1">
@@ -185,7 +187,7 @@ function MediaDetailsModal({ item, onClose, onUpdate, onReact, isViewingFriend, 
   );
 }
 
-function ActivityFeed({ token }) {
+function ActivityFeed({ token, boardType = 'media' }) {
     const [activities, setActivities] = useState([]);
     const [loading, setLoading] = useState(true);
 
@@ -194,7 +196,7 @@ function ActivityFeed({ token }) {
             if (!token) return;
             setLoading(true);
             try {
-                const response = await fetch(`${API_URL}/api/friends/activity?media=media`, {
+                const response = await fetch(`${API_URL}/api/friends/activity?type=${boardType}`, {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
                 if (response.ok) {
@@ -646,7 +648,7 @@ function MovieApp() {
             </div>
         </div>
         
-        {!viewingUser && <ActivityFeed token={token} />}
+        {!viewingUser && <ActivityFeed token={token} boardType="media" />}
 
       </main>
 

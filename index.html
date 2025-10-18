@@ -376,7 +376,7 @@
         );
     };
 
-    const ActivityFeed = ({ token }) => {
+    const ActivityFeed = ({ token, boardType = 'games' }) => {
         const [activities, setActivities] = useState([]);
         const [loading, setLoading] = useState(true);
 
@@ -385,7 +385,7 @@
                 if (!token) return;
                 setLoading(true);
                 try {
-                    const response = await fetch(`${API_URL}/api/friends/activity`, {
+                    const response = await fetch(`${API_URL}/api/friends/activity?type=${boardType}`, {
                         headers: { 'Authorization': `Bearer ${token}` }
                     });
                     if (response.ok) {
@@ -401,7 +401,7 @@
             fetchActivities();
             const interval = setInterval(fetchActivities, 60000);
             return () => clearInterval(interval);
-        }, [token]);
+        }, [token, boardType]);
         
         const boardTitles = {
             backlog: 'Беклог',
@@ -411,21 +411,30 @@
         };
 
         const formatActivity = (act) => {
-            const { username, action_type, details } = act;
+            const { username, action_type, details, user_id } = act;
             const gameName = <span className="font-bold text-purple-300">{details.gameName}</span>;
+            const clickableUsername = (
+                <button 
+                    onClick={() => window.location.href = `?user=${user_id}`}
+                    className="text-blue-400 hover:text-blue-300 underline cursor-pointer font-semibold"
+                >
+                    {username}
+                </button>
+            );
+            
             switch (action_type) {
                 case 'add_game':
-                    return <>{username} добавил {gameName} в <span className="italic">{boardTitles[details.board]}</span></>;
+                    return <>{clickableUsername} добавил {gameName} в <span className="italic">{boardTitles[details.board]}</span></>;
                 case 'move_game':
-                    return <>{username} переместил {gameName} из <span className="italic">{boardTitles[details.fromBoard]}</span> в <span className="italic">{boardTitles[details.toBoard]}</span></>;
+                    return <>{clickableUsername} переместил {gameName} из <span className="italic">{boardTitles[details.fromBoard]}</span> в <span className="italic">{boardTitles[details.toBoard]}</span></>;
                 case 'remove_game':
-                     return <>{username} удалил {gameName}</>;
+                     return <>{clickableUsername} удалил {gameName}</>;
                 case 'complete_game':
-                    return <><span className="text-green-400 font-semibold">{username}</span> прошел игру {gameName}! 🎉</>;
+                    return <><span className="text-green-400 font-semibold">{clickableUsername}</span> прошел игру {gameName}! 🎉</>;
                 case 'add_review':
-                    return <>{username} оставил детальный отзыв на {gameName} 📝</>;
+                    return <>{clickableUsername} оставил детальный отзыв на {gameName} 📝</>;
                 default:
-                    return `${username} ${action_type}`;
+                    return <>{clickableUsername} {action_type}</>;
             }
         };
         
@@ -832,9 +841,9 @@
 
       return (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-gray-900 rounded-xl w-full h-full max-w-7xl max-h-[90vh] flex flex-col">
+          <div className="bg-gray-900 rounded-xl w-full max-w-4xl max-h-[70vh] flex flex-col">
             {/* Header */}
-            <div className="flex items-center justify-between p-6 border-b border-gray-700">
+            <div className="flex items-center justify-between p-6 border-b border-gray-700 pt-8">
               <div>
                 <h2 className="text-2xl font-bold text-white">📊 Статистика</h2>
                 {exportMessage && (
@@ -3319,7 +3328,7 @@
                           onDrop={(e) => !viewingUser && handleDrop(e, board.id, undefined)} 
                           className={`bg-gradient-to-br ${board.color} backdrop-blur-xl rounded-xl p-5 border ${board.borderColor} flex flex-col transition-colors elevation-1 board-column`}>
                           <div className="flex items-center justify-between mb-4">
-                            <h2 className="text-lg md:text-2xl font-extrabold text-white flex items-center gap-2 tracking-wide">
+                            <h2 className="text-lg md:text-2xl font-extrabold text-white flex items-center gap-2 tracking-wide whitespace-nowrap">
                                 <span className="text-xl md:text-2xl">{board.emoji}</span>
                                 <span className="hidden sm:inline">{board.title}</span>
                             </h2>
@@ -3463,7 +3472,7 @@
                   </div>
                   </div>
                   
-                  {!viewingUser && <ActivityFeed token={localStorage.getItem('token')} />}
+                  {!viewingUser && <ActivityFeed token={localStorage.getItem('token')} boardType="games" />}
 
                   {!viewingUser && (
                     <div className="mt-8">
