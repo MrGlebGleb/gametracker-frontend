@@ -235,37 +235,57 @@ const StatisticsPage = ({ isOpen, onClose, token, boards, showMediaTab = true })
     if (!token) return;
     setLoading(true);
     try {
+      console.log('Loading media stats, token exists:', !!token);
+      console.log('Current boards state:', boards);
+      
       const response = await fetch(`${API_URL}/api/user/statistics/media`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (response.ok) {
         const data = await response.json();
-        console.log('Media statistics received:', data);
+        console.log('Media statistics received from API:', data);
         setMediaStats(data);
       } else {
         console.log('API response not ok:', response.status, response.statusText);
         // Fallback: создаем статистику из локальных данных
+        console.log('Using fallback stats...');
         const fallbackStats = createFallbackStats();
+        console.log('Fallback stats created:', fallbackStats);
         setMediaStats(fallbackStats);
       }
     } catch (error) {
       console.error('Ошибка загрузки статистики медиа:', error);
       // Fallback: создаем статистику из локальных данных
+      console.log('Using fallback stats due to error...');
       const fallbackStats = createFallbackStats();
+      console.log('Fallback stats created:', fallbackStats);
       setMediaStats(fallbackStats);
     } finally {
       setLoading(false);
     }
-  }, [token, boards]);
+  }, [token, boards, createFallbackStats]);
 
   // Функция создания fallback статистики из локальных данных
   const createFallbackStats = useCallback(() => {
+    console.log('Full boards data:', boards);
+    
+    // Проверяем, что boards существует и имеет нужную структуру
+    if (!boards || typeof boards !== 'object') {
+      console.log('Boards is null or not an object, using empty stats');
+      return {
+        summary: { totalMovies: 0, totalTvShows: 0, watchedMedia: 0, averageRating: 0 },
+        topMovies: [],
+        monthlyStats: []
+      };
+    }
+    
     const movies = boards.movies || { wishlist: [], watched: [] };
     const tv = boards.tv || { wishlist: [], watched: [] };
     
     console.log('Creating fallback stats from local data:', {
       movies: { wishlist: movies.wishlist.length, watched: movies.watched.length },
-      tv: { wishlist: tv.wishlist.length, watched: tv.watched.length }
+      tv: { wishlist: tv.wishlist.length, watched: tv.watched.length },
+      fullBoards: boards
     });
     
     const totalMovies = movies.wishlist.length + movies.watched.length;
@@ -332,9 +352,22 @@ const StatisticsPage = ({ isOpen, onClose, token, boards, showMediaTab = true })
   // Загрузка данных при открытии
   useEffect(() => {
     if (isOpen) {
+      console.log('Statistics opened, loading media stats...');
+      console.log('Boards available:', !!boards);
+      console.log('Boards structure:', boards);
+      
+      // Если boards еще не загружены, ждем немного
+      if (!boards || (!boards.movies && !boards.tv)) {
+        console.log('Boards not loaded yet, waiting...');
+        const timer = setTimeout(() => {
+          loadMediaStats();
+        }, 1000);
+        return () => clearTimeout(timer);
+      }
+      
       loadMediaStats();
     }
-  }, [isOpen, loadMediaStats]);
+  }, [isOpen, loadMediaStats, boards]);
 
   if (!isOpen) return null;
 
@@ -383,6 +416,8 @@ const MediaStatsContent = ({ stats }) => {
   const [tooltipData, setTooltipData] = useState(null);
   const [tooltipVisible, setTooltipVisible] = useState(false);
   const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 });
+
+  console.log('MediaStatsContent received stats:', stats);
 
   if (!stats) return <div className="text-gray-400">Загрузка...</div>;
 
