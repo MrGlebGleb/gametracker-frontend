@@ -125,22 +125,36 @@
     }
     
     /* Toast Notifications */
-    .toast {
+    .toast-container {
         position: fixed;
-        top: 20px;
-        right: 20px;
+        top: 1rem;
+        right: 1rem;
         z-index: 9999;
-        padding: 12px 20px;
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+        max-width: 400px;
+    }
+    
+    .toast {
+        position: relative;
+        padding: 12px 16px;
         border-radius: 8px;
         color: white;
         font-weight: 500;
         box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
         transform: translateX(100%);
-        transition: transform 300ms ease-out;
+        opacity: 0;
+        transition: all 300ms ease-out;
+        min-width: 280px;
+        max-width: 100%;
     }
+    
     .toast.show {
         transform: translateX(0);
+        opacity: 1;
     }
+    
     .toast.success {
         background: linear-gradient(135deg, #10b981, #059669);
     }
@@ -149,6 +163,181 @@
     }
     .toast.info {
         background: linear-gradient(135deg, #3b82f6, #2563eb);
+    }
+    .toast.warning {
+        background: linear-gradient(135deg, #f59e0b, #d97706);
+    }
+    
+    .toast-close {
+        position: absolute;
+        top: 8px;
+        right: 8px;
+        background: rgba(255, 255, 255, 0.2);
+        border: none;
+        border-radius: 50%;
+        width: 20px;
+        height: 20px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        color: white;
+        font-size: 12px;
+        transition: background 200ms ease;
+    }
+    
+    .toast-close:hover {
+        background: rgba(255, 255, 255, 0.3);
+    }
+    
+    .toast-progress {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        height: 3px;
+        background: rgba(255, 255, 255, 0.3);
+        border-radius: 0 0 8px 8px;
+        transition: width 3000ms linear;
+    }
+    
+    /* Micro-animations */
+    @keyframes flyIn {
+        from {
+            opacity: 0;
+            transform: translateY(-20px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+    
+    @keyframes fadeOutScale {
+        from {
+            opacity: 1;
+            transform: scale(1);
+        }
+        to {
+            opacity: 0;
+            transform: scale(0.9);
+        }
+    }
+    
+    @keyframes collapseHeight {
+        from {
+            height: auto;
+            margin: 0;
+            padding: 8px;
+        }
+        to {
+            height: 0;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+        }
+    }
+    
+    @keyframes bounce {
+        0% {
+            transform: scale(1);
+        }
+        50% {
+            transform: scale(1.2);
+        }
+        100% {
+            transform: scale(1);
+        }
+    }
+    
+    @keyframes bounceRotate {
+        0% {
+            transform: scale(1) rotate(0deg);
+        }
+        50% {
+            transform: scale(1.1) rotate(15deg);
+        }
+        100% {
+            transform: scale(1) rotate(0deg);
+        }
+    }
+    
+    @keyframes fadeInScale {
+        from {
+            opacity: 0;
+            transform: scale(0.95);
+        }
+        to {
+            opacity: 1;
+            transform: scale(1);
+        }
+    }
+    
+    /* Animation classes */
+    .game-card-fly-in {
+        animation: flyIn 300ms ease-out;
+    }
+    
+    .game-card-delete {
+        animation: fadeOutScale 150ms ease-in, collapseHeight 250ms ease-in 150ms;
+        animation-fill-mode: forwards;
+    }
+    
+    .game-card-move-in {
+        animation: fadeInScale 200ms ease-out;
+    }
+    
+    .rating-star-bounce {
+        animation: bounce 300ms ease-out;
+    }
+    
+    .emoji-reaction-bounce {
+        animation: bounceRotate 300ms ease-out;
+    }
+    
+    /* Smooth transitions for existing elements */
+    .game-card {
+        transition: all 200ms ease;
+    }
+    
+    .rating-star {
+        transition: transform 200ms ease, color 200ms ease;
+    }
+    
+    .rating-star:hover {
+        transform: scale(1.1);
+    }
+    
+    .emoji-reaction {
+        transition: transform 200ms ease;
+    }
+    
+    .emoji-reaction:hover {
+        transform: scale(1.1);
+    }
+    
+    /* Breadcrumbs */
+    .breadcrumbs {
+        transform: translateY(-10px);
+        opacity: 0;
+        transition: all 200ms ease-out;
+    }
+    
+    .breadcrumbs.show {
+        transform: translateY(0);
+        opacity: 1;
+    }
+    
+    .breadcrumb-item {
+        transition: color 200ms ease;
+    }
+    
+    .breadcrumb-item:hover {
+        color: #a78bfa;
+    }
+    
+    .breadcrumb-separator {
+        color: #6b7280;
+        margin: 0 0.5rem;
     }
     
     /* Loading Button States */
@@ -287,31 +476,107 @@
         activity: <svg className={className} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>,
         info: <svg className={className} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>,
         chevronDown: <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" /></svg>,
+        home: <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" /></svg>,
       };
       return icons[name] || null;
     };
 
-    // Toast уведомления
-    const Toast = ({ message, type = 'info', isVisible, onClose }) => {
-      useEffect(() => {
-        if (isVisible) {
-          const timer = setTimeout(() => {
-            onClose();
-          }, 3000);
-          return () => clearTimeout(timer);
-        }
-      }, [isVisible, onClose]);
-
-      if (!isVisible) return null;
+    // Breadcrumbs компонент
+    const Breadcrumbs = ({ viewingUser, userNickname, onHomeClick, onFriendsClick }) => {
+      if (!viewingUser) return null;
 
       return (
-        <div className={`toast ${type} ${isVisible ? 'show' : ''}`}>
-          <div className="flex items-center gap-2">
-            {type === 'success' && <Icon name="check" className="w-4 h-4" />}
-            {type === 'error' && <Icon name="x" className="w-4 h-4" />}
-            {type === 'info' && <Icon name="info" className="w-4 h-4" />}
-            <span>{message}</span>
+        <div className="breadcrumbs show bg-gray-900/30 backdrop-blur-sm border-b border-gray-700/50">
+          <div className="container mx-auto px-4 py-3">
+            <nav className="flex items-center text-sm text-gray-400">
+              <button 
+                onClick={onHomeClick}
+                className="breadcrumb-item flex items-center gap-2 hover:text-purple-400 transition-colors"
+              >
+                <Icon name="home" className="w-4 h-4" />
+                Главная
+              </button>
+              <span className="breadcrumb-separator">></span>
+              <button 
+                onClick={onFriendsClick}
+                className="breadcrumb-item flex items-center gap-2 hover:text-purple-400 transition-colors"
+              >
+                <Icon name="users" className="w-4 h-4" />
+                Друзья
+              </button>
+              <span className="breadcrumb-separator">></span>
+              <div className="flex items-center gap-2 text-gray-300">
+                <Avatar src={viewingUser.avatar} size="sm" />
+                <span className="font-medium">
+                  {userNickname || viewingUser.username}
+                </span>
+                {userNickname && (
+                  <span className="text-gray-500 text-xs">
+                    @{viewingUser.username}
+                  </span>
+                )}
+              </div>
+            </nav>
           </div>
+        </div>
+      );
+    };
+
+    // Toast уведомления
+    const ToastNotification = ({ toast, onClose }) => {
+      const [progress, setProgress] = useState(100);
+      
+      useEffect(() => {
+        if (toast.isVisible) {
+          // Сброс progress bar
+          setProgress(100);
+          
+          // Анимация progress bar
+          const progressTimer = setTimeout(() => {
+            setProgress(0);
+          }, 100);
+          
+          // Автоматическое закрытие
+          const closeTimer = setTimeout(() => {
+            onClose();
+          }, 3000);
+          
+          return () => {
+            clearTimeout(progressTimer);
+            clearTimeout(closeTimer);
+          };
+        }
+      }, [toast.isVisible, onClose]);
+
+      if (!toast.isVisible) return null;
+
+      const getIcon = () => {
+        switch (toast.type) {
+          case 'success': return '✅';
+          case 'error': return '❌';
+          case 'warning': return '⚠️';
+          case 'info': 
+          default: return 'ℹ️';
+        }
+      };
+
+      return (
+        <div className={`toast ${toast.type} show`}>
+          <button 
+            className="toast-close"
+            onClick={onClose}
+            title="Закрыть"
+          >
+            ×
+          </button>
+          <div className="flex items-center gap-2 pr-6">
+            <span className="text-lg">{getIcon()}</span>
+            <span className="text-sm">{toast.message}</span>
+          </div>
+          <div 
+            className="toast-progress"
+            style={{ width: `${progress}%` }}
+          />
         </div>
       );
     };
@@ -1938,15 +2203,52 @@
       const [historyGame, setHistoryGame] = useState(null);
       
       // Toast уведомления
-      const [toast, setToast] = useState({ message: '', type: 'info', isVisible: false });
+      const [toasts, setToasts] = useState([]);
+      
+      // Анимации карточек
+      const [newCardIds, setNewCardIds] = useState(new Set());
+      const [deletingCardIds, setDeletingCardIds] = useState(new Set());
+      
+      // Режим просмотра (Kanban/List)
+      const [viewMode, setViewMode] = useState(() => {
+        const saved = localStorage.getItem('viewMode');
+        if (saved) return saved;
+        // По умолчанию Kanban на desktop, List на мобильных
+        return window.innerWidth >= 768 ? 'kanban' : 'list';
+      });
+      const [activeTab, setActiveTab] = useState('backlog');
+      const [currentPage, setCurrentPage] = useState(1);
+      const GAMES_PER_PAGE = 20;
       
       // Функции для toast уведомлений
       const showToast = (message, type = 'info') => {
-        setToast({ message, type, isVisible: true });
+        const id = Date.now() + Math.random();
+        const newToast = { id, message, type, isVisible: true };
+        
+        setToasts(prev => {
+          const updated = [...prev, newToast];
+          // Ограничиваем максимум 3 toast одновременно
+          return updated.slice(-3);
+        });
       };
       
-      const hideToast = () => {
-        setToast(prev => ({ ...prev, isVisible: false }));
+      const hideToast = (id) => {
+        setToasts(prev => prev.filter(toast => toast.id !== id));
+      };
+      
+      // Функции для переключения режима просмотра
+      const toggleViewMode = (mode) => {
+        setViewMode(mode);
+        localStorage.setItem('viewMode', mode);
+        if (mode === 'list') {
+          setActiveTab('backlog');
+          setCurrentPage(1);
+        }
+      };
+      
+      const handleTabChange = (tabId) => {
+        setActiveTab(tabId);
+        setCurrentPage(1);
       };
       const [allUsers, setAllUsers] = useState([]);
       const [userSearchQuery, setUserSearchQuery] = useState('');
@@ -2047,6 +2349,7 @@
           }
         } catch (err) {
           console.error('Ошибка загрузки:', err);
+          showToast('❌ Не удалось загрузить данные', 'error');
         } finally {
           setBoardsLoading(false);
         }
@@ -2267,35 +2570,102 @@
           });
           
           if (response.ok) {
+            const responseData = await response.json();
+            const newGameId = responseData.game?.id;
+            
+            // Добавляем ID новой карточки для анимации
+            if (newGameId) {
+              setNewCardIds(prev => new Set([...prev, newGameId]));
+              // Убираем анимацию через 300ms
+              setTimeout(() => {
+                setNewCardIds(prev => {
+                  const newSet = new Set(prev);
+                  newSet.delete(newGameId);
+                  return newSet;
+                });
+              }, 300);
+            }
+            
             await loadBoards(token);
             setShowSearch(false);
             setSearchQuery('');
             setSearchResults([]);
             setTargetBoardForAdd(null); // Сбрасываем целевую доску
+            
+            // Показываем успешное уведомление
+            const boardName = boards[boardId]?.title || 'доску';
+            showToast(`✅ Игра добавлена в ${boardName}`, 'success');
           } else {
             const data = await response.json();
-            alert('Ошибка добавления игры: ' + (data.error || 'Неизвестная ошибка'));
+            showToast(`❌ Ошибка добавления игры: ${data.error || 'Неизвестная ошибка'}`, 'error');
           }
         } catch (err) {
-          alert('Ошибка добавления игры');
+          showToast('❌ Не удалось загрузить данные', 'error');
         }
       };
 
       const deleteCard = async (e, cardId) => {
         e.stopPropagation();
+        
+        // Добавляем анимацию удаления
+        setDeletingCardIds(prev => new Set([...prev, cardId]));
+        
         const token = localStorage.getItem('token');
         try {
           await fetch(`${API_URL}/api/user/games/${cardId}`, {
             method: 'DELETE',
             headers: { 'Authorization': `Bearer ${token}` }
           });
-          loadBoards(token);
+          
+          // Ждем завершения анимации перед обновлением
+          setTimeout(() => {
+            loadBoards(token);
+            setDeletingCardIds(prev => {
+              const newSet = new Set(prev);
+              newSet.delete(cardId);
+              return newSet;
+            });
+          }, 250);
+          
+          showToast('🗑️ Игра удалена', 'success');
         } catch (err) {
           console.error('Ошибка удаления:', err);
+          showToast('❌ Не удалось удалить игру', 'error');
+          // Убираем анимацию при ошибке
+          setDeletingCardIds(prev => {
+            const newSet = new Set(prev);
+            newSet.delete(cardId);
+            return newSet;
+          });
         }
       };
 
       const updateGame = useCallback(async (gameId, updates) => {
+        // Если перемещаем между досками, добавляем анимацию
+        if (updates.board) {
+          // Добавляем анимацию исчезновения из старой колонки
+          setDeletingCardIds(prev => new Set([...prev, gameId]));
+          
+          // Через 150ms добавляем анимацию появления в новой колонке
+          setTimeout(() => {
+            setDeletingCardIds(prev => {
+              const newSet = new Set(prev);
+              newSet.delete(gameId);
+              return newSet;
+            });
+            setNewCardIds(prev => new Set([...prev, gameId]));
+            
+            // Убираем анимацию через 200ms
+            setTimeout(() => {
+              setNewCardIds(prev => {
+                const newSet = new Set(prev);
+                newSet.delete(gameId);
+                return newSet;
+              });
+            }, 200);
+          }, 150);
+        }
+        
         setBoards(prevBoards => {
             const newBoards = JSON.parse(JSON.stringify(prevBoards));
             for (const boardId in newBoards) {
@@ -2321,9 +2691,13 @@
            // Перезагружаем доски после обновления, чтобы получить актуальную ленту
            if(updates.board) {
               loadBoards(token);
+              showToast('💾 Изменения сохранены', 'success');
+           } else {
+              showToast('💾 Изменения сохранены', 'success');
            }
         } catch (err) {
           console.error('Ошибка обновления:', err);
+          showToast('❌ Не удалось загрузить данные', 'error');
           loadBoards(localStorage.getItem('token'));
         }
       }, [loadBoards]);
@@ -2342,12 +2716,13 @@
              if(response.ok) {
                 await loadBoards(token); // Перезагружаем доски, чтобы обновить и ленту и карточку
                 setGameForReview(null);
+                showToast('💾 Отзыв сохранен', 'success');
              } else {
                  throw new Error('Failed to submit review');
              }
           } catch(err) {
               console.error('Ошибка сохранения отзыва:', err);
-              alert('Не удалось сохранить отзыв');
+              showToast('❌ Не удалось сохранить отзыв', 'error');
           }
       }, [loadBoards]);
 
@@ -2652,12 +3027,15 @@
       return (
         <div className={`min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-blue-900 ${theme} flex flex-col`}>
           {/* Toast уведомления */}
-          <Toast 
-            message={toast.message} 
-            type={toast.type} 
-            isVisible={toast.isVisible} 
-            onClose={hideToast} 
-          />
+          <div className="toast-container">
+            {toasts.map(toast => (
+              <ToastNotification 
+                key={toast.id}
+                toast={toast} 
+                onClose={() => hideToast(toast.id)}
+              />
+            ))}
+          </div>
           
           {imageForCrop && <AvatarCropModal src={imageForCrop} onCancel={() => setImageForCrop(null)} onComplete={handleAvatarUpdate} />}
           {gameForReview && <DeepReviewModal game={gameForReview} existingAnswers={gameForReview.deep_review_answers} onClose={() => setGameForReview(null)} onSubmit={submitDeepReview} />}
@@ -2691,6 +3069,33 @@
               <div className="flex items-center justify-between flex-wrap gap-4">
                 <div className="flex items-center gap-4 flex-wrap">
                   <button onClick={() => { window.location.href = './index.html'; }} className="text-2xl md:text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 via-pink-400 to-blue-400 active:scale-95 transition-transform cursor-pointer">🎮 GameTracker</button>
+                  
+                  {/* View Mode Toggle */}
+                  {!viewingUser && (
+                    <div className="flex items-center bg-gray-800/50 rounded-lg p-1 border border-gray-700">
+                      <button
+                        onClick={() => toggleViewMode('kanban')}
+                        className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium transition-all ${
+                          viewMode === 'kanban' 
+                            ? 'bg-purple-500 text-white shadow-lg' 
+                            : 'text-gray-400 hover:text-white hover:bg-gray-700/50'
+                        }`}
+                      >
+                        📊 Kanban
+                      </button>
+                      <button
+                        onClick={() => toggleViewMode('list')}
+                        className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium transition-all ${
+                          viewMode === 'list' 
+                            ? 'bg-purple-500 text-white shadow-lg' 
+                            : 'text-gray-400 hover:text-white hover:bg-gray-700/50'
+                        }`}
+                      >
+                        📋 List
+                      </button>
+                    </div>
+                  )}
+                  
                   {!viewingUser && (
                     <div className="relative flex items-center gap-2">
                       <button 
@@ -2806,6 +3211,14 @@
               </div>
             </div>
           </header>
+
+          {/* Breadcrumbs */}
+          <Breadcrumbs 
+            viewingUser={viewingUser}
+            userNickname={userNickname}
+            onHomeClick={() => setViewingUser(null)}
+            onFriendsClick={() => { setShowUserHub(true); loadAllUsers(); }}
+          />
 
           <main className="flex-grow">
               {showProfile && (
@@ -3042,7 +3455,15 @@
                               <p className="text-gray-400 text-sm mb-2">Рейтинг:</p>
                               <div className="flex gap-2">
                               {[1, 2, 3, 4, 5].map(star => (
-                                  <button key={star} onClick={() => updateGame(selectedGame.id, { rating: star })} className="transition-transform hover:scale-110">
+                                  <button 
+                                    key={star} 
+                                    onClick={(e) => {
+                                      e.currentTarget.classList.add('rating-star-bounce');
+                                      setTimeout(() => e.currentTarget.classList.remove('rating-star-bounce'), 300);
+                                      updateGame(selectedGame.id, { rating: star });
+                                    }} 
+                                    className="rating-star transition-transform hover:scale-110"
+                                  >
                                   <Icon name="star" className={`w-8 h-8 ${star <= (selectedGame.rating || 0) ? 'text-yellow-400' : 'text-gray-600'}`} />
                                   </button>
                               ))}
@@ -3076,8 +3497,12 @@
                                   {REACTION_EMOJIS.map(emoji => (
                                       <button
                                           key={emoji}
-                                          onClick={() => addReaction(selectedGame.id, emoji)}
-                                          className={`text-2xl transform hover:scale-125 transition-transform p-1 rounded-full ${selectedGame.reactions.find(r => r.user_id === user.id && r.emoji === emoji) ? 'bg-purple-500/30' : ''}`}
+                                          onClick={(e) => {
+                                            e.currentTarget.classList.add('emoji-reaction-bounce');
+                                            setTimeout(() => e.currentTarget.classList.remove('emoji-reaction-bounce'), 300);
+                                            addReaction(selectedGame.id, emoji);
+                                          }}
+                                          className={`emoji-reaction text-2xl transform hover:scale-125 transition-transform p-1 rounded-full ${selectedGame.reactions.find(r => r.user_id === user.id && r.emoji === emoji) ? 'bg-purple-500/30' : ''}`}
                                           title={`React with ${emoji}`}
                                       >
                                           {emoji}
@@ -3315,7 +3740,170 @@
                         Только друзья могут видеть его доски и статистику.
                       </p>
                     </div>
+                  ) : viewMode === 'list' ? (
+                    // List View
+                    <div className="w-full">
+                      {/* Tabs */}
+                      <div className="flex gap-1 mb-6 bg-gray-800/50 rounded-lg p-1 border border-gray-700">
+                        {Object.values(boards).map(board => (
+                          <button
+                            key={board.id}
+                            onClick={() => handleTabChange(board.id)}
+                            className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-md font-medium transition-all ${
+                              activeTab === board.id
+                                ? 'bg-white text-gray-900 shadow-lg'
+                                : 'text-gray-400 hover:text-white hover:bg-gray-700/50'
+                            }`}
+                            style={{
+                              borderBottom: activeTab === board.id ? `3px solid ${board.accentColor}` : 'none'
+                            }}
+                          >
+                            <span className="text-lg">{board.emoji}</span>
+                            <span className="hidden sm:inline">{board.title}</span>
+                            <span className="bg-white/10 text-white px-2 py-1 rounded-full text-xs font-bold">
+                              {board.cards.length}
+                            </span>
+                          </button>
+                        ))}
+                      </div>
+                      
+                      {/* Games Grid */}
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                        {(() => {
+                          const currentBoard = boards[activeTab];
+                          const startIndex = (currentPage - 1) * GAMES_PER_PAGE;
+                          const endIndex = startIndex + GAMES_PER_PAGE;
+                          const paginatedCards = currentBoard?.cards.slice(startIndex, endIndex) || [];
+                          
+                          return paginatedCards.map((card, index) => (
+                            <div 
+                              key={card.id}
+                              className={`bg-gray-800/80 rounded-xl border border-gray-700 hover:border-purple-500 hover:-translate-y-1 transition-all duration-200 cursor-pointer flex flex-col p-3 group relative elevation-1 hover:elevation-2 shadow-transition game-card ${
+                                newCardIds.has(card.id) ? 'game-card-fly-in' : ''
+                              } ${
+                                deletingCardIds.has(card.id) ? 'game-card-delete' : ''
+                              }`}
+                              onClick={() => setSelectedGame(card)}
+                            >
+                              {/* Game Image */}
+                              <div className="relative mb-3">
+                                {card.cover ? 
+                                  <img src={card.cover} alt={card.name} className="w-full h-32 object-cover rounded-lg" /> : 
+                                  <div className="w-full h-32 bg-gray-700 rounded-lg flex items-center justify-center text-3xl">🎮</div>
+                                }
+                                
+                                {/* Rating overlay */}
+                                {card.rating && !viewingUser && (
+                                  <div className="absolute bottom-2 left-2 bg-black/70 backdrop-blur-sm rounded px-1.5 py-0.5 flex gap-0.5">
+                                    {[...Array(5)].map((_, i) => (
+                                      <Icon key={i} name="star" className={`w-2.5 h-2.5 ${i < card.rating ? 'text-yellow-400' : 'text-gray-400'}`} />
+                                    ))}
+                                  </div>
+                                )}
+                                
+                                {/* Quick Actions for List View */}
+                                {!viewingUser && (
+                                  <div className="absolute inset-0 bg-black/60 backdrop-blur-sm rounded-lg flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                                    <div className="flex gap-2">
+                                      <button 
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          setSelectedGame(card);
+                                        }}
+                                        className="flex items-center gap-1 px-3 py-2 bg-white/20 hover:bg-white/30 rounded-lg transition-colors"
+                                        title="Изменить"
+                                      >
+                                        <span className="text-sm">✏️</span>
+                                        <span className="text-xs text-white">Изменить</span>
+                                      </button>
+                                      
+                                      <button 
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          if (confirm(`Удалить игру "${card.name}"?`)) {
+                                            deleteCard(e, card.id);
+                                          }
+                                        }}
+                                        className="flex items-center gap-1 px-3 py-2 bg-red-500/80 hover:bg-red-500 rounded-lg transition-colors"
+                                        title="Удалить"
+                                      >
+                                        <span className="text-sm">🗑️</span>
+                                        <span className="text-xs text-white">Удалить</span>
+                                      </button>
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                              
+                              {/* Game Info */}
+                              <div className="flex-1 flex flex-col">
+                                <h3 className="text-white font-semibold text-sm line-clamp-2 mb-2">{card.name}</h3>
+                                
+                                {/* Tags */}
+                                {card.tags && card.tags.length > 0 && (
+                                  <div className="flex gap-1 mb-2 flex-wrap">
+                                    {card.tags.slice(0, 2).map((tag, i) => (
+                                      <span 
+                                        key={i} 
+                                        className="text-xs px-2 py-1 rounded-full text-white font-medium"
+                                        style={{ backgroundColor: tag.color + '40', border: `1px solid ${tag.color}` }}
+                                      >
+                                        {tag.name}
+                                      </span>
+                                    ))}
+                                    {card.tags.length > 2 && (
+                                      <span className="text-xs text-gray-400 self-center">+{card.tags.length - 2}</span>
+                                    )}
+                                  </div>
+                                )}
+                                
+                                {/* Reactions */}
+                                {card.reactions && card.reactions.length > 0 && (
+                                  <div className="flex gap-1 mb-2 flex-wrap items-center">
+                                    {card.reactions.slice(0, 3).map((r, i) => <span key={i} className="text-sm">{r.emoji}</span>)}
+                                    {card.reactions.length > 3 && <span className="text-xs text-gray-400">+{card.reactions.length - 3}</span>}
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          ));
+                        })()}
+                      </div>
+                      
+                      {/* Pagination */}
+                      {(() => {
+                        const currentBoard = boards[activeTab];
+                        const totalPages = Math.ceil((currentBoard?.cards.length || 0) / GAMES_PER_PAGE);
+                        
+                        if (totalPages <= 1) return null;
+                        
+                        return (
+                          <div className="flex items-center justify-center gap-2 mt-6">
+                            <button
+                              onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                              disabled={currentPage === 1}
+                              className="px-3 py-2 bg-gray-800 hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg text-white transition-colors"
+                            >
+                              ←
+                            </button>
+                            
+                            <span className="text-gray-400 text-sm">
+                              Страница {currentPage} из {totalPages}
+                            </span>
+                            
+                            <button
+                              onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                              disabled={currentPage === totalPages}
+                              className="px-3 py-2 bg-gray-800 hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg text-white transition-colors"
+                            >
+                              →
+                            </button>
+                          </div>
+                        );
+                      })()}
+                    </div>
                   ) : (
+                    // Kanban View
                     Object.values(boards).map(board => {
                       const isExpanded = !!expandedColumns[board.id];
                       const visibleCards = isExpanded ? board.cards : board.cards.slice(0, GAMES_PER_COLUMN);
@@ -3353,7 +3941,11 @@
                                   onDrop={(e) => !viewingUser && handleDrop(e, board.id, index)}
                                   onDragEnter={handleDragEnterCard}
                                   onDragLeave={handleDragLeaveCard}
-                                  className="bg-gray-800/80 rounded-xl border border-gray-700 hover:border-purple-500 hover:-translate-y-1 transition-all duration-200 cursor-pointer flex gap-3 p-2 group relative elevation-1 hover:elevation-2 shadow-transition game-card" 
+                                  className={`bg-gray-800/80 rounded-xl border border-gray-700 hover:border-purple-500 hover:-translate-y-1 transition-all duration-200 cursor-pointer flex gap-3 p-2 group relative elevation-1 hover:elevation-2 shadow-transition game-card ${
+                                    newCardIds.has(card.id) ? 'game-card-fly-in' : ''
+                                  } ${
+                                    deletingCardIds.has(card.id) ? 'game-card-delete' : ''
+                                  }`}
                                   onClick={() => setSelectedGame(card)}>
                                   
                                   {/* Цветная полоска слева */}
@@ -3401,7 +3993,7 @@
                                         )}
                                         </div>
                                     )}
-                                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity self-end flex-shrink-0 z-10">
+                                          <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity self-end flex-shrink-0 z-10">
                                         {!viewingUser && (
                                             <div onClick={(e) => e.stopPropagation()}>
                                                 <TagDropdown 
@@ -3429,6 +4021,66 @@
                                     </div>
                                    </div>
                               </div>
+                              
+                              {/* Quick Actions Overlay */}
+                              {!viewingUser && (
+                                  <div className="absolute inset-0 bg-black/60 backdrop-blur-sm rounded-xl flex items-end justify-center pb-2 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity duration-200 transform translate-y-0 md:translate-y-2 md:group-hover:translate-y-0 transition-transform duration-200">
+                                      <div className="flex gap-2">
+                                          {/* Edit Button */}
+                                          <button 
+                                              onClick={(e) => {
+                                                  e.stopPropagation();
+                                                  setSelectedGame(card);
+                                              }}
+                                              className="flex items-center gap-1 px-3 py-2 bg-white/20 hover:bg-white/30 rounded-lg transition-colors"
+                                              title="Изменить"
+                                          >
+                                              <span className="text-sm">✏️</span>
+                                              <span className="text-xs text-white">Изменить</span>
+                                          </button>
+                                          
+                                          {/* Move Button */}
+                                          <div className="relative">
+                                              <select 
+                                                  onChange={(e) => {
+                                                      if (e.target.value && e.target.value !== board.id) {
+                                                          updateGame(card.id, { board: e.target.value });
+                                                      }
+                                                      e.target.value = ''; // Reset selection
+                                                  }}
+                                                  onClick={(e) => e.stopPropagation()}
+                                                  className="flex items-center gap-1 px-3 py-2 bg-white/20 hover:bg-white/30 rounded-lg transition-colors cursor-pointer text-xs text-white appearance-none"
+                                                  title="Переместить"
+                                              >
+                                                  <option value="" disabled selected>➡️ Переместить</option>
+                                                  {Object.values(boards).map(b => 
+                                                      b.id !== board.id && (
+                                                          <option key={b.id} value={b.id} className="bg-gray-800 text-white">
+                                                              {b.emoji} {b.title}
+                                                          </option>
+                                                      )
+                                                  )}
+                                              </select>
+                                          </div>
+                                          
+                                          {/* Delete Button */}
+                                          <button 
+                                              onClick={(e) => {
+                                                  e.stopPropagation();
+                                                  if (confirm(`Удалить игру "${card.name}"?`)) {
+                                                      deleteCard(e, card.id);
+                                                  }
+                                              }}
+                                              className="flex items-center gap-1 px-3 py-2 bg-red-500/80 hover:bg-red-500 rounded-lg transition-colors"
+                                              title="Удалить"
+                                          >
+                                              <span className="text-sm">🗑️</span>
+                                              <span className="text-xs text-white">Удалить</span>
+                                          </button>
+                                      </div>
+                                  </div>
+                              )}
+                              
                               {!viewingUser && (
                                   <button onClick={(e) => deleteCard(e, card.id)} className="absolute top-1 right-1 p-1.5 bg-red-600/80 hover:bg-red-500 rounded-full opacity-0 group-hover:opacity-100 transition-opacity self-start flex-shrink-0 z-10">
                                       <Icon name="trash" className="w-3 h-3 text-white" />

@@ -26,6 +26,7 @@ const Icon = ({ name, className = "w-5 h-5" }) => {
     userClock: <svg className={className} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><circle cx="18" cy="18" r="3" /><path d="M20.5 16.5 18 18l.5 2.5"/></svg>,
     chevronUp: <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M5 15l7-7 7 7" /></svg>,
     chevronDown: <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" /></svg>,
+    home: <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" /></svg>,
   };
   return icons[name] || null;
 };
@@ -37,6 +38,47 @@ const Avatar = ({ src, size = 'md', className = '' }) => {
   ) : (
     <div className={`${sizes[size]} avatar-circle bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white font-bold ${className}`}>
       <Icon name="user" className={size === 'sm' ? 'w-4 h-4' : 'w-6 h-6'} />
+    </div>
+  );
+};
+
+// Breadcrumbs компонент
+const Breadcrumbs = ({ viewingUser, userNickname, onHomeClick, onFriendsClick }) => {
+  if (!viewingUser) return null;
+
+  return (
+    <div className="breadcrumbs show bg-gray-900/30 backdrop-blur-sm border-b border-gray-700/50">
+      <div className="container mx-auto px-4 py-3">
+        <nav className="flex items-center text-sm text-gray-400">
+          <button 
+            onClick={onHomeClick}
+            className="breadcrumb-item flex items-center gap-2 hover:text-purple-400 transition-colors"
+          >
+            <Icon name="home" className="w-4 h-4" />
+            Главная
+          </button>
+          <span className="breadcrumb-separator">></span>
+          <button 
+            onClick={onFriendsClick}
+            className="breadcrumb-item flex items-center gap-2 hover:text-purple-400 transition-colors"
+          >
+            <Icon name="users" className="w-4 h-4" />
+            Друзья
+          </button>
+          <span className="breadcrumb-separator">></span>
+          <div className="flex items-center gap-2 text-gray-300">
+            <Avatar src={viewingUser.avatar} size="sm" />
+            <span className="font-medium">
+              {userNickname || viewingUser.username}
+            </span>
+            {userNickname && (
+              <span className="text-gray-500 text-xs">
+                @{viewingUser.username}
+              </span>
+            )}
+          </div>
+        </nav>
+      </div>
     </div>
   );
 };
@@ -297,12 +339,38 @@ function MovieApp() {
   const [showProfile, setShowProfile] = useState(false);
   const [showUserHub, setShowUserHub] = useState(false);
   const dragItem = useRef(null);
+  
+  // Режим просмотра (Kanban/List)
+  const [viewMode, setViewMode] = useState(() => {
+    const saved = localStorage.getItem('viewMode');
+    if (saved) return saved;
+    // По умолчанию Kanban на desktop, List на мобильных
+    return window.innerWidth >= 768 ? 'kanban' : 'list';
+  });
+  const [activeTab, setActiveTab] = useState('movies');
+  const [currentPage, setCurrentPage] = useState(1);
+  const MEDIA_PER_PAGE = 20;
   const [expandedColumns, setExpandedColumns] = useState({});
   const [friends, setFriends] = useState([]);
   const [friendRequests, setFriendRequests] = useState([]);
   const [sentRequests, setSentRequests] = useState([]);
   const [allUsers, setAllUsers] = useState([]);
   const [userSearchQuery, setUserSearchQuery] = useState('');
+  
+  // Функции для переключения режима просмотра
+  const toggleViewMode = (mode) => {
+    setViewMode(mode);
+    localStorage.setItem('viewMode', mode);
+    if (mode === 'list') {
+      setActiveTab('movies');
+      setCurrentPage(1);
+    }
+  };
+  
+  const handleTabChange = (tabId) => {
+    setActiveTab(tabId);
+    setCurrentPage(1);
+  };
   const [friendshipStatus, setFriendshipStatus] = useState('none');
   const [userNickname, setUserNickname] = useState('');
   const [confirmingAddFriend, setConfirmingAddFriend] = useState(null);
@@ -565,6 +633,33 @@ function MovieApp() {
           <div className="flex items-center justify-between flex-wrap gap-4">
             <div className="flex items-center gap-4 flex-wrap">
               <a href="/index.html" className="text-2xl md:text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 via-pink-400 to-blue-400 active:scale-95 transition-transform cursor-pointer">🎮 GameTracker</a>
+              
+              {/* View Mode Toggle */}
+              {!viewingUser && (
+                <div className="flex items-center bg-gray-800/50 rounded-lg p-1 border border-gray-700">
+                  <button
+                    onClick={() => toggleViewMode('kanban')}
+                    className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium transition-all ${
+                      viewMode === 'kanban' 
+                        ? 'bg-purple-500 text-white shadow-lg' 
+                        : 'text-gray-400 hover:text-white hover:bg-gray-700/50'
+                    }`}
+                  >
+                    📊 Kanban
+                  </button>
+                  <button
+                    onClick={() => toggleViewMode('list')}
+                    className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium transition-all ${
+                      viewMode === 'list' 
+                        ? 'bg-purple-500 text-white shadow-lg' 
+                        : 'text-gray-400 hover:text-white hover:bg-gray-700/50'
+                    }`}
+                  >
+                    📋 List
+                  </button>
+                </div>
+              )}
+              
               <a href="./movies.html" className="inline-flex items-center gap-2 active:scale-95 transition-transform">
                 <svg className="w-7 h-7" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
                   <defs><linearGradient id="camGradHeaderReact" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stopColor="#a78bfa"/><stop offset="100%" stopColor="#8b5cf6"/></linearGradient></defs>
@@ -621,6 +716,14 @@ function MovieApp() {
         </div>
       </header>
       
+      {/* Breadcrumbs */}
+      <Breadcrumbs 
+        viewingUser={viewingUser}
+        userNickname={userNickname}
+        onHomeClick={() => setViewingUser(null)}
+        onFriendsClick={() => { setShowUserHub(true); loadAllUsers(); }}
+      />
+      
       <main className="flex-grow container mx-auto px-4 py-6 space-y-8">
         {!viewingUser && (
             <div className="bg-gray-900/50 backdrop-blur-xl rounded-xl border border-purple-500/30 p-4">
@@ -631,7 +734,170 @@ function MovieApp() {
             </div>
         )}
         
-        <div className="relative grid grid-cols-1 lg:grid-cols-2 gap-x-8 gap-y-8">
+        {viewMode === 'list' ? (
+          // List View
+          <div className="w-full">
+            {/* Tabs */}
+            <div className="flex gap-1 mb-6 bg-gray-800/50 rounded-lg p-1 border border-gray-700">
+              <button
+                onClick={() => handleTabChange('movies')}
+                className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-md font-medium transition-all ${
+                  activeTab === 'movies'
+                    ? 'bg-white text-gray-900 shadow-lg'
+                    : 'text-gray-400 hover:text-white hover:bg-gray-700/50'
+                }`}
+                style={{
+                  borderBottom: activeTab === 'movies' ? '3px solid #3B82F6' : 'none'
+                }}
+              >
+                <span className="text-lg">🎬</span>
+                <span className="hidden sm:inline">Фильмы</span>
+                <span className="bg-white/10 text-white px-2 py-1 rounded-full text-xs font-bold">
+                  {movies.wishlist.length + movies.watched.length}
+                </span>
+              </button>
+              <button
+                onClick={() => handleTabChange('tv')}
+                className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-md font-medium transition-all ${
+                  activeTab === 'tv'
+                    ? 'bg-white text-gray-900 shadow-lg'
+                    : 'text-gray-400 hover:text-white hover:bg-gray-700/50'
+                }`}
+                style={{
+                  borderBottom: activeTab === 'tv' ? '3px solid #F59E0B' : 'none'
+                }}
+              >
+                <span className="text-lg">📺</span>
+                <span className="hidden sm:inline">Сериалы</span>
+                <span className="bg-white/10 text-white px-2 py-1 rounded-full text-xs font-bold">
+                  {tv.wishlist.length + tv.watched.length}
+                </span>
+              </button>
+            </div>
+            
+            {/* Media Grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+              {(() => {
+                const currentBoard = activeTab === 'movies' ? movies : tv;
+                const allItems = [...currentBoard.wishlist, ...currentBoard.watched];
+                const startIndex = (currentPage - 1) * MEDIA_PER_PAGE;
+                const endIndex = startIndex + MEDIA_PER_PAGE;
+                const paginatedItems = allItems.slice(startIndex, endIndex);
+                
+                return paginatedItems.map((item, index) => (
+                  <div 
+                    key={item.id}
+                    className="bg-gray-800/80 rounded-xl border border-gray-700 hover:border-purple-500 hover:-translate-y-1 transition-all duration-200 cursor-pointer flex flex-col p-3 group relative elevation-1 hover:elevation-2 shadow-transition media-card"
+                    onClick={() => setSelectedMedia(item)}
+                  >
+                    {/* Media Image */}
+                    <div className="relative mb-3">
+                      {item.poster ? 
+                        <img src={item.poster} alt={item.title} className="w-full h-32 object-cover rounded-lg" /> : 
+                        <div className="w-full h-32 bg-gray-700 rounded-lg flex items-center justify-center text-3xl">
+                          {activeTab === 'movies' ? '🎬' : '📺'}
+                        </div>
+                      }
+                      
+                      {/* Rating overlay */}
+                      {item.rating && !viewingUser && (
+                        <div className="absolute bottom-2 left-2 bg-black/70 backdrop-blur-sm rounded px-1.5 py-0.5 flex gap-0.5">
+                          {[...Array(5)].map((_, i) => (
+                            <Icon key={i} name="star" className={`w-2.5 h-2.5 ${i < item.rating ? 'text-yellow-400' : 'text-gray-400'}`} />
+                          ))}
+                        </div>
+                      )}
+                      
+                      {/* Quick Actions for List View */}
+                      {!viewingUser && (
+                        <div className="absolute inset-0 bg-black/60 backdrop-blur-sm rounded-lg flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                          <div className="flex gap-2">
+                            <button 
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setSelectedMedia(item);
+                              }}
+                              className="flex items-center gap-1 px-3 py-2 bg-white/20 hover:bg-white/30 rounded-lg transition-colors"
+                              title="Изменить"
+                            >
+                              <span className="text-sm">✏️</span>
+                              <span className="text-xs text-white">Изменить</span>
+                            </button>
+                            
+                            <button 
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                if (confirm(`Удалить "${item.title}"?`)) {
+                                  removeItem(e, item);
+                                }
+                              }}
+                              className="flex items-center gap-1 px-3 py-2 bg-red-500/80 hover:bg-red-500 rounded-lg transition-colors"
+                              title="Удалить"
+                            >
+                              <span className="text-sm">🗑️</span>
+                              <span className="text-xs text-white">Удалить</span>
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                    
+                    {/* Media Info */}
+                    <div className="flex-1 flex flex-col">
+                      <h3 className="text-white font-semibold text-sm line-clamp-2 mb-2">{item.title}</h3>
+                      {item.year && (
+                        <p className="text-gray-400 text-xs mb-2">{item.year}</p>
+                      )}
+                      
+                      {/* Reactions */}
+                      {item.reactions && item.reactions.length > 0 && (
+                        <div className="flex gap-1 mb-2 flex-wrap items-center">
+                          {item.reactions.slice(0, 3).map((r, i) => <span key={i} className="text-sm">{r.emoji}</span>)}
+                          {item.reactions.length > 3 && <span className="text-xs text-gray-400">+{item.reactions.length - 3}</span>}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ));
+              })()}
+            </div>
+            
+            {/* Pagination */}
+            {(() => {
+              const currentBoard = activeTab === 'movies' ? movies : tv;
+              const allItems = [...currentBoard.wishlist, ...currentBoard.watched];
+              const totalPages = Math.ceil(allItems.length / MEDIA_PER_PAGE);
+              
+              if (totalPages <= 1) return null;
+              
+              return (
+                <div className="flex items-center justify-center gap-2 mt-6">
+                  <button
+                    onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                    disabled={currentPage === 1}
+                    className="px-3 py-2 bg-gray-800 hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg text-white transition-colors"
+                  >
+                    ←
+                  </button>
+                  
+                  <span className="text-gray-400 text-sm">
+                    Страница {currentPage} из {totalPages}
+                  </span>
+                  
+                  <button
+                    onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                    disabled={currentPage === totalPages}
+                    className="px-3 py-2 bg-gray-800 hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg text-white transition-colors"
+                  >
+                    →
+                  </button>
+                </div>
+              );
+            })()}
+          </div>
+        ) : (
+          // Kanban View
+          <div className="relative grid grid-cols-1 lg:grid-cols-2 gap-x-8 gap-y-8">
             <div className="hidden lg:block absolute left-1/2 -ml-px top-0 h-full bg-gradient-to-b from-transparent via-purple-500/20 to-transparent w-px"></div>
             <div className="space-y-4">
                 <h2 className="text-center text-3xl font-semibold tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-purple-300 to-pink-300 opacity-80 mb-4">Фильмы</h2>
