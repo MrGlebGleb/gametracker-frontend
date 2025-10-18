@@ -59,6 +59,38 @@
     
     /* Shadow transitions */
     .shadow-transition { transition: box-shadow 200ms ease; }
+    
+    /* Drag & Drop optimizations */
+    .dragging-card {
+      opacity: 0.5;
+      transform: rotate(2deg) scale(1.05);
+      z-index: 1000;
+      pointer-events: none;
+    }
+    
+    .drag-ghost {
+      opacity: 0.3;
+      transform: scale(0.95);
+      transition: none;
+    }
+    
+    .drag-over-column {
+      background-color: rgba(139, 92, 246, 0.1);
+      transform: scale(1.02);
+      transition: all 200ms ease;
+    }
+    
+    /* Prevent layout shifts during drag */
+    .board-column {
+      min-height: 200px;
+      transition: all 200ms ease;
+    }
+    
+    .game-card {
+      will-change: transform, opacity;
+      backface-visibility: hidden;
+      transform-style: preserve-3d;
+    }
 
     .cropper-container {
         max-width: 100%;
@@ -1945,6 +1977,9 @@
         dropped: { id: 'dropped', title: 'Бросил', emoji: '❌', color: 'from-gray-500/20 to-slate-500/20', borderColor: 'border-gray-500/30', accentColor: '#6B7280', cards: [] }
       });
       
+      // Debounce для предотвращения частых обновлений
+      const updateDebounceRef = useRef(null);
+      
       useEffect(() => {
         const shouldRunGame = !showAuth && !viewingUser;
 
@@ -2414,7 +2449,9 @@
       
       const handleDragStart = (e, card, boardId, index) => {
         dragItem.current = { card, sourceBoardId: boardId, sourceIndex: index };
-        setTimeout(() => e.target.classList.add('dragging'), 0);
+        e.target.classList.add('dragging-card');
+        e.dataTransfer.effectAllowed = 'move';
+        e.dataTransfer.setData('text/html', e.target.outerHTML);
       };
 
       const handleDragOver = (e) => e.preventDefault();
@@ -2455,7 +2492,7 @@
       };
 
       const handleDragEnd = () => {
-        document.querySelectorAll('.dragging').forEach(el => el.classList.remove('dragging'));
+        document.querySelectorAll('.dragging-card').forEach(el => el.classList.remove('dragging-card'));
         document.querySelectorAll('.drag-over-column').forEach(el => el.classList.remove('drag-over-column'));
         document.querySelectorAll('.drag-over-card').forEach(el => el.classList.remove('drag-over-card'));
         dragItem.current = null;
@@ -3275,7 +3312,7 @@
                           onDragEnter={handleDragEnterColumn}
                           onDragLeave={handleDragLeaveColumn}
                           onDrop={(e) => !viewingUser && handleDrop(e, board.id, undefined)} 
-                          className={`bg-gradient-to-br ${board.color} backdrop-blur-xl rounded-xl p-5 border ${board.borderColor} flex flex-col transition-colors elevation-1`}>
+                          className={`bg-gradient-to-br ${board.color} backdrop-blur-xl rounded-xl p-5 border ${board.borderColor} flex flex-col transition-colors elevation-1 board-column`}>
                           <div className="flex items-center justify-between mb-4">
                             <h2 className="text-lg md:text-2xl font-extrabold text-white flex items-center gap-2 tracking-wide">
                                 <span className="text-xl md:text-2xl">{board.emoji}</span>
@@ -3302,7 +3339,7 @@
                                   onDrop={(e) => !viewingUser && handleDrop(e, board.id, index)}
                                   onDragEnter={handleDragEnterCard}
                                   onDragLeave={handleDragLeaveCard}
-                                  className="bg-gray-800/80 rounded-xl border border-gray-700 hover:border-purple-500 hover:-translate-y-1 transition-all duration-200 cursor-pointer flex gap-3 p-2 group relative elevation-1 hover:elevation-2 shadow-transition" 
+                                  className="bg-gray-800/80 rounded-xl border border-gray-700 hover:border-purple-500 hover:-translate-y-1 transition-all duration-200 cursor-pointer flex gap-3 p-2 group relative elevation-1 hover:elevation-2 shadow-transition game-card" 
                                   onClick={() => setSelectedGame(card)}>
                                   
                                   {/* Цветная полоска слева */}

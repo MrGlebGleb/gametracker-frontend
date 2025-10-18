@@ -61,6 +61,38 @@
     
     /* Shadow transitions */
     .shadow-transition { transition: box-shadow 200ms ease; }
+    
+    /* Drag & Drop optimizations */
+    .dragging-card {
+      opacity: 0.5;
+      transform: rotate(2deg) scale(1.05);
+      z-index: 1000;
+      pointer-events: none;
+    }
+    
+    .drag-ghost {
+      opacity: 0.3;
+      transform: scale(0.95);
+      transition: none;
+    }
+    
+    .drag-over-column {
+      background-color: rgba(139, 92, 246, 0.1);
+      transform: scale(1.02);
+      transition: all 200ms ease;
+    }
+    
+    /* Prevent layout shifts during drag */
+    .board-column {
+      min-height: 200px;
+      transition: all 200ms ease;
+    }
+    
+    .media-card {
+      will-change: transform, opacity;
+      backface-visibility: hidden;
+      transform-style: preserve-3d;
+    }
     .cropper-container { max-width: 100%; }
     .img-container { max-height: 50vh; margin-bottom: 1rem; }
     .img-container > img { max-width: 100%; }

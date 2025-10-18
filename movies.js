@@ -56,13 +56,15 @@ function StarRating({ value = 0, onChange }) {
 }
 
 function MediaCard({ item, onSelect, onRemove, onDragStart, onDragEnd, isViewingFriend }) {
+  const type = item.media_type || 'movie'; // Определяем тип медиа
+  
   return (
     <div
       draggable={!isViewingFriend}
       onDragStart={(e) => !isViewingFriend && onDragStart(e, item)}
       onDragEnd={onDragEnd}
       onClick={() => onSelect(item)}
-          className="bg-gray-800/80 rounded-xl border border-gray-700 hover:border-purple-500 hover:-translate-y-1 transition-all duration-200 cursor-pointer flex gap-3 p-2 group relative elevation-1 hover:elevation-2 shadow-transition"
+          className="bg-gray-800/80 rounded-xl border border-gray-700 hover:border-purple-500 hover:-translate-y-1 transition-all duration-200 cursor-pointer flex gap-3 p-2 group relative elevation-1 hover:elevation-2 shadow-transition media-card"
     >
       {/* Цветная полоска слева */}
       <div 
@@ -102,7 +104,7 @@ function Column({ title, emoji, items, columnKey, isExpanded, onToggleExpand, is
   const visibleItems = isExpanded ? items : items.slice(0, MEDIA_PER_COLUMN);
     
   return (
-    <div className="bg-gradient-to-br from-purple-500/10 to-pink-500/10 backdrop-blur-xl rounded-xl p-5 border border-purple-500/30 flex flex-col h-full elevation-1">
+    <div className="bg-gradient-to-br from-purple-500/10 to-pink-500/10 backdrop-blur-xl rounded-xl p-5 border border-purple-500/30 flex flex-col h-full elevation-1 board-column">
         <div className="flex items-center justify-between mb-4">
             <h3 className="text-2xl font-extrabold text-white flex items-center gap-2 tracking-wide">
                 <span className="text-xl">{emoji}</span>
