@@ -676,6 +676,188 @@ function ActivityFeed({ token, boardType = 'media', onNavigateToUser }) {
     );
 };
 
+// --- Компонент статистики медиа ---
+function MediaStatisticsModal({ isOpen, onClose }) {
+  const [statistics, setStatistics] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const token = localStorage.getItem('token');
+
+  useEffect(() => {
+    if (isOpen && token) {
+      fetchStatistics();
+    }
+  }, [isOpen, token]);
+
+  const fetchStatistics = async () => {
+    setLoading(true);
+    try {
+      const response = await fetch(`${API_URL}/api/user/statistics/media`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setStatistics(data);
+      } else {
+        console.error('Ошибка загрузки статистики медиа');
+      }
+    } catch (error) {
+      console.error('Ошибка загрузки статистики:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-[100] p-4" onClick={onClose}>
+      <div 
+        className="bg-gray-900 rounded-2xl p-6 w-full max-w-4xl border border-purple-500/30 max-h-[90vh] overflow-y-auto elevation-3"
+        onClick={e => e.stopPropagation()}
+      >
+        <div className="flex justify-between items-center mb-6">
+          <h2 className="text-2xl font-bold text-white">📊 Статистика фильмов и сериалов</h2>
+          <button onClick={onClose} className="p-2 hover:bg-gray-800 rounded-lg">
+            <Icon name="x" className="w-5 h-5 text-gray-400" />
+          </button>
+        </div>
+
+        {loading ? (
+          <div className="flex items-center justify-center py-12">
+            <Icon name="loader" className="w-8 h-8 text-purple-400 animate-spin" />
+          </div>
+        ) : statistics ? (
+          <div className="space-y-6">
+            {/* Общая статистика */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="bg-gradient-to-br from-blue-500/20 to-cyan-500/20 rounded-xl p-4 border border-blue-500/30">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 bg-blue-500/20 rounded-lg flex items-center justify-center">
+                    <span className="text-2xl">🎬</span>
+                  </div>
+                  <div>
+                    <p className="text-gray-400 text-sm">Фильмы</p>
+                    <p className="text-white font-bold text-xl">
+                      {(statistics.general?.filter(s => s.media_type === 'movie').reduce((sum, s) => sum + (s.count || 0), 0)) || 0}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-gradient-to-br from-orange-500/20 to-amber-500/20 rounded-xl p-4 border border-orange-500/30">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 bg-orange-500/20 rounded-lg flex items-center justify-center">
+                    <span className="text-2xl">📺</span>
+                  </div>
+                  <div>
+                    <p className="text-gray-400 text-sm">Сериалы</p>
+                    <p className="text-white font-bold text-xl">
+                      {(statistics.general?.filter(s => s.media_type === 'tv').reduce((sum, s) => sum + (s.count || 0), 0)) || 0}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-gradient-to-br from-green-500/20 to-emerald-500/20 rounded-xl p-4 border border-green-500/30">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 bg-green-500/20 rounded-lg flex items-center justify-center">
+                    <span className="text-2xl">✅</span>
+                  </div>
+                  <div>
+                    <p className="text-gray-400 text-sm">Посмотрено</p>
+                    <p className="text-white font-bold text-xl">
+                      {statistics.general?.filter(s => s.board === 'watched').reduce((sum, s) => sum + (s.count || 0), 0) || 0}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-gradient-to-br from-purple-500/20 to-pink-500/20 rounded-xl p-4 border border-purple-500/30">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 bg-purple-500/20 rounded-lg flex items-center justify-center">
+                    <span className="text-2xl">📋</span>
+                  </div>
+                  <div>
+                    <p className="text-gray-400 text-sm">В планах</p>
+                    <p className="text-white font-bold text-xl">
+                      {statistics.general?.filter(s => s.board === 'wishlist').reduce((sum, s) => sum + (s.count || 0), 0) || 0}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Статистика по месяцам */}
+            {statistics.monthly && statistics.monthly.length > 0 && (
+              <div className="bg-gray-800/50 rounded-xl p-6 border border-gray-700">
+                <h3 className="text-xl font-bold text-white mb-4">📈 Активность по месяцам</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {statistics.monthly.slice(-6).map((month, index) => (
+                    <div key={index} className="bg-gray-900/50 rounded-lg p-4">
+                      <p className="text-gray-400 text-sm">{month.month}</p>
+                      <div className="flex justify-between mt-2">
+                        <span className="text-blue-400">+{month.added || 0}</span>
+                        <span className="text-green-400">✓{month.completed || 0}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Топ рейтинги */}
+            {statistics.topRated && statistics.topRated.length > 0 && (
+              <div className="bg-gray-800/50 rounded-xl p-6 border border-gray-700">
+                <h3 className="text-xl font-bold text-white mb-4">⭐ Самые высоко оцененные</h3>
+                <div className="space-y-3">
+                  {statistics.topRated.slice(0, 10).map((item, index) => (
+                    <div key={index} className="flex items-center gap-3 p-3 bg-gray-900/50 rounded-lg">
+                      <div className="w-8 h-8 bg-yellow-500/20 rounded-lg flex items-center justify-center">
+                        <span className="text-yellow-400 font-bold text-sm">{index + 1}</span>
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-white font-semibold">{item.title}</p>
+                        <p className="text-gray-400 text-sm">{item.board === 'watched' ? 'Посмотрено' : 'В планах'}</p>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <Icon name="star" className="w-4 h-4 text-yellow-400" />
+                        <span className="text-white font-bold">{item.rating}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Сообщение если нет данных */}
+            {(!statistics.general || statistics.general.length === 0) && 
+             (!statistics.monthly || statistics.monthly.length === 0) && 
+             (!statistics.topRated || statistics.topRated.length === 0) && (
+              <div className="text-center py-12">
+                <div className="text-6xl mb-4">📊</div>
+                <h3 className="text-xl font-bold text-white mb-2">Пока нет статистики</h3>
+                <p className="text-gray-400">Добавьте фильмы и сериалы, чтобы увидеть статистику</p>
+              </div>
+            )}
+          </div>
+        ) : (
+          <div className="text-center py-12">
+            <div className="text-6xl mb-4">❌</div>
+            <h3 className="text-xl font-bold text-white mb-2">Ошибка загрузки</h3>
+            <p className="text-gray-400">Не удалось загрузить статистику</p>
+            <button 
+              onClick={fetchStatistics}
+              className="mt-4 px-4 py-2 bg-purple-500 hover:bg-purple-600 text-white rounded-lg transition-colors"
+            >
+              Попробовать снова
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 
 // --- Главный компонент приложения ---
 
@@ -734,6 +916,7 @@ function MovieApp() {
   const [showTagModal, setShowTagModal] = useState(false);
   const [selectedMediaForTag, setSelectedMediaForTag] = useState(null);
   const [userTags, setUserTags] = useState([]);
+  const [showStatistics, setShowStatistics] = useState(false);
   
   const loadBoards = useCallback(async (userId = null) => {
     if (!token) return;
@@ -1546,6 +1729,12 @@ function MovieApp() {
         onTagSelect={handleTagSelect}
         onCreateTag={createTag}
         userTags={userTags}
+      />
+
+      {/* Модальное окно статистики медиа */}
+      <MediaStatisticsModal 
+        isOpen={showStatistics}
+        onClose={() => setShowStatistics(false)}
       />
 
       
