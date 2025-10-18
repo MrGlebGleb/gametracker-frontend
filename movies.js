@@ -288,11 +288,10 @@ const StatisticsPage = ({ isOpen, onClose, token, boards, showMediaTab = true })
       fullBoards: boards
     });
     
-    const totalMovies = movies.wishlist.length + movies.watched.length;
-    const totalTvShows = tv.wishlist.length + tv.watched.length;
     const watchedMovies = movies.watched.length;
     const watchedTvShows = tv.watched.length;
-    const totalWatched = watchedMovies + watchedTvShows;
+    const wishlistMovies = movies.wishlist.length;
+    const wishlistTvShows = tv.wishlist.length;
     
     // Создаем топ фильмов из просмотренных
     const topMovies = movies.watched.map(movie => ({
@@ -348,9 +347,10 @@ const StatisticsPage = ({ isOpen, onClose, token, boards, showMediaTab = true })
 
     return {
       summary: {
-        totalMovies: totalMovies,
-        totalTvShows: totalTvShows,
-        watchedMedia: totalWatched,
+        watchedMovies: watchedMovies,
+        watchedTvShows: watchedTvShows,
+        wishlistMovies: wishlistMovies,
+        wishlistTvShows: wishlistTvShows,
         averageRating: averageRating
       },
       topMovies: topMovies,
@@ -455,25 +455,25 @@ const MediaStatsContent = ({ stats }) => {
     <div className="space-y-6">
       {/* Карточки с числами */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-gradient-to-br from-blue-500/20 to-cyan-500/20 backdrop-blur-xl rounded-xl p-6 border border-blue-500/30">
-          <div className="text-3xl mb-2">🎬</div>
-          <h3 className="text-sm font-semibold text-gray-300 mb-1">Всего фильмов</h3>
-          <p className="text-3xl font-bold text-white">{stats.summary?.totalMovies || 0}</p>
-        </div>
         <div className="bg-gradient-to-br from-green-500/20 to-emerald-500/20 backdrop-blur-xl rounded-xl p-6 border border-green-500/30">
-          <div className="text-3xl mb-2">👀</div>
-          <h3 className="text-sm font-semibold text-gray-300 mb-1">Просмотрено</h3>
-          <p className="text-3xl font-bold text-white">{stats.summary?.watchedMedia || 0}</p>
+          <div className="text-3xl mb-2">🎬</div>
+          <h3 className="text-sm font-semibold text-gray-300 mb-1">Фильмов просмотрено</h3>
+          <p className="text-3xl font-bold text-white">{stats.summary?.watchedMovies || 0}</p>
         </div>
-        <div className="bg-gradient-to-br from-yellow-500/20 to-orange-500/20 backdrop-blur-xl rounded-xl p-6 border border-yellow-500/30">
-          <div className="text-3xl mb-2">⭐</div>
-          <h3 className="text-sm font-semibold text-gray-300 mb-1">Средний рейтинг</h3>
-          <p className="text-3xl font-bold text-white">{typeof stats.summary?.averageRating === 'number' ? stats.summary.averageRating.toFixed(1) : stats.summary?.averageRating || '0.0'}</p>
+        <div className="bg-gradient-to-br from-blue-500/20 to-cyan-500/20 backdrop-blur-xl rounded-xl p-6 border border-blue-500/30">
+          <div className="text-3xl mb-2">📺</div>
+          <h3 className="text-sm font-semibold text-gray-300 mb-1">Сериалов просмотрено</h3>
+          <p className="text-3xl font-bold text-white">{stats.summary?.watchedTvShows || 0}</p>
+        </div>
+        <div className="bg-gradient-to-br from-orange-500/20 to-amber-500/20 backdrop-blur-xl rounded-xl p-6 border border-orange-500/30">
+          <div className="text-3xl mb-2">📋</div>
+          <h3 className="text-sm font-semibold text-gray-300 mb-1">Фильмов отложено</h3>
+          <p className="text-3xl font-bold text-white">{stats.summary?.wishlistMovies || 0}</p>
         </div>
         <div className="bg-gradient-to-br from-purple-500/20 to-pink-500/20 backdrop-blur-xl rounded-xl p-6 border border-purple-500/30">
-          <div className="text-3xl mb-2">📺</div>
-          <h3 className="text-sm font-semibold text-gray-300 mb-1">Сериалы</h3>
-          <p className="text-3xl font-bold text-white">{stats.summary?.tvShows || 0}</p>
+          <div className="text-3xl mb-2">⏳</div>
+          <h3 className="text-sm font-semibold text-gray-300 mb-1">Сериалов отложено</h3>
+          <p className="text-3xl font-bold text-white">{stats.summary?.wishlistTvShows || 0}</p>
         </div>
       </div>
 
@@ -964,7 +964,6 @@ function Column({ title, emoji, items, columnKey, isExpanded, onToggleExpand, is
                         <Icon name="plus" className="w-4 h-4 text-white"/>
                     </button>
                 )}
-                <span className="bg-white/10 text-white px-2 py-1 rounded-full text-xs font-bold">{items.length}</span>
             </div>
         </div>
         <div className="space-y-2 flex-grow min-h-[150px]">
