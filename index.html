@@ -93,39 +93,6 @@
       transform-style: preserve-3d;
     }
 
-    /* Анимации для реакций */
-    @keyframes reactionBounce {
-      0% { transform: scale(1); }
-      50% { transform: scale(1.3); }
-      100% { transform: scale(1); }
-    }
-
-    @keyframes reactionPulse {
-      0% { transform: scale(1); }
-      50% { transform: scale(1.1); }
-      100% { transform: scale(1); }
-    }
-
-    .reaction-animate {
-      animation: reactionBounce 0.6s ease-out;
-    }
-
-    .reaction-pulse {
-      animation: reactionPulse 0.3s ease-out;
-    }
-
-    .reaction-button {
-      transition: all 0.2s ease;
-    }
-
-    .reaction-button:hover {
-      transform: scale(1.2);
-    }
-
-    .reaction-button:active {
-      transform: scale(0.9);
-    }
-
     .cropper-container {
         max-width: 100%;
     }
@@ -290,30 +257,6 @@
     const REACTION_EMOJIS = ['😍', '🔥', '👍', '😮', '😂', '👎', '❤️', '🤔', '😢', '🤯', '😴', '💯', '💀', '🤨', '🥳'];
     const GAMES_PER_COLUMN = 5;
 
-    // Функция для группировки реакций
-    const groupReactions = (reactions) => {
-      if (!reactions || reactions.length === 0) return [];
-      
-      const grouped = {};
-      reactions.forEach(reaction => {
-        if (!grouped[reaction.emoji]) {
-          grouped[reaction.emoji] = {
-            emoji: reaction.emoji,
-            count: 0,
-            users: []
-          };
-        }
-        grouped[reaction.emoji].count++;
-        grouped[reaction.emoji].users.push({
-          username: reaction.username,
-          avatar: reaction.avatar,
-          user_id: reaction.user_id
-        });
-      });
-      
-      return Object.values(grouped).sort((a, b) => b.count - a.count);
-    };
-
     const Icon = ({ name, className = "w-5 h-5" }) => {
       const icons = {
         plus: <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" /></svg>,
@@ -472,11 +415,7 @@
             const gameName = <span className="font-bold text-purple-300">{details.gameName}</span>;
             const clickableUsername = (
                 <button 
-                    onClick={() => {
-                        // Определяем, на какой странице мы находимся (игры или фильмы)
-                        const currentPage = window.location.pathname.includes('movies') ? 'movies.html' : 'index.html';
-                        window.location.href = `${currentPage}?user=${user_id}`;
-                    }}
+                    onClick={() => window.location.href = `?user=${user_id}`}
                     className="text-blue-400 hover:text-blue-300 underline cursor-pointer font-semibold"
                 >
                     {username}
@@ -1699,6 +1638,8 @@
       const [tags, setTags] = useState([]);
       const [loading, setLoading] = useState(false);
       const [addingTag, setAddingTag] = useState(null);
+      const dropdownRef = useRef(null);
+
       // Загрузка тегов
       const loadTags = useCallback(async () => {
         if (!token) return;
@@ -1737,11 +1678,22 @@
         }
       };
 
-      // Загружаем теги при открытии модалки
+      // Закрытие dropdown при клике вне его
       useEffect(() => {
+        const handleClickOutside = (event) => {
+          if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+            setIsOpen(false);
+          }
+        };
+
         if (isOpen) {
+          document.addEventListener('mousedown', handleClickOutside);
           loadTags();
         }
+
+        return () => {
+          document.removeEventListener('mousedown', handleClickOutside);
+        };
       }, [isOpen, loadTags]);
 
       // Фильтрация тегов (исключаем уже прикрепленные)
@@ -1750,11 +1702,11 @@
       );
 
       return (
-        <>
+        <div ref={dropdownRef} className="relative">
           <button
             onClick={(e) => {
               e.stopPropagation();
-              setIsOpen(true);
+              setIsOpen(!isOpen);
             }}
             className="p-1 text-gray-400 hover:text-white transition-colors"
             title="Добавить тег"
@@ -1762,60 +1714,44 @@
             <Icon name="tag" className="w-4 h-4" />
           </button>
 
-          {/* Модальное окно для выбора тегов */}
           {isOpen && (
-            <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[9999]" onClick={() => setIsOpen(false)}>
-              <div className="bg-gray-900 rounded-xl w-full max-w-md mx-4 max-h-[80vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
-                {/* Header */}
-                <div className="flex items-center justify-between p-6 border-b border-gray-700">
-                  <h2 className="text-xl font-bold text-white flex items-center gap-2">
-                    <Icon name="tag" className="w-5 h-5 text-purple-400" />
-                    Выбрать тег
-                  </h2>
-                  <button
-                    onClick={() => setIsOpen(false)}
-                    className="p-2 hover:bg-gray-800 rounded-lg transition-colors"
-                  >
-                    <Icon name="x" className="w-5 h-5 text-gray-400" />
-                  </button>
-                </div>
-
-                {/* Content */}
-                <div className="flex-1 overflow-y-auto p-6">
-                  {loading ? (
-                    <div className="flex items-center justify-center py-8">
-                      <Icon name="loader" className="w-8 h-8 animate-spin text-purple-400" />
-                    </div>
-                  ) : availableTags.length === 0 ? (
-                    <div className="text-center py-8">
-                      <div className="text-4xl mb-2">🏷️</div>
-                      <p className="text-gray-400">Нет доступных тегов</p>
-                      <p className="text-sm text-gray-500 mt-1">Создайте теги в настройках</p>
-                    </div>
-                  ) : (
-                    <div className="grid grid-cols-1 gap-2">
-                      {availableTags.map(tag => (
-                        <button
-                          key={tag.id}
-                          onClick={() => addTagToGame(tag.id)}
-                          disabled={addingTag === tag.id}
-                          className="p-4 text-left text-white bg-gray-800/50 hover:bg-gray-700 rounded-lg transition-colors flex items-center gap-3 disabled:opacity-50 border border-gray-700 hover:border-purple-500"
-                        >
-                          <div
-                            className="w-4 h-4 rounded-full flex-shrink-0"
-                            style={{ backgroundColor: tag.color }}
-                          />
-                          <span className="text-sm font-medium flex-1">{tag.name}</span>
-                          {addingTag === tag.id && <Icon name="loader" className="w-4 h-4 animate-spin text-purple-400" />}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
+            <div className="absolute right-0 top-full mt-2 w-48 bg-gray-800 rounded-lg border border-gray-700 z-50 elevation-4">
+              <div className="p-3 border-b border-gray-700">
+                <h3 className="text-sm font-semibold text-white">Добавить тег</h3>
+              </div>
+              <div className="max-h-48 overflow-y-auto">
+                {loading ? (
+                  <div className="p-3 text-center text-gray-400">
+                    <Icon name="loader" className="w-4 h-4 animate-spin mx-auto mb-1" />
+                    <p className="text-xs">Загрузка...</p>
+                  </div>
+                ) : availableTags.length === 0 ? (
+                  <div className="p-3 text-center text-gray-400">
+                    <p className="text-xs">Нет доступных тегов</p>
+                  </div>
+                ) : (
+                  availableTags.map(tag => (
+                    <button
+                      key={tag.id}
+                      onClick={() => addTagToGame(tag.id)}
+                      disabled={addingTag === tag.id}
+                      className="w-full px-3 py-2 text-left text-white hover:bg-gray-700 transition-colors flex items-center gap-2 disabled:opacity-50"
+                    >
+                      <div
+                        className="w-3 h-3 rounded-full flex-shrink-0"
+                        style={{ backgroundColor: tag.color }}
+                      />
+                      <span className="text-sm truncate">{tag.name}</span>
+                      {addingTag === tag.id && (
+                        <Icon name="loader" className="w-3 h-3 animate-spin ml-auto" />
+                      )}
+                    </button>
+                  ))
+                )}
               </div>
             </div>
           )}
-        </>
+        </div>
       );
     };
 
@@ -2449,14 +2385,6 @@
             },
             body: JSON.stringify({ emoji })
           });
-          
-          // Добавляем анимацию к кнопке реакции
-          const button = document.querySelector(`[data-reaction="${emoji}"]`);
-          if (button) {
-            button.classList.add('reaction-animate');
-            setTimeout(() => button.classList.remove('reaction-animate'), 600);
-          }
-          
           loadBoards(token, viewingUser?.id);
         } catch (err) {
           console.error('Ошибка реакции:', err);
@@ -3145,25 +3073,16 @@
                               <div className="pt-2">
                                 <p className="text-gray-400 text-sm mb-2">Ваша реакция:</p>
                                 <div className="flex flex-wrap gap-2">
-                                  {REACTION_EMOJIS.map(emoji => {
-                                    const userReaction = selectedGame.reactions.find(r => r.user_id === user.id && r.emoji === emoji);
-                                    const isUserReaction = !!userReaction;
-                                    return (
+                                  {REACTION_EMOJIS.map(emoji => (
                                       <button
                                           key={emoji}
-                                          data-reaction={emoji}
                                           onClick={() => addReaction(selectedGame.id, emoji)}
-                                          className={`text-xl reaction-button p-2 rounded-full transition-all duration-200 ${
-                                            isUserReaction 
-                                              ? 'bg-purple-500/40 scale-110 shadow-lg' 
-                                              : 'hover:bg-gray-700/50 hover:scale-110'
-                                          }`}
-                                          title={`${isUserReaction ? 'Изменить реакцию на' : 'Реагировать'} ${emoji}`}
+                                          className={`text-2xl transform hover:scale-125 transition-transform p-1 rounded-full ${selectedGame.reactions.find(r => r.user_id === user.id && r.emoji === emoji) ? 'bg-purple-500/30' : ''}`}
+                                          title={`React with ${emoji}`}
                                       >
                                           {emoji}
                                       </button>
-                                    );
-                                  })}
+                                  ))}
                                 </div>
                               </div>
                           </Fragment>
@@ -3175,20 +3094,10 @@
                           <div>
                           <p className="text-gray-400 text-sm mb-2">Все реакции:</p>
                           <div className="flex flex-wrap gap-2">
-                              {groupReactions(selectedGame.reactions).map((group, idx) => (
-                              <div key={idx} className="flex items-center gap-2 bg-gray-800 px-3 py-2 rounded-full">
-                                  <span className="text-lg">{group.emoji}</span>
-                                  {group.count > 1 && <span className="text-sm text-gray-300 font-medium">×{group.count}</span>}
-                                  <div className="flex flex-wrap gap-1">
-                                      {group.users.map((user, userIdx) => (
-                                          <span 
-                                              key={userIdx}
-                                              className="text-xs text-gray-300 bg-gray-700 px-2 py-1 rounded-full"
-                                          >
-                                              {user.username}
-                                          </span>
-                                      ))}
-                                  </div>
+                              {selectedGame.reactions.map((reaction, idx) => (
+                              <div key={idx} className="flex items-center gap-1 bg-gray-800 px-3 py-1 rounded-full">
+                                  <span className="text-xl">{reaction.emoji}</span>
+                                  <span className="text-xs text-gray-400">{reaction.username}</span>
                               </div>
                               ))}
                           </div>
@@ -3471,16 +3380,9 @@
                                   </div>
                                   <div className="flex items-end justify-between w-full">
                                     {card.reactions && card.reactions.length > 0 && (
-                                        <div className="flex gap-1 mt-1 flex-wrap items-center">
-                                        {groupReactions(card.reactions).slice(0, 3).map((group, i) => (
-                                          <div key={i} className="flex items-center gap-1 bg-gray-800/50 px-2 py-1 rounded-full text-xs" title={group.users.map(u => u.username).join(', ')}>
-                                            <span className="text-sm">{group.emoji}</span>
-                                            {group.count > 1 && <span className="text-gray-300 font-medium">{group.count}</span>}
-                                          </div>
-                                        ))}
-                                        {groupReactions(card.reactions).length > 3 && (
-                                          <span className="text-xs text-gray-400 self-center">+{groupReactions(card.reactions).length - 3}</span>
-                                        )}
+                                        <div className="flex gap-1.5 mt-1 flex-wrap items-center">
+                                        {card.reactions.slice(0, 4).map((r, i) => <span key={i} className="text-lg">{r.emoji}</span>)}
+                                        {card.reactions.length > 4 && <span className="text-xs text-gray-400 self-center">+{card.reactions.length - 4}</span>}
                                         </div>
                                     )}
                                     {card.tags && card.tags.length > 0 && (
