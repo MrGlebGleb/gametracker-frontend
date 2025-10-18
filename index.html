@@ -1654,7 +1654,10 @@
       return (
         <div ref={dropdownRef} className="relative">
           <button
-            onClick={() => setIsOpen(!isOpen)}
+            onClick={(e) => {
+              e.stopPropagation();
+              setIsOpen(!isOpen);
+            }}
             className="p-1 text-gray-400 hover:text-white transition-colors"
             title="Добавить тег"
           >
@@ -3329,14 +3332,16 @@
                                     )}
                                     <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity self-end flex-shrink-0 z-10">
                                         {!viewingUser && (
-                                            <TagDropdown 
-                                                game={card} 
-                                                token={localStorage.getItem('token')}
-                                                onTagAdded={() => {
-                                                    // Обновить доски после добавления тега
-                                                    loadBoards(localStorage.getItem('token'));
-                                                }}
-                                            />
+                                            <div onClick={(e) => e.stopPropagation()}>
+                                                <TagDropdown 
+                                                    game={card} 
+                                                    token={localStorage.getItem('token')}
+                                                    onTagAdded={() => {
+                                                        // Обновить доски после добавления тега
+                                                        loadBoards(localStorage.getItem('token'));
+                                                    }}
+                                                />
+                                            </div>
                                         )}
                                         {board.id === 'completed' && !viewingUser && (
                                             <button 
