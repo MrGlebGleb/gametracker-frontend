@@ -1,5 +1,49 @@
 const { useState, useEffect, useRef, Fragment, useCallback } = React;
 
+// --- CSS стили ---
+const styles = `
+  .media-card {
+    will-change: transform, opacity;
+    backface-visibility: hidden;
+    transform-style: preserve-3d;
+  }
+  
+  /* Tooltip styles */
+  .tooltip {
+    position: absolute;
+    z-index: 1000;
+    background: rgba(17, 24, 39, 0.95);
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(139, 92, 246, 0.3);
+    border-radius: 8px;
+    padding: 12px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+    max-width: 300px;
+    pointer-events: none;
+    opacity: 0;
+    transform: translateY(10px);
+    transition: all 0.2s ease;
+  }
+  
+  .tooltip.show {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  
+  .tooltip::after {
+    content: '';
+    position: absolute;
+    top: -6px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 0;
+    height: 0;
+    border-left: 6px solid transparent;
+    border-right: 6px solid transparent;
+    border-bottom: 6px solid rgba(139, 92, 246, 0.3);
+  }
+`;
+
 // --- Глобальные константы и хелперы ---
 const API_URL = 'https://gametracker-backend-production.up.railway.app';
 const REACTION_EMOJIS = ['😍', '🔥', '👍', '😮', '😂', '👎', '❤️', '🤔', '😢', '🤯'];
@@ -15,6 +59,62 @@ const groupReactions = (reactions) => {
 };
 
 // --- Переиспользуемые UI-компоненты (идентичны странице игр) ---
+
+// Компонент tooltip для отображения тегов и реакций
+const MediaTooltip = ({ media, isVisible, position }) => {
+  if (!isVisible || !media) return null;
+
+  return (
+    <div 
+      className="tooltip"
+      style={{
+        left: position.x,
+        top: position.y,
+        opacity: isVisible ? 1 : 0,
+        transform: isVisible ? 'translateY(0)' : 'translateY(10px)'
+      }}
+    >
+      <div className="space-y-3">
+        {/* Реакции */}
+        {media.reactions && media.reactions.length > 0 && (
+          <div>
+            <p className="text-xs text-gray-400 mb-2">Реакции:</p>
+            <div className="flex flex-wrap gap-1">
+              {Object.entries(groupReactions(media.reactions)).map(([emoji, count]) => (
+                <div key={emoji} className="flex items-center gap-1 bg-gray-800 px-2 py-1 rounded-full">
+                  <span className="text-sm">{emoji}</span>
+                  <span className="text-xs text-gray-300">{count}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+        
+        {/* Теги */}
+        {media.tags && media.tags.length > 0 && (
+          <div>
+            <p className="text-xs text-gray-400 mb-2">Теги:</p>
+            <div className="flex flex-wrap gap-1">
+              {media.tags.map((tag, i) => (
+                <span 
+                  key={i} 
+                  className="text-xs px-2 py-1 rounded-full text-white font-medium"
+                  style={{ backgroundColor: tag.color + '40', border: `1px solid ${tag.color}` }}
+                >
+                  {tag.name}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
+        
+        {(!media.reactions || media.reactions.length === 0) && (!media.tags || media.tags.length === 0) && (
+          <p className="text-gray-400 text-sm">Нет тегов и реакций</p>
+        )}
+      </div>
+    </div>
+  );
+};
 
 const Icon = ({ name, className = "w-5 h-5" }) => {
   const icons = {
@@ -66,7 +166,7 @@ function StarRating({ value = 0, onChange }) {
   );
 }
 
-function MediaCard({ item, onSelect, onRemove, onDragStart, onDragEnd, isViewingFriend, boardId, onMobileClick, boardKey, onAddToMyBoard, onTagClick }) {
+function MediaCard({ item, onSelect, onRemove, onDragStart, onDragEnd, isViewingFriend, boardId, onMobileClick, boardKey, onAddToMyBoard, onTagClick, onMouseEnter, onMouseLeave }) {
   const type = item.media_type || 'movie'; // Определяем тип медиа
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   
@@ -81,6 +181,8 @@ function MediaCard({ item, onSelect, onRemove, onDragStart, onDragEnd, isViewing
       draggable={!isViewingFriend}
       onDragStart={(e) => !isViewingFriend && onDragStart(e, item)}
       onDragEnd={onDragEnd}
+      onMouseEnter={(e) => onMouseEnter && onMouseEnter(e, item)}
+      onMouseLeave={onMouseLeave}
       onClick={() => {
         if (isMobile && onMobileClick) {
           onMobileClick(item, boardKey);
@@ -108,57 +210,6 @@ function MediaCard({ item, onSelect, onRemove, onDragStart, onDragEnd, isViewing
         <div>
           <h3 className="text-white font-semibold text-base md:text-sm line-clamp-2">{item.title}</h3>
         </div>
-        {item.reactions && item.reactions.length > 0 && (
-          <div className="flex gap-1 mt-1 flex-wrap items-center">
-            {Object.entries(groupReactions(item.reactions)).map(([emoji, count]) => (
-              <span key={emoji} className="text-base">
-                {emoji}{count > 1 && <span className="text-xs text-gray-400">×{count}</span>}
-              </span>
-            ))}
-          </div>
-        )}
-        {/* Теги */}
-        {item.tags && item.tags.length > 0 && (
-          <div className="flex gap-1 mt-1 flex-wrap items-center">
-            {item.tags.map((tag) => (
-              <span 
-                key={tag.id} 
-                className="text-xs px-2 py-1 rounded-full text-white"
-                style={{ backgroundColor: tag.color }}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onTagClick && onTagClick(tag, item);
-                }}
-              >
-                {tag.name}
-              </span>
-            ))}
-            <button 
-              onClick={(e) => {
-                e.stopPropagation();
-                onTagClick && onTagClick(null, item);
-              }}
-              className="text-xs px-2 py-1 rounded-full bg-gray-600 hover:bg-gray-500 text-white transition-colors"
-              title="Добавить тег"
-            >
-              + Тег
-            </button>
-          </div>
-        )}
-        {(!item.tags || item.tags.length === 0) && !isViewingFriend && (
-          <div className="flex gap-1 mt-1 flex-wrap items-center">
-            <button 
-              onClick={(e) => {
-                e.stopPropagation();
-                onTagClick && onTagClick(null, item);
-              }}
-              className="text-xs px-2 py-1 rounded-full bg-gray-600 hover:bg-gray-500 text-white transition-colors"
-              title="Добавить тег"
-            >
-              + Тег
-            </button>
-          </div>
-        )}
       </div>
        {!isViewingFriend ? (
             <button onClick={(e) => onRemove(e, item)} className="absolute top-1 right-1 p-1.5 bg-red-600/80 hover:bg-red-500 rounded-full opacity-0 group-hover:opacity-100 transition-opacity self-start flex-shrink-0 z-10">
@@ -209,7 +260,7 @@ function Column({ title, emoji, items, columnKey, isExpanded, onToggleExpand, is
         </div>
         <div className="accordion-content">
           <div className="space-y-2 flex-grow min-h-[150px]">
-              {visibleItems.map(it => <MediaCard key={it.id} item={it} isViewingFriend={isViewingFriend} boardId={boardId} boardKey={columnKey} onMobileClick={handlers.onMobileClick} onAddToMyBoard={handlers.onAddToMyBoard} {...handlers} />)}
+              {visibleItems.map(it => <MediaCard key={it.id} item={it} isViewingFriend={isViewingFriend} boardId={boardId} boardKey={columnKey} onMobileClick={handlers.onMobileClick} onAddToMyBoard={handlers.onAddToMyBoard} onMouseEnter={handlers.onMouseEnter} onMouseLeave={handlers.onMouseLeave} {...handlers} />)}
               
               {items.length === 0 && (
                 <div className="flex flex-col items-center justify-center py-12 text-center">
@@ -645,6 +696,9 @@ function MovieApp() {
   const [showTagModal, setShowTagModal] = useState(false);
   const [selectedMediaForTag, setSelectedMediaForTag] = useState(null);
   const [userTags, setUserTags] = useState([]);
+  const [tooltipMedia, setTooltipMedia] = useState(null);
+  const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 });
+  const [showTooltip, setShowTooltip] = useState(false);
   
   const loadBoards = useCallback(async (userId = null) => {
     if (!token) return;
@@ -945,6 +999,22 @@ function MovieApp() {
       console.error('Ошибка привязки тега:', error);
     }
   };
+
+  // Обработчики для tooltip
+  const handleMouseEnter = (e, media) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    setTooltipPosition({
+      x: rect.left + rect.width / 2,
+      y: rect.top - 10
+    });
+    setTooltipMedia(media);
+    setShowTooltip(true);
+  };
+
+  const handleMouseLeave = () => {
+    setShowTooltip(false);
+    setTooltipMedia(null);
+  };
   
   const onDragStart = (e, item) => {
     if(viewingUser) return;
@@ -1127,16 +1197,16 @@ function MovieApp() {
             
             {/* Desktop: 4 columns side by side, Tablet: 2x2 grid, Mobile: 1 column stack */}
             <div className="md:col-span-2 lg:col-span-1" onDrop={(e) => onDrop(e, 'movie:wishlist')} onDragEnter={onDragEnterColumn} onDragLeave={onDragLeaveColumn}>
-                <Column title="🎬 Хочу посмотреть" emoji="" items={movies.wishlist} columnKey="movie:wishlist" isExpanded={!!expandedColumns['movie:wishlist']} onToggleExpand={toggleColumnExpansion} onSelect={setSelectedMedia} onRemove={removeItem} onDragStart={onDragStart} onDragEnd={onDragEnd} onMobileClick={handleMobileCardClick} onSearch={() => setShowSearch(true)} onAddToMyBoard={handleAddToMyBoard} onTagClick={handleTagClick} isViewingFriend={!!viewingUser} />
+                <Column title="🎬 Хочу посмотреть" emoji="" items={movies.wishlist} columnKey="movie:wishlist" isExpanded={!!expandedColumns['movie:wishlist']} onToggleExpand={toggleColumnExpansion} onSelect={setSelectedMedia} onRemove={removeItem} onDragStart={onDragStart} onDragEnd={onDragEnd} onMobileClick={handleMobileCardClick} onSearch={() => setShowSearch(true)} onAddToMyBoard={handleAddToMyBoard} onTagClick={handleTagClick} onMouseEnter={handleMouseEnter} onMouseLeave={handleMouseLeave} isViewingFriend={!!viewingUser} />
             </div>
             <div className="md:col-span-2 lg:col-span-1" onDrop={(e) => onDrop(e, 'movie:watched')} onDragEnter={onDragEnterColumn} onDragLeave={onDragLeaveColumn}>
-                <Column title="🍿 Посмотрел" emoji="" items={movies.watched} columnKey="movie:watched" isExpanded={!!expandedColumns['movie:watched']} onToggleExpand={toggleColumnExpansion} onSelect={setSelectedMedia} onRemove={removeItem} onDragStart={onDragStart} onDragEnd={onDragEnd} onMobileClick={handleMobileCardClick} onAddToMyBoard={handleAddToMyBoard} onTagClick={handleTagClick} isViewingFriend={!!viewingUser} />
+                <Column title="🍿 Посмотрел" emoji="" items={movies.watched} columnKey="movie:watched" isExpanded={!!expandedColumns['movie:watched']} onToggleExpand={toggleColumnExpansion} onSelect={setSelectedMedia} onRemove={removeItem} onDragStart={onDragStart} onDragEnd={onDragEnd} onMobileClick={handleMobileCardClick} onAddToMyBoard={handleAddToMyBoard} onTagClick={handleTagClick} onMouseEnter={handleMouseEnter} onMouseLeave={handleMouseLeave} isViewingFriend={!!viewingUser} />
             </div>
             <div className="md:col-span-2 lg:col-span-1" onDrop={(e) => onDrop(e, 'tv:wishlist')} onDragEnter={onDragEnterColumn} onDragLeave={onDragLeaveColumn}>
-                <Column title="📺 Хочу посмотреть" emoji="" items={tv.wishlist} columnKey="tv:wishlist" isExpanded={!!expandedColumns['tv:wishlist']} onToggleExpand={toggleColumnExpansion} onSelect={setSelectedMedia} onRemove={removeItem} onDragStart={onDragStart} onDragEnd={onDragEnd} onMobileClick={handleMobileCardClick} onSearch={() => setShowSearch(true)} onAddToMyBoard={handleAddToMyBoard} onTagClick={handleTagClick} isViewingFriend={!!viewingUser} />
+                <Column title="📺 Хочу посмотреть" emoji="" items={tv.wishlist} columnKey="tv:wishlist" isExpanded={!!expandedColumns['tv:wishlist']} onToggleExpand={toggleColumnExpansion} onSelect={setSelectedMedia} onRemove={removeItem} onDragStart={onDragStart} onDragEnd={onDragEnd} onMobileClick={handleMobileCardClick} onSearch={() => setShowSearch(true)} onAddToMyBoard={handleAddToMyBoard} onTagClick={handleTagClick} onMouseEnter={handleMouseEnter} onMouseLeave={handleMouseLeave} isViewingFriend={!!viewingUser} />
             </div>
             <div className="md:col-span-2 lg:col-span-1" onDrop={(e) => onDrop(e, 'tv:watched')} onDragEnter={onDragEnterColumn} onDragLeave={onDragLeaveColumn}>
-                <Column title="✅ Посмотрел" emoji="" items={tv.watched} columnKey="tv:watched" isExpanded={!!expandedColumns['tv:watched']} onToggleExpand={toggleColumnExpansion} onSelect={setSelectedMedia} onRemove={removeItem} onDragStart={onDragStart} onDragEnd={onDragEnd} onMobileClick={handleMobileCardClick} onAddToMyBoard={handleAddToMyBoard} onTagClick={handleTagClick} isViewingFriend={!!viewingUser} />
+                <Column title="✅ Посмотрел" emoji="" items={tv.watched} columnKey="tv:watched" isExpanded={!!expandedColumns['tv:watched']} onToggleExpand={toggleColumnExpansion} onSelect={setSelectedMedia} onRemove={removeItem} onDragStart={onDragStart} onDragEnd={onDragEnd} onMobileClick={handleMobileCardClick} onAddToMyBoard={handleAddToMyBoard} onTagClick={handleTagClick} onMouseEnter={handleMouseEnter} onMouseLeave={handleMouseLeave} isViewingFriend={!!viewingUser} />
             </div>
         </div>
         
@@ -1412,6 +1482,13 @@ function MovieApp() {
         onTagSelect={handleTagSelect}
         onCreateTag={createTag}
         userTags={userTags}
+      />
+
+      {/* Tooltip для отображения тегов и реакций */}
+      <MediaTooltip 
+        media={tooltipMedia} 
+        isVisible={showTooltip} 
+        position={tooltipPosition} 
       />
       
       {/* Мобильное меню выбора действия */}

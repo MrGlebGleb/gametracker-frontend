@@ -94,6 +94,41 @@
       backface-visibility: hidden;
       transform-style: preserve-3d;
     }
+    
+    /* Tooltip styles */
+    .tooltip {
+      position: absolute;
+      z-index: 1000;
+      background: rgba(17, 24, 39, 0.95);
+      backdrop-filter: blur(8px);
+      border: 1px solid rgba(139, 92, 246, 0.3);
+      border-radius: 8px;
+      padding: 12px;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+      max-width: 300px;
+      pointer-events: none;
+      opacity: 0;
+      transform: translateY(10px);
+      transition: all 0.2s ease;
+    }
+    
+    .tooltip.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+    
+    .tooltip::after {
+      content: '';
+      position: absolute;
+      top: -6px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 0;
+      height: 0;
+      border-left: 6px solid transparent;
+      border-right: 6px solid transparent;
+      border-bottom: 6px solid rgba(139, 92, 246, 0.3);
+    }
     .cropper-container { max-width: 100%; }
     .img-container { max-height: 50vh; margin-bottom: 1rem; }
     .img-container > img { max-width: 100%; }
