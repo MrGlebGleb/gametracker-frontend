@@ -1426,10 +1426,6 @@ function MovieApp() {
           <div className="flex items-center justify-between flex-wrap gap-4">
             <div className="flex items-center gap-4 flex-wrap">
               <a href="/index.html" className="text-2xl md:text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 via-pink-400 to-blue-400 active:scale-95 transition-transform cursor-pointer">🎮 GameTracker</a>
-              
-              {/* Разделительная линия */}
-              <div className="w-px h-8 bg-gradient-to-b from-purple-500/30 via-pink-500/30 to-blue-500/30"></div>
-              
               <a href="./movies.html" className="inline-flex items-center gap-2 active:scale-95 transition-transform">
                 <svg className="w-7 h-7" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
                   <defs><linearGradient id="camGradHeaderReact" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stopColor="#a78bfa"/><stop offset="100%" stopColor="#8b5cf6"/></linearGradient></defs>
