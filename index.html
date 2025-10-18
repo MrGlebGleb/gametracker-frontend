@@ -971,6 +971,7 @@
           });
           if (response.ok) {
             const data = await response.json();
+            console.log('Games statistics received:', data);
             setGamesStats(data);
           }
         } catch (error) {
@@ -1128,8 +1129,8 @@
       // Подготовка данных для графика
       const chartData = stats.monthlyStats?.map(month => ({
         month: month.month,
-        added: month.gamesAdded || 0,
-        completed: month.gamesCompleted || 0
+        added: month.added || 0,
+        completed: month.completed || 0
       })) || [];
 
       const handleChartHover = (data, index) => {
@@ -1158,6 +1159,16 @@
               <div className="text-3xl mb-2">✅</div>
               <h3 className="text-sm font-semibold text-gray-300 mb-1">Завершено</h3>
               <p className="text-3xl font-bold text-white">{stats.summary?.completedGames || 0}</p>
+            </div>
+            <div className="bg-gradient-to-br from-yellow-500/20 to-orange-500/20 backdrop-blur-xl rounded-xl p-6 border border-yellow-500/30">
+              <div className="text-3xl mb-2">⭐</div>
+              <h3 className="text-sm font-semibold text-gray-300 mb-1">Средний рейтинг</h3>
+              <p className="text-3xl font-bold text-white">{stats.summary?.overallAvgRating || '0.0'}</p>
+            </div>
+            <div className="bg-gradient-to-br from-purple-500/20 to-pink-500/20 backdrop-blur-xl rounded-xl p-6 border border-purple-500/30">
+              <div className="text-3xl mb-2">⏱️</div>
+              <h3 className="text-sm font-semibold text-gray-300 mb-1">Всего часов</h3>
+              <p className="text-3xl font-bold text-white">{stats.summary?.totalHours || 0}</p>
             </div>
           </div>
 
@@ -1195,24 +1206,28 @@
           <div className="bg-gray-800/50 rounded-xl p-6 border border-gray-700">
             <h3 className="text-lg font-semibold text-white mb-4">🏆 Топ-10 игр</h3>
             <div className="space-y-3">
-              {stats.topGames?.slice(0, 10).map((game, index) => (
-                <div key={game.id} className="flex items-center gap-4 p-3 bg-gray-700/50 rounded-lg">
-                  <div className="w-8 h-8 bg-purple-500/20 rounded-full flex items-center justify-center text-sm font-bold text-purple-400">
-                    {index + 1}
+              {stats.topGames && stats.topGames.length > 0 ? (
+                stats.topGames.slice(0, 10).map((game, index) => (
+                  <div key={game.id} className="flex items-center gap-4 p-3 bg-gray-700/50 rounded-lg">
+                    <div className="w-8 h-8 bg-purple-500/20 rounded-full flex items-center justify-center text-sm font-bold text-purple-400">
+                      {index + 1}
+                    </div>
+                    <img src={game.cover} alt={game.name} className="w-12 h-16 object-cover rounded" />
+                    <div className="flex-1 min-w-0">
+                      <h4 className="text-white font-medium truncate">{game.name}</h4>
+                      <p className="text-gray-400 text-sm">{game.board}</p>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      {[...Array(5)].map((_, i) => (
+                        <Icon key={i} name="star" className={`w-4 h-4 ${i < game.rating ? 'text-yellow-400' : 'text-gray-600'}`} />
+                      ))}
+                      <span className="ml-2 text-white font-medium">{game.rating}</span>
+                    </div>
                   </div>
-                  <img src={game.cover} alt={game.name} className="w-12 h-16 object-cover rounded" />
-                  <div className="flex-1 min-w-0">
-                    <h4 className="text-white font-medium truncate">{game.name}</h4>
-                    <p className="text-gray-400 text-sm">{game.board}</p>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    {[...Array(5)].map((_, i) => (
-                      <Icon key={i} name="star" className={`w-4 h-4 ${i < game.rating ? 'text-yellow-400' : 'text-gray-600'}`} />
-                    ))}
-                    <span className="ml-2 text-white font-medium">{game.rating}</span>
-                  </div>
-                </div>
-              )) || <div className="text-gray-400 text-center py-8">Нет данных</div>}
+                ))
+              ) : (
+                <div className="text-gray-400 text-center py-8">Нет данных</div>
+              )}
             </div>
           </div>
         </div>
