@@ -164,8 +164,58 @@ function Column({ title, emoji, items, columnKey, isExpanded, onToggleExpand, is
               
               {items.length === 0 && (
                 <div className="flex flex-col items-center justify-center py-12 text-center">
-                  <div className="text-6xl mb-4">
-                    {columnKey.includes('movie') ? '🎬' : '📺'}
+                  <div className="w-16 h-16 mb-4 flex items-center justify-center">
+                    {columnKey === 'movie:wishlist' && (
+                      <svg className="w-full h-full" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <defs>
+                          <linearGradient id="movieWishlistGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                            <stop offset="0%" style={{stopColor: '#3B82F6', stopOpacity: 0.8}} />
+                            <stop offset="100%" style={{stopColor: '#1E40AF', stopOpacity: 0.6}} />
+                          </linearGradient>
+                        </defs>
+                        <path d="M15 2H9C7.89543 2 7 2.89543 7 4V20C7 21.1046 7.89543 22 9 22H15C16.1046 22 17 21.1046 17 20V4C17 2.89543 16.1046 2 15 2Z" stroke="url(#movieWishlistGrad)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
+                        <path d="M7 7H17M7 11H17M7 15H13" stroke="url(#movieWishlistGrad)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" opacity="0.6"/>
+                      </svg>
+                    )}
+                    {columnKey === 'movie:watched' && (
+                      <svg className="w-full h-full" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <defs>
+                          <linearGradient id="movieWatchedGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                            <stop offset="0%" style={{stopColor: '#10B981', stopOpacity: 0.8}} />
+                            <stop offset="100%" style={{stopColor: '#059669', stopOpacity: 0.6}} />
+                          </linearGradient>
+                        </defs>
+                        <path d="M15 2H9C7.89543 2 7 2.89543 7 4V20C7 21.1046 7.89543 22 9 22H15C16.1046 22 17 21.1046 17 20V4C17 2.89543 16.1046 2 15 2Z" stroke="url(#movieWatchedGrad)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
+                        <path d="M9 8L11 10L15 6" stroke="url(#movieWatchedGrad)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
+                      </svg>
+                    )}
+                    {columnKey === 'tv:wishlist' && (
+                      <svg className="w-full h-full" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <defs>
+                          <linearGradient id="tvWishlistGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                            <stop offset="0%" style={{stopColor: '#F59E0B', stopOpacity: 0.8}} />
+                            <stop offset="100%" style={{stopColor: '#D97706', stopOpacity: 0.6}} />
+                          </linearGradient>
+                        </defs>
+                        <rect x="2" y="4" width="20" height="12" rx="2" stroke="url(#tvWishlistGrad)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
+                        <path d="M8 20L12 16L16 20" stroke="url(#tvWishlistGrad)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
+                        <circle cx="6" cy="8" r="1" fill="url(#tvWishlistGrad)" opacity="0.6"/>
+                        <circle cx="18" cy="8" r="1" fill="url(#tvWishlistGrad)" opacity="0.6"/>
+                      </svg>
+                    )}
+                    {columnKey === 'tv:watched' && (
+                      <svg className="w-full h-full" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <defs>
+                          <linearGradient id="tvWatchedGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                            <stop offset="0%" style={{stopColor: '#10B981', stopOpacity: 0.8}} />
+                            <stop offset="100%" style={{stopColor: '#059669', stopOpacity: 0.6}} />
+                          </linearGradient>
+                        </defs>
+                        <rect x="2" y="4" width="20" height="12" rx="2" stroke="url(#tvWatchedGrad)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
+                        <path d="M8 20L12 16L16 20" stroke="url(#tvWatchedGrad)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
+                        <path d="M9 8L11 10L15 6" stroke="url(#tvWatchedGrad)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
+                      </svg>
+                    )}
                   </div>
                   <p className="text-gray-400 text-lg mb-2">Здесь пока пусто</p>
                   <p className="text-gray-500 text-sm mb-4">
@@ -986,8 +1036,9 @@ function MovieApp() {
         </div>
       )}
 
+      {/* Десктопная модалка поиска */}
       {showSearch && (
-        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-[100] p-4">
+        <div className="hidden md:flex fixed inset-0 bg-black/80 items-center justify-center z-[100] p-4">
           <div className="bg-gray-800/95 backdrop-blur-xl rounded-lg shadow-2xl border border-purple-500/30 p-4 z-50 w-full max-w-3xl">
             <div className="flex items-center gap-2 mb-3">
               <input type="text" value={query} onChange={e => handleSearch(e.target.value)} placeholder="Поиск TMDB..." className="flex-1 px-4 py-2 bg-gray-900 border border-gray-700 rounded-lg focus:border-purple-500 focus:outline-none text-white text-sm" autoFocus />
@@ -1014,6 +1065,75 @@ function MovieApp() {
                   </div>
                 ))
               ) : query.length >= 2 && <p className="text-gray-400 text-center py-4 text-sm">Ничего не найдено</p>}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Мобильная модалка поиска */}
+      {showSearch && (
+        <div className="md:hidden fixed inset-0 bg-black/80 flex items-center justify-center z-[100] p-4">
+          <div className="bg-gray-900 rounded-2xl p-6 w-full max-w-md border border-purple-500/30 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-bold text-white">Поиск {type === 'movie' ? 'фильмов' : 'сериалов'}</h2>
+              <button onClick={() => { setShowSearch(false); setQuery(''); setSearchResults([]); }} className="p-2 hover:bg-gray-800 rounded-lg">
+                <Icon name="x" className="w-5 h-5 text-gray-400" />
+              </button>
+            </div>
+            <div className="space-y-4">
+              <div className="flex gap-2">
+                <input 
+                  type="text" 
+                  value={query} 
+                  onChange={e => handleSearch(e.target.value)} 
+                  placeholder="Поиск TMDB..." 
+                  className="flex-1 px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg focus:border-purple-500 focus:outline-none text-white placeholder-gray-500" 
+                  autoFocus 
+                />
+                <select className="px-3 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white" value={type} onChange={e => {setType(e.target.value); handleSearch(query)}}>
+                  <option value="movie">Фильмы</option>
+                  <option value="tv">Сериалы</option>
+                </select>
+              </div>
+              <div className="space-y-2 max-h-60 overflow-y-auto">
+                {searching ? (
+                  <div className="flex items-center justify-center py-8">
+                    <Icon name="loader" className="w-8 h-8 text-purple-400 animate-spin" />
+                  </div>
+                ) : searchResults.length > 0 ? (
+                  searchResults.map(it => (
+                    <div key={`${it.mediaType}-${it.tmdbId}`} className="bg-gray-800/50 rounded-lg p-3 border border-gray-700 hover:border-purple-500/50 transition-colors">
+                      <div className="flex items-start gap-3">
+                        <img 
+                          src={it.poster || 'https://placehold.co/40x56/1f2937/ffffff?text=?'} 
+                          alt={it.title} 
+                          className="w-12 h-16 object-cover rounded-lg flex-shrink-0"
+                        />
+                        <div className="flex-1 min-w-0">
+                          <h3 className="text-white font-semibold text-sm line-clamp-2 mb-1">
+                            {it.title} ({it.year})
+                          </h3>
+                          <p className="text-gray-400 text-xs mb-2 line-clamp-2">
+                            {it.overview}
+                          </p>
+                          <button
+                            onClick={() => addItem(it, 'wishlist')}
+                            className="px-3 py-1 bg-purple-500 hover:bg-purple-600 text-white text-xs rounded-lg transition-colors"
+                          >
+                            Добавить
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))
+                ) : query.length >= 2 && !searching && (
+                  <div className="text-center py-8">
+                    <div className="text-4xl mb-2">🔍</div>
+                    <p className="text-gray-400">Ничего не найдено</p>
+                    <p className="text-sm text-gray-500 mt-1">Попробуйте другой запрос</p>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </div>
