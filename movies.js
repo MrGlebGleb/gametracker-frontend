@@ -677,7 +677,7 @@ function ActivityFeed({ token, boardType = 'media', onNavigateToUser }) {
 };
 
 // --- Компонент статистики медиа ---
-function MediaStatisticsModal({ isOpen, onClose }) {
+function MediaStatisticsModal({ isOpen, onClose, boards }) {
   const [statistics, setStatistics] = useState(null);
   const [loading, setLoading] = useState(false);
   const token = localStorage.getItem('token');
@@ -688,21 +688,79 @@ function MediaStatisticsModal({ isOpen, onClose }) {
     }
   }, [isOpen, token]);
 
+  const calculateLocalStatistics = () => {
+    if (!boards || !boards.movies || !boards.tv) {
+      return {
+        general: [],
+        monthly: [],
+        topRated: []
+      };
+    }
+
+    // Подсчитываем общую статистику из досок
+    const moviesWishlist = boards.movies.wishlist?.length || 0;
+    const moviesWatched = boards.movies.watched?.length || 0;
+    const tvWishlist = boards.tv.wishlist?.length || 0;
+    const tvWatched = boards.tv.watched?.length || 0;
+
+    const general = [
+      { media_type: 'movie', board: 'wishlist', count: moviesWishlist },
+      { media_type: 'movie', board: 'watched', count: moviesWatched },
+      { media_type: 'tv', board: 'wishlist', count: tvWishlist },
+      { media_type: 'tv', board: 'watched', count: tvWatched }
+    ];
+
+    // Собираем все медиа с рейтингами для топ-списка
+    const allMedia = [
+      ...(boards.movies.wishlist || []),
+      ...(boards.movies.watched || []),
+      ...(boards.tv.wishlist || []),
+      ...(boards.tv.watched || [])
+    ].filter(item => item.rating && item.rating > 0)
+     .sort((a, b) => b.rating - a.rating)
+     .slice(0, 10);
+
+    const topRated = allMedia.map(item => ({
+      title: item.title,
+      rating: item.rating,
+      board: item.board,
+      media_type: item.media_type || (boards.movies.wishlist?.includes(item) || boards.movies.watched?.includes(item) ? 'movie' : 'tv')
+    }));
+
+    return {
+      general,
+      monthly: [], // Пока не реализовано
+      topRated
+    };
+  };
+
   const fetchStatistics = async () => {
     setLoading(true);
     try {
+      // Попробуем загрузить статистику с сервера
       const response = await fetch(`${API_URL}/api/user/statistics/media`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (response.ok) {
         const data = await response.json();
-        console.log('Statistics data received:', data);
-        setStatistics(data);
+        // Если серверные данные пустые, используем локальные
+        if (data.general.length === 0 && data.topRated.length === 0) {
+          const localStats = calculateLocalStatistics();
+          setStatistics(localStats);
+        } else {
+          setStatistics(data);
+        }
       } else {
-        console.error('Ошибка загрузки статистики медиа');
+        // Если серверная статистика не работает, используем локальные данные
+        console.log('Серверная статистика недоступна, используем локальные данные');
+        const localStats = calculateLocalStatistics();
+        setStatistics(localStats);
       }
     } catch (error) {
       console.error('Ошибка загрузки статистики:', error);
+      // В случае ошибки используем локальные данные
+      const localStats = calculateLocalStatistics();
+      setStatistics(localStats);
     } finally {
       setLoading(false);
     }
@@ -728,13 +786,6 @@ function MediaStatisticsModal({ isOpen, onClose }) {
             <Icon name="loader" className="w-8 h-8 text-purple-400 animate-spin" />
           </div>
         ) : statistics ? (
-          <div>
-            {/* Отладочная информация */}
-            <div className="mb-4 p-3 bg-gray-800 rounded-lg text-xs text-gray-400">
-              <p>Debug: general = {JSON.stringify(statistics.general)}</p>
-              <p>Debug: monthly = {JSON.stringify(statistics.monthly)}</p>
-              <p>Debug: topRated = {JSON.stringify(statistics.topRated)}</p>
-            </div>
           <div className="space-y-6">
             {/* Общая статистика */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -847,7 +898,6 @@ function MediaStatisticsModal({ isOpen, onClose }) {
                 <p className="text-gray-400">Добавьте фильмы и сериалы, чтобы увидеть статистику</p>
               </div>
             )}
-          </div>
           </div>
         ) : (
           <div className="text-center py-12">
@@ -1744,6 +1794,7 @@ function MovieApp() {
       <MediaStatisticsModal 
         isOpen={showStatistics}
         onClose={() => setShowStatistics(false)}
+        boards={boards}
       />
 
       
