@@ -895,7 +895,7 @@
             <div className="bg-gradient-to-br from-purple-500/20 to-pink-500/20 backdrop-blur-xl rounded-xl p-6 border border-purple-500/30">
               <div className="text-3xl mb-2">⏱️</div>
               <h3 className="text-sm font-semibold text-gray-300 mb-1">Время игры</h3>
-              <p className="text-3xl font-bold text-white">{stats.summary?.totalHours || 0}ч</p>
+              <p className="text-3xl font-bold text-white">{Math.round(stats.summary?.totalHours || 0)}ч</p>
             </div>
           </div>
 
