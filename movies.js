@@ -99,8 +99,8 @@ function MediaCard({ item, onSelect, onRemove, onDragStart, onDragEnd, isViewing
         <img src={item.poster || 'https://placehold.co/96x128/1f2937/ffffff?text=?'} alt={item.title} className="w-20 h-28 md:w-16 md:h-24 object-cover rounded-lg flex-shrink-0" />
         {/* Рейтинг звездами как overlay */}
         {item.rating && (
-          <div className="absolute bottom-2 left-2 bg-black/80 backdrop-blur-sm rounded-md px-2 py-1 flex gap-0.5">
-            {[...Array(5)].map((_, i) => (<Icon key={i} name="star" className={`w-3 h-3 ${i < item.rating ? 'text-yellow-400' : 'text-gray-400'}`} />))}
+          <div className="absolute bottom-2 left-1/2 transform -translate-x-1/2 bg-black/70 backdrop-blur-sm rounded px-1.5 py-0.5 flex gap-0.5">
+            {[...Array(5)].map((_, i) => (<Icon key={i} name="star" className={`w-2 h-2 ${i < item.rating ? 'text-yellow-400' : 'text-gray-400'}`} />))}
           </div>
         )}
       </div>
