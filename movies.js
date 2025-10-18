@@ -152,7 +152,7 @@ function MediaCard({ item, onSelect, onRemove, onDragStart, onDragEnd, isViewing
         style={{ backgroundColor: boardId === 'wishlist' ? '#3B82F6' : '#10B981' }}
       ></div>
       <div className="relative flex-shrink-0">
-        <img src={item.poster || 'https://placehold.co/96x128/1f2937/ffffff?text=?'} alt={item.title} className="w-20 h-28 md:w-16 md:h-24 object-cover rounded-lg flex-shrink-0" />
+        <img src={item.poster || item.cover || 'https://placehold.co/96x128/1f2937/ffffff?text=?'} alt={item.title} className="w-20 h-28 md:w-16 md:h-24 object-cover rounded-lg flex-shrink-0" />
       </div>
       <div className="flex flex-col justify-between flex-grow min-w-0 py-1">
         <div>
@@ -481,6 +481,15 @@ function MediaDetailsModal({ item, onClose, onUpdate, onReact, isViewingFriend, 
           <h2 className="text-xl font-bold text-white">{item.title}</h2>
           <button onClick={onClose} className="p-2 hover:bg-gray-800 rounded-lg"><Icon name="x" className="w-5 h-5 text-gray-400" /></button>
         </div>
+        
+        {/* Изображение фильма/сериала */}
+        <div className="flex justify-center mb-4">
+          <img 
+            src={item.poster || item.cover || 'https://placehold.co/200x300/1f2937/ffffff?text=?'} 
+            alt={item.title} 
+            className="w-32 h-48 object-cover rounded-lg shadow-lg" 
+          />
+        </div>
         <div className="space-y-4">
           {!isViewingFriend ? (
               <Fragment>
@@ -570,6 +579,19 @@ function MediaDetailsModal({ item, onClose, onUpdate, onReact, isViewingFriend, 
               </button>
             </div>
           )}
+          
+          {/* Кнопка трейлера */}
+          <div className="flex justify-center mt-4">
+            <a 
+              href={`https://www.youtube.com/results?search_query=${encodeURIComponent(item.title + ' trailer')}`}
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white font-bold rounded-lg hover:bg-red-700 transition-colors"
+            >
+              <Icon name="youtube" className="w-5 h-5" />
+              Трейлер
+            </a>
+          </div>
         </div>
       </div>
     </div>
