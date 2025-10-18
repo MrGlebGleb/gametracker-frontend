@@ -72,7 +72,7 @@ function MediaCard({ item, onSelect, onRemove, onDragStart, onDragEnd, isViewing
         style={{ backgroundColor: boardId === 'wishlist' ? '#3B82F6' : '#10B981' }}
       ></div>
       <div className="relative flex-shrink-0">
-        <img src={item.poster || 'https://placehold.co/96x128/1f2937/ffffff?text=?'} alt={item.title} className="w-16 h-24 object-cover rounded-lg flex-shrink-0" />
+        <img src={item.poster || 'https://placehold.co/96x128/1f2937/ffffff?text=?'} alt={item.title} className="w-20 h-28 md:w-16 md:h-24 object-cover rounded-lg flex-shrink-0" />
         {/* Рейтинг звездами как overlay */}
         {item.rating && (
           <div className="absolute bottom-2 left-2 bg-black/70 backdrop-blur-sm rounded px-1.5 py-0.5 flex gap-0.5">
@@ -82,7 +82,7 @@ function MediaCard({ item, onSelect, onRemove, onDragStart, onDragEnd, isViewing
       </div>
       <div className="flex flex-col justify-between flex-grow min-w-0 py-1">
         <div>
-          <h3 className="text-white font-semibold text-sm line-clamp-2">{item.title}</h3>
+          <h3 className="text-white font-semibold text-base md:text-sm line-clamp-2">{item.title}</h3>
         </div>
         {item.reactions && item.reactions.length > 0 && (
           <div className="flex gap-1.5 mt-1 flex-wrap items-center">
@@ -104,25 +104,43 @@ function Column({ title, emoji, items, columnKey, isExpanded, onToggleExpand, is
   // Определяем boardId на основе columnKey
   const boardId = columnKey.includes('wishlist') ? 'wishlist' : 'watched';
   const visibleItems = isExpanded ? items : items.slice(0, MEDIA_PER_COLUMN);
+  const [isMobileAccordionOpen, setIsMobileAccordionOpen] = useState(true);
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+  
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
     
   return (
-    <div className="bg-gradient-to-br from-purple-500/10 to-pink-500/10 backdrop-blur-xl rounded-xl p-4 border border-purple-500/30 flex flex-col h-full elevation-1 board-column">
-        <div className="flex items-center justify-between mb-4">
+    <div className={`bg-gradient-to-br from-purple-500/10 to-pink-500/10 backdrop-blur-xl rounded-xl p-4 border border-purple-500/30 flex flex-col h-full elevation-1 board-column accordion-column ${isMobile && isMobileAccordionOpen ? 'expanded' : 'collapsed'}`}>
+        <div 
+          className="flex items-center justify-between mb-4 accordion-header" 
+          onClick={() => isMobile && setIsMobileAccordionOpen(!isMobileAccordionOpen)}
+        >
             <h3 className="text-lg font-extrabold text-white flex items-center gap-2 tracking-wide whitespace-nowrap">
                 <span className="text-xl">{emoji}</span>
                 <span>{title}</span>
             </h3>
-            <span className="bg-white/10 text-white px-2 py-1 rounded-full text-xs font-bold">{items.length}</span>
+            <div className="flex items-center gap-2">
+              <span className="bg-white/10 text-white px-2 py-1 rounded-full text-xs font-bold">{items.length}</span>
+              {isMobile && (
+                <Icon name={isMobileAccordionOpen ? 'chevronUp' : 'chevronDown'} className="w-4 h-4 text-purple-400" />
+              )}
+            </div>
         </div>
-        <div className="space-y-2 flex-grow min-h-[150px]">
-            {visibleItems.map(it => <MediaCard key={it.id} item={it} isViewingFriend={isViewingFriend} boardId={boardId} {...handlers} />)}
+        <div className="accordion-content">
+          <div className="space-y-2 flex-grow min-h-[150px]">
+              {visibleItems.map(it => <MediaCard key={it.id} item={it} isViewingFriend={isViewingFriend} boardId={boardId} {...handlers} />)}
+          </div>
+          {items.length > MEDIA_PER_COLUMN && (
+            <button onClick={() => onToggleExpand(columnKey)} className="w-full text-center mt-3 py-1.5 text-xs font-semibold text-purple-300 bg-purple-500/10 hover:bg-purple-500/20 rounded-lg flex items-center justify-center gap-1">
+              {isExpanded ? 'Свернуть' : `Показать еще ${items.length - MEDIA_PER_COLUMN}`}
+              <Icon name={isExpanded ? 'chevronUp' : 'chevronDown'} className="w-3 h-3" />
+            </button>
+          )}
         </div>
-        {items.length > MEDIA_PER_COLUMN && (
-          <button onClick={() => onToggleExpand(columnKey)} className="w-full text-center mt-3 py-1.5 text-xs font-semibold text-purple-300 bg-purple-500/10 hover:bg-purple-500/20 rounded-lg flex items-center justify-center gap-1">
-            {isExpanded ? 'Свернуть' : `Показать еще ${items.length - MEDIA_PER_COLUMN}`}
-            <Icon name={isExpanded ? 'chevronUp' : 'chevronDown'} className="w-3 h-3" />
-          </button>
-        )}
     </div>
   );
 }
@@ -130,10 +148,51 @@ function Column({ title, emoji, items, columnKey, isExpanded, onToggleExpand, is
 function MediaDetailsModal({ item, onClose, onUpdate, onReact, isViewingFriend, user }) {
   if (!item) return null;
   const userReaction = (item.reactions || []).find(r => r.user_id === user?.id);
+  const modalRef = useRef(null);
+  const [touchStart, setTouchStart] = useState(0);
+  const [touchOffset, setTouchOffset] = useState(0);
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  const handleTouchStart = (e) => {
+    if (!isMobile) return;
+    setTouchStart(e.touches[0].clientY);
+  };
+
+  const handleTouchMove = (e) => {
+    if (!isMobile) return;
+    const currentTouch = e.touches[0].clientY;
+    const offset = currentTouch - touchStart;
+    if (offset > 0) {
+      setTouchOffset(offset);
+    }
+  };
+
+  const handleTouchEnd = () => {
+    if (!isMobile) return;
+    if (touchOffset > 100) {
+      onClose();
+    }
+    setTouchOffset(0);
+  };
 
   return (
-    <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-[100] p-4" onClick={onClose}>
-      <div className="bg-gray-900 rounded-2xl p-6 w-full max-w-md border border-purple-500/30 max-h-[90vh] overflow-y-auto elevation-3" onClick={e => e.stopPropagation()}>
+    <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-[100] md:p-4" onClick={onClose}>
+      <div 
+        ref={modalRef}
+        className={`bg-gray-900 rounded-2xl p-6 w-full max-w-md border border-purple-500/30 max-h-[90vh] overflow-y-auto elevation-3 ${isMobile ? 'mobile-fullscreen-modal' : ''}`}
+        style={isMobile ? { transform: `translateY(${touchOffset}px)`, transition: touchOffset === 0 ? 'transform 0.3s ease' : 'none' } : {}}
+        onClick={e => e.stopPropagation()}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+      >
+        {isMobile && <div className="swipe-indicator"></div>}
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-xl font-bold text-white">{item.title}</h2>
           <button onClick={onClose} className="p-2 hover:bg-gray-800 rounded-lg"><Icon name="x" className="w-5 h-5 text-gray-400" /></button>
@@ -631,29 +690,21 @@ function MovieApp() {
             </div>
         )}
         
-        <div className="relative grid grid-cols-1 lg:grid-cols-2 gap-x-8 gap-y-8">
+        <div className="relative grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             <div className="hidden lg:block absolute left-1/2 -ml-px top-0 h-full bg-gradient-to-b from-transparent via-purple-500/20 to-transparent w-px"></div>
-            <div className="space-y-4">
-                <h2 className="text-center text-3xl font-semibold tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-purple-300 to-pink-300 opacity-80 mb-4">Фильмы</h2>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6" onDragOver={onDragOver}>
-                    <div onDrop={(e) => onDrop(e, 'movie:wishlist')} onDragEnter={onDragEnterColumn} onDragLeave={onDragLeaveColumn}>
-                        <Column title="Хочу посмотреть" emoji="🎬" items={movies.wishlist} columnKey="movie:wishlist" isExpanded={!!expandedColumns['movie:wishlist']} onToggleExpand={toggleColumnExpansion} onSelect={setSelectedMedia} onRemove={removeItem} onDragStart={onDragStart} onDragEnd={onDragEnd} isViewingFriend={!!viewingUser} />
-                    </div>
-                    <div onDrop={(e) => onDrop(e, 'movie:watched')} onDragEnter={onDragEnterColumn} onDragLeave={onDragLeaveColumn}>
-                        <Column title="Посмотрел" emoji="🍿" items={movies.watched} columnKey="movie:watched" isExpanded={!!expandedColumns['movie:watched']} onToggleExpand={toggleColumnExpansion} onSelect={setSelectedMedia} onRemove={removeItem} onDragStart={onDragStart} onDragEnd={onDragEnd} isViewingFriend={!!viewingUser} />
-                    </div>
-                </div>
+            
+            {/* Desktop: 4 columns side by side, Tablet: 2x2 grid, Mobile: 1 column stack */}
+            <div className="md:col-span-2 lg:col-span-1" onDrop={(e) => onDrop(e, 'movie:wishlist')} onDragEnter={onDragEnterColumn} onDragLeave={onDragLeaveColumn}>
+                <Column title="🎬 Хочу посмотреть" emoji="" items={movies.wishlist} columnKey="movie:wishlist" isExpanded={!!expandedColumns['movie:wishlist']} onToggleExpand={toggleColumnExpansion} onSelect={setSelectedMedia} onRemove={removeItem} onDragStart={onDragStart} onDragEnd={onDragEnd} isViewingFriend={!!viewingUser} />
             </div>
-             <div className="space-y-4">
-                <h2 className="text-center text-3xl font-semibold tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-purple-300 to-pink-300 opacity-80 mb-4">Сериалы</h2>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6" onDragOver={onDragOver}>
-                    <div onDrop={(e) => onDrop(e, 'tv:wishlist')} onDragEnter={onDragEnterColumn} onDragLeave={onDragLeaveColumn}>
-                        <Column title="Хочу посмотреть" emoji="📺" items={tv.wishlist} columnKey="tv:wishlist" isExpanded={!!expandedColumns['tv:wishlist']} onToggleExpand={toggleColumnExpansion} onSelect={setSelectedMedia} onRemove={removeItem} onDragStart={onDragStart} onDragEnd={onDragEnd} isViewingFriend={!!viewingUser} />
-                    </div>
-                    <div onDrop={(e) => onDrop(e, 'tv:watched')} onDragEnter={onDragEnterColumn} onDragLeave={onDragLeaveColumn}>
-                        <Column title="Посмотрел" emoji="✅" items={tv.watched} columnKey="tv:watched" isExpanded={!!expandedColumns['tv:watched']} onToggleExpand={toggleColumnExpansion} onSelect={setSelectedMedia} onRemove={removeItem} onDragStart={onDragStart} onDragEnd={onDragEnd} isViewingFriend={!!viewingUser} />
-                    </div>
-                </div>
+            <div className="md:col-span-2 lg:col-span-1" onDrop={(e) => onDrop(e, 'movie:watched')} onDragEnter={onDragEnterColumn} onDragLeave={onDragLeaveColumn}>
+                <Column title="🍿 Посмотрел" emoji="" items={movies.watched} columnKey="movie:watched" isExpanded={!!expandedColumns['movie:watched']} onToggleExpand={toggleColumnExpansion} onSelect={setSelectedMedia} onRemove={removeItem} onDragStart={onDragStart} onDragEnd={onDragEnd} isViewingFriend={!!viewingUser} />
+            </div>
+            <div className="md:col-span-2 lg:col-span-1" onDrop={(e) => onDrop(e, 'tv:wishlist')} onDragEnter={onDragEnterColumn} onDragLeave={onDragLeaveColumn}>
+                <Column title="📺 Хочу посмотреть" emoji="" items={tv.wishlist} columnKey="tv:wishlist" isExpanded={!!expandedColumns['tv:wishlist']} onToggleExpand={toggleColumnExpansion} onSelect={setSelectedMedia} onRemove={removeItem} onDragStart={onDragStart} onDragEnd={onDragEnd} isViewingFriend={!!viewingUser} />
+            </div>
+            <div className="md:col-span-2 lg:col-span-1" onDrop={(e) => onDrop(e, 'tv:watched')} onDragEnter={onDragEnterColumn} onDragLeave={onDragLeaveColumn}>
+                <Column title="✅ Посмотрел" emoji="" items={tv.watched} columnKey="tv:watched" isExpanded={!!expandedColumns['tv:watched']} onToggleExpand={toggleColumnExpansion} onSelect={setSelectedMedia} onRemove={removeItem} onDragStart={onDragStart} onDragEnd={onDragEnd} isViewingFriend={!!viewingUser} />
             </div>
         </div>
         
