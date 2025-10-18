@@ -66,7 +66,7 @@ function StarRating({ value = 0, onChange }) {
   );
 }
 
-function MediaCard({ item, onSelect, onRemove, onDragStart, onDragEnd, isViewingFriend, boardId, onMobileClick, boardKey, onAddToMyBoard }) {
+function MediaCard({ item, onSelect, onRemove, onDragStart, onDragEnd, isViewingFriend, boardId, onMobileClick, boardKey, onAddToMyBoard, onTagClick }) {
   const type = item.media_type || 'movie'; // Определяем тип медиа
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   
@@ -115,6 +115,48 @@ function MediaCard({ item, onSelect, onRemove, onDragStart, onDragEnd, isViewing
                 {emoji}{count > 1 && <span className="text-xs text-gray-400">×{count}</span>}
               </span>
             ))}
+          </div>
+        )}
+        {/* Теги */}
+        {item.tags && item.tags.length > 0 && (
+          <div className="flex gap-1 mt-1 flex-wrap items-center">
+            {item.tags.map((tag) => (
+              <span 
+                key={tag.id} 
+                className="text-xs px-2 py-1 rounded-full text-white"
+                style={{ backgroundColor: tag.color }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onTagClick && onTagClick(tag, item);
+                }}
+              >
+                {tag.name}
+              </span>
+            ))}
+            <button 
+              onClick={(e) => {
+                e.stopPropagation();
+                onTagClick && onTagClick(null, item);
+              }}
+              className="text-xs px-2 py-1 rounded-full bg-gray-600 hover:bg-gray-500 text-white transition-colors"
+              title="Добавить тег"
+            >
+              + Тег
+            </button>
+          </div>
+        )}
+        {(!item.tags || item.tags.length === 0) && !isViewingFriend && (
+          <div className="flex gap-1 mt-1 flex-wrap items-center">
+            <button 
+              onClick={(e) => {
+                e.stopPropagation();
+                onTagClick && onTagClick(null, item);
+              }}
+              className="text-xs px-2 py-1 rounded-full bg-gray-600 hover:bg-gray-500 text-white transition-colors"
+              title="Добавить тег"
+            >
+              + Тег
+            </button>
           </div>
         )}
       </div>
@@ -249,6 +291,119 @@ function Column({ title, emoji, items, columnKey, isExpanded, onToggleExpand, is
             </button>
           )}
         </div>
+    </div>
+  );
+}
+
+function TagModal({ isOpen, onClose, mediaItem, onTagSelect, onCreateTag, userTags }) {
+  const [newTagName, setNewTagName] = useState('');
+  const [newTagColor, setNewTagColor] = useState('#3B82F6');
+  const [isCreating, setIsCreating] = useState(false);
+  
+  const predefinedColors = [
+    '#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', 
+    '#06B6D4', '#84CC16', '#F97316', '#EC4899', '#6B7280'
+  ];
+
+  const handleCreateTag = async () => {
+    if (!newTagName.trim()) return;
+    
+    setIsCreating(true);
+    try {
+      const newTag = await onCreateTag(newTagName.trim(), newTagColor);
+      onTagSelect(newTag, mediaItem);
+      setNewTagName('');
+      setNewTagColor('#3B82F6');
+    } catch (error) {
+      console.error('Ошибка создания тега:', error);
+    } finally {
+      setIsCreating(false);
+    }
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-[110] p-4" onClick={onClose}>
+      <div 
+        className="bg-gray-900 rounded-2xl p-6 w-full max-w-md border border-purple-500/30 elevation-3"
+        onClick={e => e.stopPropagation()}
+      >
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-xl font-bold text-white">Управление тегами</h2>
+          <button onClick={onClose} className="p-2 hover:bg-gray-800 rounded-lg">
+            <Icon name="x" className="w-5 h-5 text-gray-400" />
+          </button>
+        </div>
+        
+        <div className="space-y-4">
+          <div>
+            <p className="text-gray-400 text-sm mb-2">Медиа: {mediaItem?.title}</p>
+          </div>
+
+          {/* Существующие теги */}
+          {userTags && userTags.length > 0 && (
+            <div>
+              <p className="text-gray-400 text-sm mb-2">Выберите существующий тег:</p>
+              <div className="flex flex-wrap gap-2">
+                {userTags.map(tag => (
+                  <button
+                    key={tag.id}
+                    onClick={() => onTagSelect(tag, mediaItem)}
+                    className="text-xs px-3 py-2 rounded-full text-white transition-colors hover:opacity-80"
+                    style={{ backgroundColor: tag.color }}
+                  >
+                    {tag.name}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Создание нового тега */}
+          <div className="border-t border-gray-700 pt-4">
+            <p className="text-gray-400 text-sm mb-3">Создать новый тег:</p>
+            
+            <div className="space-y-3">
+              <div>
+                <label className="text-gray-400 text-sm">Название тега:</label>
+                <input
+                  type="text"
+                  value={newTagName}
+                  onChange={(e) => setNewTagName(e.target.value)}
+                  placeholder="Введите название тега"
+                  className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg focus:border-purple-500 focus:outline-none text-white mt-1"
+                  maxLength={50}
+                />
+              </div>
+              
+              <div>
+                <label className="text-gray-400 text-sm">Цвет тега:</label>
+                <div className="flex flex-wrap gap-2 mt-2">
+                  {predefinedColors.map(color => (
+                    <button
+                      key={color}
+                      onClick={() => setNewTagColor(color)}
+                      className={`w-8 h-8 rounded-full border-2 transition-all ${
+                        newTagColor === color ? 'border-white scale-110' : 'border-gray-600'
+                      }`}
+                      style={{ backgroundColor: color }}
+                    />
+                  ))}
+                </div>
+              </div>
+              
+              <button
+                onClick={handleCreateTag}
+                disabled={!newTagName.trim() || isCreating}
+                className="w-full py-2 bg-purple-500 hover:bg-purple-600 disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-lg transition-colors"
+              >
+                {isCreating ? 'Создание...' : 'Создать тег'}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
@@ -486,6 +641,11 @@ function MovieApp() {
   const fileInputRef = useRef(null);
   const token = localStorage.getItem('token');
   
+  // Состояние для управления тегами
+  const [showTagModal, setShowTagModal] = useState(false);
+  const [selectedMediaForTag, setSelectedMediaForTag] = useState(null);
+  const [userTags, setUserTags] = useState([]);
+  
   const loadBoards = useCallback(async (userId = null) => {
     if (!token) return;
     try {
@@ -535,6 +695,17 @@ function MovieApp() {
       }
   }, [token]);
 
+  const loadUserTags = useCallback(async () => {
+    if (!token) return;
+    try {
+      const response = await fetch(`${API_URL}/api/tags`, { headers: { 'Authorization': `Bearer ${token}` } });
+      if (response.ok) {
+        const data = await response.json();
+        setUserTags(data.tags || []);
+      }
+    } catch (err) { console.error('Ошибка загрузки тегов:', err); }
+  }, [token]);
+
   useEffect(() => {
     const savedUser = localStorage.getItem('user');
     if (token && savedUser) {
@@ -544,10 +715,11 @@ function MovieApp() {
         setProfileData({ username: parsedUser.username || '', bio: parsedUser.bio || '', currentPassword: '', newPassword: '' });
         loadBoards();
         loadFriends();
+        loadUserTags();
     } else {
         window.location.href = '/index.html'; 
     }
-  }, [token, loadBoards, loadFriends]);
+  }, [token, loadBoards, loadFriends, loadUserTags]);
 
   useEffect(() => {
     document.body.className = theme;
@@ -727,6 +899,51 @@ function MovieApp() {
     localStorage.removeItem('user');
     setUser(null);
     window.location.href = '/index.html';
+  };
+
+  // Функции для управления тегами
+  const handleTagClick = (tag, mediaItem) => {
+    setSelectedMediaForTag(mediaItem);
+    setShowTagModal(true);
+  };
+
+  const createTag = async (name, color) => {
+    const response = await fetch(`${API_URL}/api/tags`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+      body: JSON.stringify({ name, color })
+    });
+    
+    if (response.ok) {
+      const data = await response.json();
+      setUserTags(prev => [...prev, data.tag]);
+      return data.tag;
+    } else {
+      throw new Error('Ошибка создания тега');
+    }
+  };
+
+  const attachTagToMedia = async (tag, mediaItem) => {
+    const response = await fetch(`${API_URL}/api/media/${mediaItem.id}/tags/${tag.id}`, {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    
+    if (response.ok) {
+      // Обновляем доски после привязки тега
+      await loadBoards();
+      setShowTagModal(false);
+    } else {
+      throw new Error('Ошибка привязки тега');
+    }
+  };
+
+  const handleTagSelect = async (tag, mediaItem) => {
+    try {
+      await attachTagToMedia(tag, mediaItem);
+    } catch (error) {
+      console.error('Ошибка привязки тега:', error);
+    }
   };
   
   const onDragStart = (e, item) => {
@@ -910,16 +1127,16 @@ function MovieApp() {
             
             {/* Desktop: 4 columns side by side, Tablet: 2x2 grid, Mobile: 1 column stack */}
             <div className="md:col-span-2 lg:col-span-1" onDrop={(e) => onDrop(e, 'movie:wishlist')} onDragEnter={onDragEnterColumn} onDragLeave={onDragLeaveColumn}>
-                <Column title="🎬 Хочу посмотреть" emoji="" items={movies.wishlist} columnKey="movie:wishlist" isExpanded={!!expandedColumns['movie:wishlist']} onToggleExpand={toggleColumnExpansion} onSelect={setSelectedMedia} onRemove={removeItem} onDragStart={onDragStart} onDragEnd={onDragEnd} onMobileClick={handleMobileCardClick} onSearch={() => setShowSearch(true)} onAddToMyBoard={handleAddToMyBoard} isViewingFriend={!!viewingUser} />
+                <Column title="🎬 Хочу посмотреть" emoji="" items={movies.wishlist} columnKey="movie:wishlist" isExpanded={!!expandedColumns['movie:wishlist']} onToggleExpand={toggleColumnExpansion} onSelect={setSelectedMedia} onRemove={removeItem} onDragStart={onDragStart} onDragEnd={onDragEnd} onMobileClick={handleMobileCardClick} onSearch={() => setShowSearch(true)} onAddToMyBoard={handleAddToMyBoard} onTagClick={handleTagClick} isViewingFriend={!!viewingUser} />
             </div>
             <div className="md:col-span-2 lg:col-span-1" onDrop={(e) => onDrop(e, 'movie:watched')} onDragEnter={onDragEnterColumn} onDragLeave={onDragLeaveColumn}>
-                <Column title="🍿 Посмотрел" emoji="" items={movies.watched} columnKey="movie:watched" isExpanded={!!expandedColumns['movie:watched']} onToggleExpand={toggleColumnExpansion} onSelect={setSelectedMedia} onRemove={removeItem} onDragStart={onDragStart} onDragEnd={onDragEnd} onMobileClick={handleMobileCardClick} onAddToMyBoard={handleAddToMyBoard} isViewingFriend={!!viewingUser} />
+                <Column title="🍿 Посмотрел" emoji="" items={movies.watched} columnKey="movie:watched" isExpanded={!!expandedColumns['movie:watched']} onToggleExpand={toggleColumnExpansion} onSelect={setSelectedMedia} onRemove={removeItem} onDragStart={onDragStart} onDragEnd={onDragEnd} onMobileClick={handleMobileCardClick} onAddToMyBoard={handleAddToMyBoard} onTagClick={handleTagClick} isViewingFriend={!!viewingUser} />
             </div>
             <div className="md:col-span-2 lg:col-span-1" onDrop={(e) => onDrop(e, 'tv:wishlist')} onDragEnter={onDragEnterColumn} onDragLeave={onDragLeaveColumn}>
-                <Column title="📺 Хочу посмотреть" emoji="" items={tv.wishlist} columnKey="tv:wishlist" isExpanded={!!expandedColumns['tv:wishlist']} onToggleExpand={toggleColumnExpansion} onSelect={setSelectedMedia} onRemove={removeItem} onDragStart={onDragStart} onDragEnd={onDragEnd} onMobileClick={handleMobileCardClick} onSearch={() => setShowSearch(true)} onAddToMyBoard={handleAddToMyBoard} isViewingFriend={!!viewingUser} />
+                <Column title="📺 Хочу посмотреть" emoji="" items={tv.wishlist} columnKey="tv:wishlist" isExpanded={!!expandedColumns['tv:wishlist']} onToggleExpand={toggleColumnExpansion} onSelect={setSelectedMedia} onRemove={removeItem} onDragStart={onDragStart} onDragEnd={onDragEnd} onMobileClick={handleMobileCardClick} onSearch={() => setShowSearch(true)} onAddToMyBoard={handleAddToMyBoard} onTagClick={handleTagClick} isViewingFriend={!!viewingUser} />
             </div>
             <div className="md:col-span-2 lg:col-span-1" onDrop={(e) => onDrop(e, 'tv:watched')} onDragEnter={onDragEnterColumn} onDragLeave={onDragLeaveColumn}>
-                <Column title="✅ Посмотрел" emoji="" items={tv.watched} columnKey="tv:watched" isExpanded={!!expandedColumns['tv:watched']} onToggleExpand={toggleColumnExpansion} onSelect={setSelectedMedia} onRemove={removeItem} onDragStart={onDragStart} onDragEnd={onDragEnd} onMobileClick={handleMobileCardClick} onAddToMyBoard={handleAddToMyBoard} isViewingFriend={!!viewingUser} />
+                <Column title="✅ Посмотрел" emoji="" items={tv.watched} columnKey="tv:watched" isExpanded={!!expandedColumns['tv:watched']} onToggleExpand={toggleColumnExpansion} onSelect={setSelectedMedia} onRemove={removeItem} onDragStart={onDragStart} onDragEnd={onDragEnd} onMobileClick={handleMobileCardClick} onAddToMyBoard={handleAddToMyBoard} onTagClick={handleTagClick} isViewingFriend={!!viewingUser} />
             </div>
         </div>
         
@@ -1186,6 +1403,17 @@ function MovieApp() {
       )}
 
       <MediaDetailsModal item={selectedMedia} onClose={() => setSelectedMedia(null)} onUpdate={updateItem} onReact={reactToItem} isViewingFriend={!!viewingUser} user={user}/>
+      
+      {/* Модальное окно для управления тегами */}
+      <TagModal 
+        isOpen={showTagModal}
+        onClose={() => setShowTagModal(false)}
+        mediaItem={selectedMediaForTag}
+        onTagSelect={handleTagSelect}
+        onCreateTag={createTag}
+        userTags={userTags}
+      />
+      
       {/* Мобильное меню выбора действия */}
       {showMobileActionMenu && selectedCard && (
         <>
