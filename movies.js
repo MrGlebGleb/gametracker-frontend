@@ -12,13 +12,347 @@ const MEDIA_PER_COLUMN = 5;
 
 // --- Переиспользуемые UI-компоненты (идентичны странице игр) ---
 
+// Компонент уведомлений
+const NotificationsPanel = ({ token, onNavigateToUser, onNavigateToGame }) => {
+  const [notifications, setNotifications] = useState([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [showPanel, setShowPanel] = useState(false);
+  const [loading, setLoading] = useState(false);
+
+  // Загрузка уведомлений
+  const fetchNotifications = useCallback(async () => {
+    if (!token) return;
+    setLoading(true);
+    try {
+      const response = await fetch(`${API_URL}/api/notifications`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setNotifications(data.notifications || []);
+      }
+    } catch (error) {
+      console.error('Ошибка загрузки уведомлений:', error);
+    } finally {
+      setLoading(false);
+    }
+  }, [token]);
+
+  // Загрузка счетчика непрочитанных
+  const fetchUnreadCount = useCallback(async () => {
+    if (!token) return;
+    try {
+      const response = await fetch(`${API_URL}/api/notifications/unread-count`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setUnreadCount(data.count || 0);
+      }
+    } catch (error) {
+      console.error('Ошибка загрузки счетчика:', error);
+    }
+  }, [token]);
+
+  // Отметить уведомление как прочитанное
+  const markAsRead = async (notificationId) => {
+    try {
+      await fetch(`${API_URL}/api/notifications/${notificationId}/read`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      setNotifications(prev => prev.map(n => 
+        n.id === notificationId ? { ...n, is_read: true } : n
+      ));
+      setUnreadCount(prev => Math.max(0, prev - 1));
+    } catch (error) {
+      console.error('Ошибка отметки уведомления:', error);
+    }
+  };
+
+  // Отметить все как прочитанные
+  const markAllAsRead = async () => {
+    try {
+      await fetch(`${API_URL}/api/notifications/mark-all-read`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
+      setUnreadCount(0);
+    } catch (error) {
+      console.error('Ошибка отметки всех уведомлений:', error);
+    }
+  };
+
+  // Обработка клика по уведомлению
+  const handleNotificationClick = (notification) => {
+    if (!notification.is_read) {
+      markAsRead(notification.id);
+    }
+    
+    if (notification.type === 'friend_request' && notification.from_user_id) {
+      onNavigateToUser && onNavigateToUser(notification.from_user_id);
+    } else if (notification.type === 'game_reaction' && notification.game_id) {
+      onNavigateToGame && onNavigateToGame(notification.game_id);
+    }
+    
+    setShowPanel(false);
+  };
+
+  // Форматирование времени
+  const formatTime = (timestamp) => {
+    const now = new Date();
+    const time = new Date(timestamp);
+    const diff = now - time;
+    
+    if (diff < 60000) return 'только что';
+    if (diff < 3600000) return `${Math.floor(diff / 60000)} мин назад`;
+    if (diff < 86400000) return `${Math.floor(diff / 3600000)} ч назад`;
+    return `${Math.floor(diff / 86400000)} дн назад`;
+  };
+
+  // Загрузка данных при монтировании
+  useEffect(() => {
+    if (token) {
+      fetchNotifications();
+      fetchUnreadCount();
+    }
+  }, [token, fetchNotifications, fetchUnreadCount]);
+
+  return (
+    <div className="relative">
+      <button
+        onClick={() => setShowPanel(!showPanel)}
+        className="p-2 hover:bg-gray-800 rounded-lg border border-purple-500/30 relative"
+        title="Уведомления"
+      >
+        <Icon name="bell" className="w-4 h-4 md:w-5 md:h-5 text-purple-400" />
+        {unreadCount > 0 && (
+          <span className="absolute top-0 right-0 block h-2.5 w-2.5 rounded-full bg-red-500 ring-2 ring-white"></span>
+        )}
+      </button>
+
+      {/* Выпадающее меню */}
+      {showPanel && (
+        <div className="absolute right-0 top-full mt-2 w-80 bg-gray-800 rounded-lg border border-gray-700 z-50 elevation-4">
+          <div className="p-4 border-b border-gray-700">
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-semibold text-white">Уведомления</h3>
+              <button
+                onClick={() => setShowPanel(false)}
+                className="text-gray-400 hover:text-white"
+              >
+                <Icon name="x" className="w-5 h-5" />
+              </button>
+            </div>
+          </div>
+
+          <div className="max-h-96 overflow-y-auto">
+            {loading ? (
+              <div className="p-4 text-center text-gray-400">
+                <Icon name="loader" className="w-6 h-6 animate-spin mx-auto mb-2" />
+                Загрузка...
+              </div>
+            ) : notifications.length === 0 ? (
+              <div className="p-4 text-center text-gray-400">
+                <Icon name="bell" className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                <p>Нет уведомлений</p>
+              </div>
+            ) : (
+              notifications.map(notification => (
+                <div
+                  key={notification.id}
+                  onClick={() => handleNotificationClick(notification)}
+                  className={`p-4 border-b border-gray-700 hover:bg-gray-700/50 transition-colors cursor-pointer ${
+                    !notification.is_read ? 'bg-red-500/10 border-l-4 border-l-red-500' : 'bg-gray-500/5'
+                  }`}
+                >
+                  <div className="flex items-start gap-3">
+                    <img
+                      src={notification.from_user_avatar || '/default-avatar.png'}
+                      alt=""
+                      className="w-8 h-8 rounded-full object-cover"
+                      onError={(e) => { e.target.src = '/default-avatar.png'; }}
+                    />
+                    <div className="flex-1 min-w-0">
+                      <p className={`text-sm ${!notification.is_read ? 'text-white font-medium' : 'text-gray-300'}`}>
+                        {notification.message}
+                      </p>
+                      <p className="text-gray-400 text-xs mt-1">{formatTime(notification.created_at)}</p>
+                      {!notification.is_read && (
+                        <div className="flex items-center gap-2 mt-2">
+                          <span className="w-2 h-2 bg-red-500 rounded-full"></span>
+                          <span className="text-red-400 text-xs font-medium">Новое</span>
+                        </div>
+                      )}
+                    </div>
+                    {!notification.is_read && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          markAsRead(notification.id);
+                        }}
+                        className="text-blue-400 hover:text-blue-300 text-xs px-2 py-1 rounded bg-blue-500/20 hover:bg-blue-500/30 transition-colors"
+                      >
+                        ✓
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+          
+          {/* Футер с кнопкой "Отметить все как прочитанные" */}
+          {notifications.length > 0 && (
+            <div className="p-4 border-t border-gray-700 bg-gray-800/50">
+              <button
+                onClick={markAllAsRead}
+                className="w-full py-2 px-4 bg-blue-500/20 hover:bg-blue-500/30 text-blue-400 hover:text-blue-300 rounded-lg transition-colors text-sm font-medium flex items-center justify-center gap-2"
+              >
+                <Icon name="check" className="w-4 h-4" />
+                Отметить все как прочитанные
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+};
+
+// Компонент страницы статистики
+const StatisticsPage = ({ isOpen, onClose, token, showMediaTab = true }) => {
+  const [activeTab, setActiveTab] = useState('media');
+  const [gamesStats, setGamesStats] = useState(null);
+  const [mediaStats, setMediaStats] = useState(null);
+  const [loading, setLoading] = useState(false);
+
+  // Загрузка статистики медиа
+  const loadMediaStats = useCallback(async () => {
+    if (!token) return;
+    setLoading(true);
+    try {
+      const response = await fetch(`${API_URL}/api/user/statistics/media`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setMediaStats(data);
+      }
+    } catch (error) {
+      console.error('Ошибка загрузки статистики медиа:', error);
+    } finally {
+      setLoading(false);
+    }
+  }, [token]);
+
+  // Загрузка данных при открытии
+  useEffect(() => {
+    if (isOpen) {
+      loadMediaStats();
+    }
+  }, [isOpen, loadMediaStats]);
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+      <div className="bg-gray-900 rounded-xl w-full max-w-4xl max-h-[70vh] flex flex-col">
+        {/* Header */}
+        <div className="flex items-center justify-between p-6 border-b border-gray-700 pt-8">
+          <div>
+            <h2 className="text-2xl font-bold text-white">📊 Статистика фильмов</h2>
+          </div>
+          <button
+            onClick={onClose}
+            className="p-2 hover:bg-gray-800 rounded-lg transition-colors"
+          >
+            <Icon name="x" className="w-6 h-6 text-gray-400" />
+          </button>
+        </div>
+
+        {/* Content */}
+        <div className="flex-1 overflow-y-auto p-6">
+          {loading ? (
+            <div className="flex items-center justify-center py-8">
+              <Icon name="loader" className="w-8 h-8 text-purple-400" />
+              <span className="ml-2 text-gray-400">Загрузка статистики...</span>
+            </div>
+          ) : mediaStats ? (
+            <div className="space-y-6">
+              {/* Общая статистика */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="bg-gray-800/50 rounded-lg p-4 border border-gray-700">
+                  <div className="text-2xl font-bold text-blue-400">{mediaStats.totalMovies || 0}</div>
+                  <div className="text-sm text-gray-400">Всего фильмов</div>
+                </div>
+                <div className="bg-gray-800/50 rounded-lg p-4 border border-gray-700">
+                  <div className="text-2xl font-bold text-orange-400">{mediaStats.totalTvShows || 0}</div>
+                  <div className="text-sm text-gray-400">Всего сериалов</div>
+                </div>
+                <div className="bg-gray-800/50 rounded-lg p-4 border border-gray-700">
+                  <div className="text-2xl font-bold text-green-400">{mediaStats.totalWatched || 0}</div>
+                  <div className="text-sm text-gray-400">Просмотрено</div>
+                </div>
+              </div>
+
+              {/* Детальная статистика */}
+              <div className="bg-gray-800/50 rounded-lg p-4 border border-gray-700">
+                <h3 className="text-lg font-semibold text-white mb-4">Детальная статистика</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <h4 className="text-blue-400 font-medium mb-2">Фильмы</h4>
+                    <div className="space-y-2 text-sm">
+                      <div className="flex justify-between">
+                        <span className="text-gray-400">В списке желаний:</span>
+                        <span className="text-white">{mediaStats.moviesInWishlist || 0}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-400">Просмотрено:</span>
+                        <span className="text-white">{mediaStats.moviesWatched || 0}</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div>
+                    <h4 className="text-orange-400 font-medium mb-2">Сериалы</h4>
+                    <div className="space-y-2 text-sm">
+                      <div className="flex justify-between">
+                        <span className="text-gray-400">В списке желаний:</span>
+                        <span className="text-white">{mediaStats.tvInWishlist || 0}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-400">Просмотрено:</span>
+                        <span className="text-white">{mediaStats.tvWatched || 0}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="text-center text-gray-400 py-8">
+              <Icon name="barChart" className="w-16 h-16 mx-auto mb-4 opacity-50" />
+              <p>Не удалось загрузить статистику</p>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const Icon = ({ name, className = "w-5 h-5" }) => {
   const icons = {
     plus: <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" /></svg>,
     search: <svg className={className} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>,
     user: <svg className={className} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>,
     users: <svg className={className} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>,
-    settings: <svg className={className} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06-.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>,
+    settings: <svg className={className} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1 1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1Z"/></svg>,
+    bell: <svg className={className} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>,
+    check: <svg className={className} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg>,
+    barChart: <svg className={className} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M12 20V10"/><path d="M18 20V4"/><path d="M6 20v-4"/></svg>,
+    upload: <svg className={className} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7,10 12,15 17,10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>,
     logout: <svg className={className} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg>,
     star: <svg className={className} fill="currentColor" viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>,
     trash: <svg className={className} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>,
@@ -370,6 +704,7 @@ function MovieApp() {
   const [viewingUser, setViewingUser] = useState(null);
   const [showProfile, setShowProfile] = useState(false);
   const [showUserHub, setShowUserHub] = useState(false);
+  const [showStatistics, setShowStatistics] = useState(false);
   const dragItem = useRef(null);
   const [expandedColumns, setExpandedColumns] = useState({});
   const [friends, setFriends] = useState([]);
@@ -698,18 +1033,29 @@ function MovieApp() {
                        </Fragment>
                     ) : (
                        <Fragment>
-                           <button onClick={() => { setShowUserHub(true); loadAllUsers(); }} className="p-2 hover:bg-gray-800 rounded-lg border border-purple-500/30 relative">
-                               <Icon name="users" className="w-4 h-4 md:w-5 md:h-5 text-purple-400" />
-                               {friendRequests.length > 0 && <span className="absolute top-0 right-0 block h-2.5 w-2.5 rounded-full bg-red-500 ring-2 ring-white"></span>}
+                           <button onClick={() => setShowStatistics(true)} className="p-2 hover:bg-gray-800 rounded-lg border border-purple-500/30" title="Статистика фильмов">
+                               <Icon name="barChart" className="w-4 h-4 md:w-5 md:h-5 text-purple-400" />
                            </button>
                            <button onClick={() => setShowProfile(true)} className="p-2 hover:bg-gray-800 rounded-lg border border-purple-500/30">
                                <Icon name="settings" className="w-4 h-4 md:w-5 md:h-5 text-purple-400" />
                            </button>
+                           <button onClick={() => { setShowUserHub(true); loadAllUsers(); }} className="p-2 hover:bg-gray-800 rounded-lg border border-purple-500/30 relative">
+                               <Icon name="users" className="w-4 h-4 md:w-5 md:h-5 text-purple-400" />
+                               {friendRequests.length > 0 && <span className="absolute top-0 right-0 block h-2.5 w-2.5 rounded-full bg-red-500 ring-2 ring-white"></span>}
+                           </button>
                        </Fragment>
                     )}
-                    <button onClick={handleLogout} className="p-2 hover:bg-red-900/50 rounded-lg border border-red-500/30">
-                        <Icon name="logout" className="w-4 h-4 md:w-5 md:h-5 text-red-400" />
-                    </button>
+                    <NotificationsPanel 
+                      token={localStorage.getItem('token')} 
+                      onNavigateToUser={(userId) => {
+                        setViewingUser({ id: userId });
+                        loadBoards(token, userId);
+                      }}
+                      onNavigateToGame={(gameId) => {
+                        // Можно добавить логику для перехода к конкретной игре
+                        console.log('Navigate to game:', gameId);
+                      }}
+                    />
                 </div>
             )}
           </div>
@@ -797,6 +1143,12 @@ function MovieApp() {
               <div>
                 <label className="text-gray-400 text-sm">Новый пароль:</label>
                 <input type="password" value={profileData.newPassword} onChange={(e) => setProfileData({ ...profileData, newPassword: e.target.value })} className="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg focus:border-purple-500 focus:outline-none text-white mt-1" />
+              </div>
+              <div className="mt-4 pt-4 border-t border-gray-700">
+                <button onClick={handleLogout} className="w-full py-2 bg-red-600 hover:bg-red-700 text-white font-bold rounded-lg flex items-center justify-center gap-2">
+                  <Icon name="logout" className="w-4 h-4" />
+                  Выйти из аккаунта
+                </button>
               </div>
               <div className="flex gap-2 mt-6">
                 <button onClick={updateProfile} className="flex-1 py-2 bg-gradient-to-r from-purple-500 to-pink-500 text-white font-bold rounded-lg hover:from-purple-600 hover:to-pink-600">Сохранить</button>
@@ -944,6 +1296,13 @@ function MovieApp() {
         </div>
       )}
 
+      <StatisticsPage 
+        isOpen={showStatistics} 
+        onClose={() => setShowStatistics(false)} 
+        token={localStorage.getItem('token')}
+        showMediaTab={true}
+      />
+      
       <MediaDetailsModal item={selectedMedia} onClose={() => setSelectedMedia(null)} onUpdate={updateItem} onReact={reactToItem} isViewingFriend={!!viewingUser} user={user}/>
     </div>
   );
