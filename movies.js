@@ -227,6 +227,8 @@ const StatisticsPage = ({ isOpen, onClose, token, showMediaTab = true }) => {
   const [gamesStats, setGamesStats] = useState(null);
   const [mediaStats, setMediaStats] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [exportLoading, setExportLoading] = useState(false);
+  const [exportMessage, setExportMessage] = useState('');
 
   // Загрузка статистики медиа
   const loadMediaStats = useCallback(async () => {
@@ -238,6 +240,7 @@ const StatisticsPage = ({ isOpen, onClose, token, showMediaTab = true }) => {
       });
       if (response.ok) {
         const data = await response.json();
+        console.log('Media statistics received:', data);
         setMediaStats(data);
       }
     } catch (error) {
@@ -263,81 +266,379 @@ const StatisticsPage = ({ isOpen, onClose, token, showMediaTab = true }) => {
         <div className="flex items-center justify-between p-6 border-b border-gray-700 pt-8">
           <div>
             <h2 className="text-2xl font-bold text-white">📊 Статистика фильмов</h2>
+            {exportMessage && (
+              <p className="text-sm text-green-400 mt-1">{exportMessage}</p>
+            )}
           </div>
-          <button
-            onClick={onClose}
-            className="p-2 hover:bg-gray-800 rounded-lg transition-colors"
-          >
-            <Icon name="x" className="w-6 h-6 text-gray-400" />
-          </button>
+          <div className="flex items-center gap-4">
+            <ExportDropdown 
+              onExport={() => {}} 
+              loading={exportLoading} 
+            />
+            <button
+              onClick={onClose}
+              className="p-2 hover:bg-gray-800 rounded-lg transition-colors"
+            >
+              <Icon name="x" className="w-6 h-6 text-gray-400" />
+            </button>
+          </div>
         </div>
 
         {/* Content */}
         <div className="flex-1 overflow-y-auto p-6">
           {loading ? (
-            <div className="flex items-center justify-center py-8">
-              <Icon name="loader" className="w-8 h-8 text-purple-400" />
-              <span className="ml-2 text-gray-400">Загрузка статистики...</span>
-            </div>
-          ) : mediaStats ? (
-            <div className="space-y-6">
-              {/* Общая статистика */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="bg-gray-800/50 rounded-lg p-4 border border-gray-700">
-                  <div className="text-2xl font-bold text-blue-400">{mediaStats.totalMovies || 0}</div>
-                  <div className="text-sm text-gray-400">Всего фильмов</div>
-                </div>
-                <div className="bg-gray-800/50 rounded-lg p-4 border border-gray-700">
-                  <div className="text-2xl font-bold text-orange-400">{mediaStats.totalTvShows || 0}</div>
-                  <div className="text-sm text-gray-400">Всего сериалов</div>
-                </div>
-                <div className="bg-gray-800/50 rounded-lg p-4 border border-gray-700">
-                  <div className="text-2xl font-bold text-green-400">{mediaStats.totalWatched || 0}</div>
-                  <div className="text-sm text-gray-400">Просмотрено</div>
-                </div>
-              </div>
-
-              {/* Детальная статистика */}
-              <div className="bg-gray-800/50 rounded-lg p-4 border border-gray-700">
-                <h3 className="text-lg font-semibold text-white mb-4">Детальная статистика</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <h4 className="text-blue-400 font-medium mb-2">Фильмы</h4>
-                    <div className="space-y-2 text-sm">
-                      <div className="flex justify-between">
-                        <span className="text-gray-400">В списке желаний:</span>
-                        <span className="text-white">{mediaStats.moviesInWishlist || 0}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-gray-400">Просмотрено:</span>
-                        <span className="text-white">{mediaStats.moviesWatched || 0}</span>
-                      </div>
-                    </div>
-                  </div>
-                  <div>
-                    <h4 className="text-orange-400 font-medium mb-2">Сериалы</h4>
-                    <div className="space-y-2 text-sm">
-                      <div className="flex justify-between">
-                        <span className="text-gray-400">В списке желаний:</span>
-                        <span className="text-white">{mediaStats.tvInWishlist || 0}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-gray-400">Просмотрено:</span>
-                        <span className="text-white">{mediaStats.tvWatched || 0}</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
+            <div className="flex items-center justify-center h-64">
+              <Icon name="loader" className="w-8 h-8 animate-spin text-purple-400" />
             </div>
           ) : (
-            <div className="text-center text-gray-400 py-8">
-              <Icon name="barChart" className="w-16 h-16 mx-auto mb-4 opacity-50" />
-              <p>Не удалось загрузить статистику</p>
+            <MediaStatsContent stats={mediaStats} />
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// Компонент статистики медиа
+const MediaStatsContent = ({ stats }) => {
+  const [tooltipData, setTooltipData] = useState(null);
+  const [tooltipVisible, setTooltipVisible] = useState(false);
+  const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 });
+
+  if (!stats) return <div className="text-gray-400">Загрузка...</div>;
+
+  // Подготовка данных для графика
+  const chartData = stats.monthlyStats?.map(month => ({
+    month: month.month,
+    added: month.mediaAdded || 0,
+    completed: month.mediaWatched || 0
+  })) || [];
+
+  const handleChartHover = (data, index) => {
+    if (data) {
+      setTooltipData(data);
+      setTooltipVisible(true);
+    } else {
+      setTooltipVisible(false);
+    }
+  };
+
+  const handleMouseMove = (e) => {
+    setTooltipPosition({ x: e.clientX, y: e.clientY });
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* Карточки с числами */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="bg-gradient-to-br from-blue-500/20 to-cyan-500/20 backdrop-blur-xl rounded-xl p-6 border border-blue-500/30">
+          <div className="text-3xl mb-2">🎬</div>
+          <h3 className="text-sm font-semibold text-gray-300 mb-1">Всего фильмов</h3>
+          <p className="text-3xl font-bold text-white">{stats.summary?.totalMovies || 0}</p>
+        </div>
+        <div className="bg-gradient-to-br from-green-500/20 to-emerald-500/20 backdrop-blur-xl rounded-xl p-6 border border-green-500/30">
+          <div className="text-3xl mb-2">👀</div>
+          <h3 className="text-sm font-semibold text-gray-300 mb-1">Просмотрено</h3>
+          <p className="text-3xl font-bold text-white">{stats.summary?.watchedMedia || 0}</p>
+        </div>
+        <div className="bg-gradient-to-br from-yellow-500/20 to-orange-500/20 backdrop-blur-xl rounded-xl p-6 border border-yellow-500/30">
+          <div className="text-3xl mb-2">⭐</div>
+          <h3 className="text-sm font-semibold text-gray-300 mb-1">Средний рейтинг</h3>
+          <p className="text-3xl font-bold text-white">{stats.summary?.averageRating?.toFixed(1) || '0.0'}</p>
+        </div>
+        <div className="bg-gradient-to-br from-purple-500/20 to-pink-500/20 backdrop-blur-xl rounded-xl p-6 border border-purple-500/30">
+          <div className="text-3xl mb-2">📺</div>
+          <h3 className="text-sm font-semibold text-gray-300 mb-1">Сериалы</h3>
+          <p className="text-3xl font-bold text-white">{stats.summary?.tvShows || 0}</p>
+        </div>
+      </div>
+
+      {/* График по месяцам */}
+      <div className="bg-gray-800/50 rounded-xl p-6 border border-gray-700">
+        <h3 className="text-lg font-semibold text-white mb-4">📈 Активность по месяцам</h3>
+        <div className="relative" onMouseMove={handleMouseMove}>
+          {chartData.length > 0 ? (
+            <>
+              <BarChart 
+                data={chartData} 
+                height={300} 
+                onHover={handleChartHover}
+              />
+              <ChartLegend />
+              <ChartTooltip 
+                data={tooltipData} 
+                visible={tooltipVisible} 
+                x={tooltipPosition.x} 
+                y={tooltipPosition.y} 
+              />
+            </>
+          ) : (
+            <div className="h-64 flex items-center justify-center text-gray-400">
+              <div className="text-center">
+                <div className="text-4xl mb-2">📊</div>
+                <p>Нет данных для отображения</p>
+              </div>
             </div>
           )}
         </div>
       </div>
+
+      {/* Топ-10 фильмов */}
+      <div className="bg-gray-800/50 rounded-xl p-6 border border-gray-700">
+        <h3 className="text-lg font-semibold text-white mb-4">🏆 Топ-10 фильмов</h3>
+        <div className="space-y-3">
+          {stats.topMovies && stats.topMovies.length > 0 ? (
+            stats.topMovies.slice(0, 10).map((movie, index) => (
+              <div key={movie.id} className="flex items-center gap-4 p-3 bg-gray-700/50 rounded-lg">
+                <div className="w-8 h-8 bg-purple-500/20 rounded-full flex items-center justify-center text-sm font-bold text-purple-400">
+                  {index + 1}
+                </div>
+                <img src={movie.poster || 'https://placehold.co/40x56/1f2937/ffffff?text=?'} alt={movie.title} className="w-12 h-16 object-cover rounded" />
+                <div className="flex-1 min-w-0">
+                  <h4 className="text-white font-medium truncate">{movie.title}</h4>
+                  <p className="text-gray-400 text-sm">{movie.year}</p>
+                </div>
+                <div className="flex items-center gap-1">
+                  {[...Array(5)].map((_, i) => (
+                    <Icon key={i} name="star" className={`w-4 h-4 ${i < (movie.rating || 0) ? 'text-yellow-400' : 'text-gray-600'}`} />
+                  ))}
+                  <span className="ml-2 text-white font-medium">{movie.rating || 0}</span>
+                </div>
+              </div>
+            ))
+          ) : (
+            <div className="text-gray-400 text-center py-8">Нет данных</div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// Компонент графика
+const BarChart = ({ data, width = 800, height = 300, onHover }) => {
+  const canvasRef = useRef(null);
+  const containerRef = useRef(null);
+  const [hoveredIndex, setHoveredIndex] = useState(null);
+  const [chartDimensions, setChartDimensions] = useState({ width, height });
+
+  // Адаптивный размер графика
+  useEffect(() => {
+    const updateDimensions = () => {
+      if (containerRef.current) {
+        const containerWidth = containerRef.current.offsetWidth;
+        const newWidth = Math.min(containerWidth - 32, 800);
+        setChartDimensions({ width: newWidth, height });
+      }
+    };
+
+    updateDimensions();
+    window.addEventListener('resize', updateDimensions);
+    return () => window.removeEventListener('resize', updateDimensions);
+  }, [height]);
+
+  const drawChart = useCallback(() => {
+    const canvas = canvasRef.current;
+    if (!canvas || !data || data.length === 0) return;
+
+    const ctx = canvas.getContext('2d');
+    const { width: chartWidth, height: chartHeight } = chartDimensions;
+    
+    canvas.width = chartWidth;
+    canvas.height = chartHeight;
+
+    // Очистка canvas
+    ctx.clearRect(0, 0, chartWidth, chartHeight);
+
+    const padding = 60;
+    const innerWidth = chartWidth - padding * 2;
+    const innerHeight = chartHeight - padding * 2;
+    const barWidth = innerWidth / data.length * 0.8;
+    const barSpacing = innerWidth / data.length * 0.2;
+
+    // Максимальное значение для масштабирования
+    const maxValue = Math.max(...data.map(d => Math.max(d.added || 0, d.completed || 0)));
+
+    // Рисование осей
+    ctx.strokeStyle = '#374151';
+    ctx.lineWidth = 1;
+    
+    // Вертикальная ось
+    ctx.beginPath();
+    ctx.moveTo(padding, padding);
+    ctx.lineTo(padding, chartHeight - padding);
+    ctx.stroke();
+
+    // Горизонтальная ось
+    ctx.beginPath();
+    ctx.moveTo(padding, chartHeight - padding);
+    ctx.lineTo(chartWidth - padding, chartHeight - padding);
+    ctx.stroke();
+
+    // Рисование столбцов
+    data.forEach((item, index) => {
+      const x = padding + index * (barWidth + barSpacing) + barSpacing / 2;
+      const addedHeight = ((item.added || 0) / maxValue) * innerHeight;
+      const completedHeight = ((item.completed || 0) / maxValue) * innerHeight;
+
+      // Столбец "Добавлено"
+      const addedGradient = ctx.createLinearGradient(0, chartHeight - padding - addedHeight, 0, chartHeight - padding);
+      addedGradient.addColorStop(0, '#8b5cf6');
+      addedGradient.addColorStop(1, '#ec4899');
+      ctx.fillStyle = addedGradient;
+      ctx.fillRect(x, chartHeight - padding - addedHeight, barWidth / 2, addedHeight);
+
+      // Столбец "Просмотрено"
+      const completedGradient = ctx.createLinearGradient(0, chartHeight - padding - completedHeight, 0, chartHeight - padding);
+      completedGradient.addColorStop(0, '#06b6d4');
+      completedGradient.addColorStop(1, '#3b82f6');
+      ctx.fillStyle = completedGradient;
+      ctx.fillRect(x + barWidth / 2, chartHeight - padding - completedHeight, barWidth / 2, completedHeight);
+
+      // Подписи месяцев
+      ctx.fillStyle = '#9ca3af';
+      ctx.font = '12px Inter';
+      ctx.textAlign = 'center';
+      ctx.fillText(item.month, x + barWidth / 2, chartHeight - padding + 20);
+    });
+
+    // Подписи значений на оси Y
+    for (let i = 0; i <= 5; i++) {
+      const value = Math.round((maxValue / 5) * i);
+      const y = chartHeight - padding - (innerHeight / 5) * i;
+      
+      ctx.fillStyle = '#9ca3af';
+      ctx.font = '12px Inter';
+      ctx.textAlign = 'right';
+      ctx.fillText(value.toString(), padding - 10, y + 4);
+    }
+  }, [data, chartDimensions]);
+
+  const handleMouseMove = useCallback((e) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const rect = canvas.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+
+    const padding = 60;
+    const { width: chartWidth } = chartDimensions;
+    const innerWidth = chartWidth - padding * 2;
+    const barWidth = innerWidth / data.length * 0.8;
+    const barSpacing = innerWidth / data.length * 0.2;
+
+    const index = Math.floor((x - padding) / (barWidth + barSpacing));
+    
+    if (index >= 0 && index < data.length && x >= padding && x <= chartWidth - padding) {
+      setHoveredIndex(index);
+      if (onHover) {
+        onHover(data[index], index);
+      }
+    } else {
+      setHoveredIndex(null);
+      if (onHover) {
+        onHover(null, null);
+      }
+    }
+  }, [data, chartDimensions, onHover]);
+
+  const handleMouseLeave = useCallback(() => {
+    setHoveredIndex(null);
+    if (onHover) {
+      onHover(null, null);
+    }
+  }, [onHover]);
+
+  useEffect(() => {
+    drawChart();
+  }, [drawChart]);
+
+  return (
+    <div ref={containerRef} className="relative w-full">
+      <canvas
+        ref={canvasRef}
+        onMouseMove={handleMouseMove}
+        onMouseLeave={handleMouseLeave}
+        className="cursor-pointer"
+      />
+    </div>
+  );
+};
+
+// Компонент легенды графика
+const ChartLegend = () => (
+  <div className="flex items-center justify-center gap-6 mt-4">
+    <div className="flex items-center gap-2">
+      <div className="w-4 h-4 bg-gradient-to-r from-purple-500 to-pink-500 rounded"></div>
+      <span className="text-sm text-gray-300">Добавлено</span>
+    </div>
+    <div className="flex items-center gap-2">
+      <div className="w-4 h-4 bg-gradient-to-r from-cyan-500 to-blue-500 rounded"></div>
+      <span className="text-sm text-gray-300">Просмотрено</span>
+    </div>
+  </div>
+);
+
+// Компонент tooltip
+const ChartTooltip = ({ data, visible, x, y }) => {
+  if (!visible || !data) return null;
+
+  return (
+    <div
+      className="absolute bg-gray-800 border border-gray-600 rounded-lg p-3 shadow-xl z-10 pointer-events-none"
+      style={{
+        left: x + 10,
+        top: y - 10,
+        transform: 'translateY(-100%)'
+      }}
+    >
+      <div className="text-white text-sm font-medium">{data.month}</div>
+      <div className="text-purple-400 text-xs">Добавлено: {data.added || 0}</div>
+      <div className="text-cyan-400 text-xs">Просмотрено: {data.completed || 0}</div>
+    </div>
+  );
+};
+
+// Компонент dropdown для экспорта
+const ExportDropdown = ({ onExport, loading }) => {
+  const [isOpen, setIsOpen] = useState(false);
+
+  return (
+    <div className="relative">
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        disabled={loading}
+        className="flex items-center gap-2 px-4 py-2 bg-gray-800 hover:bg-gray-700 rounded-lg border border-gray-600 transition-colors disabled:opacity-50"
+      >
+        <Icon name="download" className="w-4 h-4" />
+        <span className="text-sm">{loading ? 'Экспорт...' : 'Экспорт'}</span>
+      </button>
+
+      {isOpen && (
+        <div className="absolute right-0 top-full mt-2 w-48 bg-gray-800 rounded-lg border border-gray-700 shadow-xl z-10">
+          <div className="py-1">
+            <button
+              onClick={() => {
+                onExport('csv');
+                setIsOpen(false);
+              }}
+              className="w-full px-4 py-2 text-left text-sm text-gray-300 hover:bg-gray-700 hover:text-white transition-colors"
+            >
+              📊 Экспорт в CSV
+            </button>
+            <button
+              onClick={() => {
+                onExport('json');
+                setIsOpen(false);
+              }}
+              className="w-full px-4 py-2 text-left text-sm text-gray-300 hover:bg-gray-700 hover:text-white transition-colors"
+            >
+              📄 Экспорт в JSON
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
@@ -353,6 +654,7 @@ const Icon = ({ name, className = "w-5 h-5" }) => {
     check: <svg className={className} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg>,
     barChart: <svg className={className} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M12 20V10"/><path d="M18 20V4"/><path d="M6 20v-4"/></svg>,
     upload: <svg className={className} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7,10 12,15 17,10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>,
+    download: <svg className={className} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7,14 12,19 17,14"/><line x1="12" y1="19" x2="12" y2="5"/></svg>,
     logout: <svg className={className} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg>,
     star: <svg className={className} fill="currentColor" viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>,
     trash: <svg className={className} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>,
