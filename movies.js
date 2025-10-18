@@ -247,7 +247,7 @@ const StatisticsPage = ({ isOpen, onClose, token, boards, showMediaTab = true })
         setMediaStats(data);
       } else {
         console.log('API response not ok:', response.status, response.statusText);
-        // Fallback: создаем статистику из локальных данных
+        // Используем fallback статистику
         console.log('Using fallback stats...');
         const fallbackStats = createFallbackStats();
         console.log('Fallback stats created:', fallbackStats);
@@ -255,7 +255,7 @@ const StatisticsPage = ({ isOpen, onClose, token, boards, showMediaTab = true })
       }
     } catch (error) {
       console.error('Ошибка загрузки статистики медиа:', error);
-      // Fallback: создаем статистику из локальных данных
+      // Используем fallback статистику
       console.log('Using fallback stats due to error...');
       const fallbackStats = createFallbackStats();
       console.log('Fallback stats created:', fallbackStats);
