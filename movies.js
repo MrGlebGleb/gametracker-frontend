@@ -212,7 +212,6 @@ function Column({ title, emoji, items, columnKey, isExpanded, onToggleExpand, is
                 <span>{title}</span>
             </h3>
             <div className="flex items-center gap-2">
-              <span className="bg-white/10 text-white px-2 py-1 rounded-full text-xs font-bold">{items.length}</span>
               {isMobile && (
                 <Icon name={isMobileAccordionOpen ? 'chevronUp' : 'chevronDown'} className="w-4 h-4 text-purple-400" />
               )}
@@ -1191,6 +1190,9 @@ function MovieApp() {
                 </svg>
                 <span className="text-2xl md:text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 via-pink-400 to-blue-400">MovieTracker</span>
               </a>
+              <button onClick={() => setShowStatistics(true)} className="p-2 hover:bg-gray-800 rounded-lg border border-purple-500/30">
+                <Icon name="barChart" className="w-4 h-4 md:w-5 md:h-5 text-purple-400" />
+              </button>
             </div>
             {user && (
                 <div className="flex items-center gap-2 md:gap-3">
@@ -1231,9 +1233,6 @@ function MovieApp() {
                            </button>
                        </Fragment>
                     )}
-                    <button onClick={handleLogout} className="p-2 hover:bg-red-900/50 rounded-lg border border-red-500/30">
-                        <Icon name="logout" className="w-4 h-4 md:w-5 md:h-5 text-red-400" />
-                    </button>
                 </div>
             )}
           </div>
@@ -1756,7 +1755,7 @@ function MovieApp() {
                 )}
               </button>
               <button 
-                onClick={() => {/* Open Stats */; setShowMobileMenu(false);}}
+                onClick={() => {setShowStatistics(true); setShowMobileMenu(false);}}
                 className="w-full flex items-center gap-3 px-3 py-2 text-gray-300 hover:bg-gray-800 rounded-lg"
               >
                 📊 <span>Статистика</span>
