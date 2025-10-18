@@ -60,61 +60,6 @@ const groupReactions = (reactions) => {
 
 // --- Переиспользуемые UI-компоненты (идентичны странице игр) ---
 
-// Компонент tooltip для отображения тегов и реакций
-const MediaTooltip = ({ media, isVisible, position }) => {
-  if (!isVisible || !media) return null;
-
-  return (
-    <div 
-      className="tooltip"
-      style={{
-        left: position.x,
-        top: position.y,
-        opacity: isVisible ? 1 : 0,
-        transform: isVisible ? 'translateY(0)' : 'translateY(10px)'
-      }}
-    >
-      <div className="space-y-3">
-        {/* Реакции */}
-        {media.reactions && media.reactions.length > 0 && (
-          <div>
-            <p className="text-xs text-gray-400 mb-2">Реакции:</p>
-            <div className="flex flex-wrap gap-1">
-              {Object.entries(groupReactions(media.reactions)).map(([emoji, count]) => (
-                <div key={emoji} className="flex items-center gap-1 bg-gray-800 px-2 py-1 rounded-full">
-                  <span className="text-sm">{emoji}</span>
-                  <span className="text-xs text-gray-300">{count}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-        
-        {/* Теги */}
-        {media.tags && media.tags.length > 0 && (
-          <div>
-            <p className="text-xs text-gray-400 mb-2">Теги:</p>
-            <div className="flex flex-wrap gap-1">
-              {media.tags.map((tag, i) => (
-                <span 
-                  key={i} 
-                  className="text-xs px-2 py-1 rounded-full text-white font-medium"
-                  style={{ backgroundColor: tag.color + '40', border: `1px solid ${tag.color}` }}
-                >
-                  {tag.name}
-                </span>
-              ))}
-            </div>
-          </div>
-        )}
-        
-        {(!media.reactions || media.reactions.length === 0) && (!media.tags || media.tags.length === 0) && (
-          <p className="text-gray-400 text-sm">Нет тегов и реакций</p>
-        )}
-      </div>
-    </div>
-  );
-};
 
 const Icon = ({ name, className = "w-5 h-5" }) => {
   const icons = {
@@ -181,8 +126,6 @@ function MediaCard({ item, onSelect, onRemove, onDragStart, onDragEnd, isViewing
       draggable={!isViewingFriend}
       onDragStart={(e) => !isViewingFriend && onDragStart(e, item)}
       onDragEnd={onDragEnd}
-      onMouseEnter={(e) => onMouseEnter && onMouseEnter(e, item)}
-      onMouseLeave={onMouseLeave}
       onClick={() => {
         if (isMobile && onMobileClick) {
           onMobileClick(item, boardKey);
@@ -260,7 +203,7 @@ function Column({ title, emoji, items, columnKey, isExpanded, onToggleExpand, is
         </div>
         <div className="accordion-content">
           <div className="space-y-2 flex-grow min-h-[150px]">
-              {visibleItems.map(it => <MediaCard key={it.id} item={it} isViewingFriend={isViewingFriend} boardId={boardId} boardKey={columnKey} onMobileClick={handlers.onMobileClick} onAddToMyBoard={handlers.onAddToMyBoard} onMouseEnter={handlers.onMouseEnter} onMouseLeave={handlers.onMouseLeave} {...handlers} />)}
+              {visibleItems.map(it => <MediaCard key={it.id} item={it} isViewingFriend={isViewingFriend} boardId={boardId} boardKey={columnKey} onMobileClick={handlers.onMobileClick} onAddToMyBoard={handlers.onAddToMyBoard} {...handlers} />)}
               
               {items.length === 0 && (
                 <div className="flex flex-col items-center justify-center py-12 text-center">
@@ -459,7 +402,7 @@ function TagModal({ isOpen, onClose, mediaItem, onTagSelect, onCreateTag, userTa
   );
 }
 
-function MediaDetailsModal({ item, onClose, onUpdate, onReact, isViewingFriend, user }) {
+function MediaDetailsModal({ item, onClose, onUpdate, onReact, isViewingFriend, user, onRemoveTag }) {
   if (!item) return null;
   const userReaction = (item.reactions || []).find(r => r.user_id === user?.id);
   const modalRef = useRef(null);
@@ -549,6 +492,33 @@ function MediaDetailsModal({ item, onClose, onUpdate, onReact, isViewingFriend, 
                   <div key={idx} className="flex items-center gap-1 bg-gray-800 px-3 py-1 rounded-full" title={reaction.username}>
                      <Avatar src={reaction.avatar} size="sm" className="w-5 h-5" />
                     <span className="text-xl">{reaction.emoji}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+          
+          {/* Теги */}
+          {item.tags && item.tags.length > 0 && (
+            <div>
+              <p className="text-gray-400 text-sm mb-3">Теги:</p>
+              <div className="flex flex-wrap gap-2">
+                {item.tags.map((tag, i) => (
+                  <div 
+                    key={i} 
+                    className="flex items-center gap-2 text-sm px-3 py-1 rounded-full text-white font-medium"
+                    style={{ backgroundColor: tag.color + '40', border: `1px solid ${tag.color}` }}
+                  >
+                    <span>{tag.name}</span>
+                    {!isViewingFriend && onRemoveTag && (
+                      <button
+                        onClick={() => onRemoveTag(tag.id, item.id)}
+                        className="text-red-400 hover:text-red-300 transition-colors"
+                        title="Удалить тег"
+                      >
+                        <Icon name="x" className="w-3 h-3" />
+                      </button>
+                    )}
                   </div>
                 ))}
               </div>
@@ -696,9 +666,6 @@ function MovieApp() {
   const [showTagModal, setShowTagModal] = useState(false);
   const [selectedMediaForTag, setSelectedMediaForTag] = useState(null);
   const [userTags, setUserTags] = useState([]);
-  const [tooltipMedia, setTooltipMedia] = useState(null);
-  const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 });
-  const [showTooltip, setShowTooltip] = useState(false);
   
   const loadBoards = useCallback(async (userId = null) => {
     if (!token) return;
@@ -1000,21 +967,25 @@ function MovieApp() {
     }
   };
 
-  // Обработчики для tooltip
-  const handleMouseEnter = (e, media) => {
-    const rect = e.currentTarget.getBoundingClientRect();
-    setTooltipPosition({
-      x: rect.left + rect.width / 2,
-      y: rect.top - 10
-    });
-    setTooltipMedia(media);
-    setShowTooltip(true);
+  // Удаление тега с медиа
+  const removeTagFromMedia = async (tagId, mediaId) => {
+    try {
+      const response = await fetch(`${API_URL}/api/media/${mediaId}/tags/${tagId}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      
+      if (response.ok) {
+        // Перезагружаем доски для обновления данных
+        loadBoards();
+      } else {
+        throw new Error('Ошибка удаления тега');
+      }
+    } catch (error) {
+      console.error('Ошибка удаления тега:', error);
+    }
   };
 
-  const handleMouseLeave = () => {
-    setShowTooltip(false);
-    setTooltipMedia(null);
-  };
   
   const onDragStart = (e, item) => {
     if(viewingUser) return;
@@ -1197,16 +1168,16 @@ function MovieApp() {
             
             {/* Desktop: 4 columns side by side, Tablet: 2x2 grid, Mobile: 1 column stack */}
             <div className="md:col-span-2 lg:col-span-1" onDrop={(e) => onDrop(e, 'movie:wishlist')} onDragEnter={onDragEnterColumn} onDragLeave={onDragLeaveColumn}>
-                <Column title="🎬 Хочу посмотреть" emoji="" items={movies.wishlist} columnKey="movie:wishlist" isExpanded={!!expandedColumns['movie:wishlist']} onToggleExpand={toggleColumnExpansion} onSelect={setSelectedMedia} onRemove={removeItem} onDragStart={onDragStart} onDragEnd={onDragEnd} onMobileClick={handleMobileCardClick} onSearch={() => setShowSearch(true)} onAddToMyBoard={handleAddToMyBoard} onTagClick={handleTagClick} onMouseEnter={handleMouseEnter} onMouseLeave={handleMouseLeave} isViewingFriend={!!viewingUser} />
+                <Column title="🎬 Хочу посмотреть" emoji="" items={movies.wishlist} columnKey="movie:wishlist" isExpanded={!!expandedColumns['movie:wishlist']} onToggleExpand={toggleColumnExpansion} onSelect={setSelectedMedia} onRemove={removeItem} onDragStart={onDragStart} onDragEnd={onDragEnd} onMobileClick={handleMobileCardClick} onSearch={() => setShowSearch(true)} onAddToMyBoard={handleAddToMyBoard} onTagClick={handleTagClick} isViewingFriend={!!viewingUser} />
             </div>
             <div className="md:col-span-2 lg:col-span-1" onDrop={(e) => onDrop(e, 'movie:watched')} onDragEnter={onDragEnterColumn} onDragLeave={onDragLeaveColumn}>
-                <Column title="🍿 Посмотрел" emoji="" items={movies.watched} columnKey="movie:watched" isExpanded={!!expandedColumns['movie:watched']} onToggleExpand={toggleColumnExpansion} onSelect={setSelectedMedia} onRemove={removeItem} onDragStart={onDragStart} onDragEnd={onDragEnd} onMobileClick={handleMobileCardClick} onAddToMyBoard={handleAddToMyBoard} onTagClick={handleTagClick} onMouseEnter={handleMouseEnter} onMouseLeave={handleMouseLeave} isViewingFriend={!!viewingUser} />
+                <Column title="🍿 Посмотрел" emoji="" items={movies.watched} columnKey="movie:watched" isExpanded={!!expandedColumns['movie:watched']} onToggleExpand={toggleColumnExpansion} onSelect={setSelectedMedia} onRemove={removeItem} onDragStart={onDragStart} onDragEnd={onDragEnd} onMobileClick={handleMobileCardClick} onAddToMyBoard={handleAddToMyBoard} onTagClick={handleTagClick} isViewingFriend={!!viewingUser} />
             </div>
             <div className="md:col-span-2 lg:col-span-1" onDrop={(e) => onDrop(e, 'tv:wishlist')} onDragEnter={onDragEnterColumn} onDragLeave={onDragLeaveColumn}>
-                <Column title="📺 Хочу посмотреть" emoji="" items={tv.wishlist} columnKey="tv:wishlist" isExpanded={!!expandedColumns['tv:wishlist']} onToggleExpand={toggleColumnExpansion} onSelect={setSelectedMedia} onRemove={removeItem} onDragStart={onDragStart} onDragEnd={onDragEnd} onMobileClick={handleMobileCardClick} onSearch={() => setShowSearch(true)} onAddToMyBoard={handleAddToMyBoard} onTagClick={handleTagClick} onMouseEnter={handleMouseEnter} onMouseLeave={handleMouseLeave} isViewingFriend={!!viewingUser} />
+                <Column title="📺 Хочу посмотреть" emoji="" items={tv.wishlist} columnKey="tv:wishlist" isExpanded={!!expandedColumns['tv:wishlist']} onToggleExpand={toggleColumnExpansion} onSelect={setSelectedMedia} onRemove={removeItem} onDragStart={onDragStart} onDragEnd={onDragEnd} onMobileClick={handleMobileCardClick} onSearch={() => setShowSearch(true)} onAddToMyBoard={handleAddToMyBoard} onTagClick={handleTagClick} isViewingFriend={!!viewingUser} />
             </div>
             <div className="md:col-span-2 lg:col-span-1" onDrop={(e) => onDrop(e, 'tv:watched')} onDragEnter={onDragEnterColumn} onDragLeave={onDragLeaveColumn}>
-                <Column title="✅ Посмотрел" emoji="" items={tv.watched} columnKey="tv:watched" isExpanded={!!expandedColumns['tv:watched']} onToggleExpand={toggleColumnExpansion} onSelect={setSelectedMedia} onRemove={removeItem} onDragStart={onDragStart} onDragEnd={onDragEnd} onMobileClick={handleMobileCardClick} onAddToMyBoard={handleAddToMyBoard} onTagClick={handleTagClick} onMouseEnter={handleMouseEnter} onMouseLeave={handleMouseLeave} isViewingFriend={!!viewingUser} />
+                <Column title="✅ Посмотрел" emoji="" items={tv.watched} columnKey="tv:watched" isExpanded={!!expandedColumns['tv:watched']} onToggleExpand={toggleColumnExpansion} onSelect={setSelectedMedia} onRemove={removeItem} onDragStart={onDragStart} onDragEnd={onDragEnd} onMobileClick={handleMobileCardClick} onAddToMyBoard={handleAddToMyBoard} onTagClick={handleTagClick} isViewingFriend={!!viewingUser} />
             </div>
         </div>
         
@@ -1472,7 +1443,7 @@ function MovieApp() {
         </div>
       )}
 
-      <MediaDetailsModal item={selectedMedia} onClose={() => setSelectedMedia(null)} onUpdate={updateItem} onReact={reactToItem} isViewingFriend={!!viewingUser} user={user}/>
+      <MediaDetailsModal item={selectedMedia} onClose={() => setSelectedMedia(null)} onUpdate={updateItem} onReact={reactToItem} isViewingFriend={!!viewingUser} user={user} onRemoveTag={removeTagFromMedia}/>
       
       {/* Модальное окно для управления тегами */}
       <TagModal 
@@ -1484,12 +1455,6 @@ function MovieApp() {
         userTags={userTags}
       />
 
-      {/* Tooltip для отображения тегов и реакций */}
-      <MediaTooltip 
-        media={tooltipMedia} 
-        isVisible={showTooltip} 
-        position={tooltipPosition} 
-      />
       
       {/* Мобильное меню выбора действия */}
       {showMobileActionMenu && selectedCard && (
