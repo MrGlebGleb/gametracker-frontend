@@ -875,17 +875,24 @@ function MediaCard({ item, onSelect, onRemove, onDragStart, onDragEnd, isViewing
         style={{ backgroundColor: boardId === 'wishlist' ? '#3B82F6' : '#10B981' }}
       ></div>
       <div className="relative flex-shrink-0">
-        <img src={item.poster || 'https://placehold.co/96x128/1f2937/ffffff?text=?'} alt={item.title} className="w-16 h-24 object-cover rounded-lg flex-shrink-0" />
-        {/* Рейтинг звездами как overlay */}
-        {item.rating && (
-          <div className="absolute bottom-2 left-2 bg-black/70 backdrop-blur-sm rounded px-1.5 py-0.5 flex gap-0.5">
-            {[...Array(5)].map((_, i) => (<Icon key={i} name="star" className={`w-2 h-2 ${i < item.rating ? 'text-yellow-400' : 'text-gray-400'}`} />))}
-          </div>
-        )}
+        <img src={item.poster || 'https://placehold.coputed/96x128/1f2937/ffffff?text=?'} alt={item.title} className="w-16 h-24 object-cover rounded-lg flex-shrink-0" />
       </div>
       <div className="flex flex-col justify-between flex-grow min-w-0 py-1">
         <div>
-          <h3 className="text-white font-semibold text-sm line-clamp-2">{item.title}</h3>
+          <h3 className="text-white font-semibold text-sm line-clamp-2 mb-1">{item.title}</h3>
+          {item.year && <p className="text-xs text-gray-400">{item.year}</p>}
+          {/* Рейтинг под названием */}
+          {item.rating && (
+            <div className="flex gap-0.5 mt-1">
+              {[...Array(5)].map((_, i) => (
+                <Icon 
+                  key={i} 
+                  name="star" 
+                  className={`w-3 h-3 ${i < item.rating ? 'text-yellow-400' : 'text-gray-500'}`} 
+                />
+              ))}
+            </div>
+          )}
         </div>
         {item.reactions && item.reactions.length > 0 && (
           <div className="flex gap-1.5 mt-1 flex-wrap items-center">
@@ -937,7 +944,7 @@ function MediaCard({ item, onSelect, onRemove, onDragStart, onDragEnd, isViewing
   );
 }
 
-function Column({ title, emoji, items, columnKey, isExpanded, onToggleExpand, isViewingFriend, ...handlers }) {
+function Column({ title, emoji, items, columnKey, isExpanded, onToggleExpand, isViewingFriend, onAddItem, ...handlers }) {
   // Определяем boardId на основе columnKey
   const boardId = columnKey.includes('wishlist') ? 'wishlist' : 'watched';
   const visibleItems = isExpanded ? items : items.slice(0, MEDIA_PER_COLUMN);
@@ -949,7 +956,16 @@ function Column({ title, emoji, items, columnKey, isExpanded, onToggleExpand, is
                 <span className="text-xl">{emoji}</span>
                 <span>{title}</span>
             </h3>
-            <span className="bg-white/10 text-white px-2 py-1 rounded-full text-xs font-bold">{items.length}</span>
+            <div className="flex items-center gap-2">
+                {!isViewingFriend && onAddItem && (
+                    <button 
+                        onClick={() => onAddItem(columnKey)}
+                        className="p-1.5 bg-white/10 hover:bg-white/20 rounded-full transition-colors">
+                        <Icon name="plus" className="w-4 h-4 text-white"/>
+                    </button>
+                )}
+                <span className="bg-white/10 text-white px-2 py-1 rounded-full text-xs font-bold">{items.length}</span>
+            </div>
         </div>
         <div className="space-y-2 flex-grow min-h-[150px]">
             {visibleItems.map(it => <MediaCard key={it.id} item={it} isViewingFriend={isViewingFriend} boardId={boardId} {...handlers} />)}
@@ -1163,6 +1179,7 @@ function MovieApp() {
   const [searchResults, setSearchResults] = useState([]);
   const [showSearch, setShowSearch] = useState(false);
   const [searching, setSearching] = useState(false);
+  const [targetColumnForAdd, setTargetColumnForAdd] = useState(null);
   const [selectedMedia, setSelectedMedia] = useState(null);
   const [theme, setTheme] = useState('default');
   const [viewingUser, setViewingUser] = useState(null);
@@ -1275,6 +1292,15 @@ function MovieApp() {
     await loadBoards();
     setShowSearch(false);
     setQuery('');
+    setTargetColumnForAdd(null);
+  };
+
+  const handleAddToColumn = (columnKey) => {
+    // Определяем тип медиа по columnKey
+    const mediaType = columnKey.startsWith('movie:') ? 'movie' : 'tv';
+    setType(mediaType);
+    setTargetColumnForAdd(columnKey);
+    setShowSearch(true);
   };
 
   const updateItem = async (item, updates) => {
@@ -1542,10 +1568,10 @@ function MovieApp() {
                 <h2 className="text-center text-3xl font-semibold tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-purple-300 to-pink-300 opacity-80 mb-4">Фильмы</h2>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-6" onDragOver={onDragOver}>
                     <div onDrop={(e) => onDrop(e, 'movie:wishlist')} onDragEnter={onDragEnterColumn} onDragLeave={onDragLeaveColumn}>
-                        <Column title="Хочу посмотреть" emoji="🎬" items={movies.wishlist} columnKey="movie:wishlist" isExpanded={!!expandedColumns['movie:wishlist']} onToggleExpand={toggleColumnExpansion} onSelect={setSelectedMedia} onRemove={removeItem} onDragStart={onDragStart} onDragEnd={onDragEnd} isViewingFriend={!!viewingUser} />
+                        <Column title="Хочу посмотреть" emoji="🎬" items={movies.wishlist} columnKey="movie:wishlist" isExpanded={!!expandedColumns['movie:wishlist']} onToggleExpand={toggleColumnExpansion} onSelect={setSelectedMedia} onRemove={removeItem} onDragStart={onDragStart} onDragEnd={onDragEnd} isViewingFriend={!!viewingUser} onAddItem={handleAddToColumn} />
                     </div>
                     <div onDrop={(e) => onDrop(e, 'movie:watched')} onDragEnter={onDragEnterColumn} onDragLeave={onDragLeaveColumn}>
-                        <Column title="Посмотрел" emoji="🍿" items={movies.watched} columnKey="movie:watched" isExpanded={!!expandedColumns['movie:watched']} onToggleExpand={toggleColumnExpansion} onSelect={setSelectedMedia} onRemove={removeItem} onDragStart={onDragStart} onDragEnd={onDragEnd} isViewingFriend={!!viewingUser} />
+                        <Column title="Посмотрел" emoji="🍿" items={movies.watched} columnKey="movie:watched" isExpanded={!!expandedColumns['movie:watched']} onToggleExpand={toggleColumnExpansion} onSelect={setSelectedMedia} onRemove={removeItem} onDragStart={onDragStart} onDragEnd={onDragEnd} isViewingFriend={!!viewingUser} onAddItem={handleAddToColumn} />
                     </div>
                 </div>
             </div>
@@ -1553,10 +1579,10 @@ function MovieApp() {
                 <h2 className="text-center text-3xl font-semibold tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-purple-300 to-pink-300 opacity-80 mb-4">Сериалы</h2>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-6" onDragOver={onDragOver}>
                     <div onDrop={(e) => onDrop(e, 'tv:wishlist')} onDragEnter={onDragEnterColumn} onDragLeave={onDragLeaveColumn}>
-                        <Column title="Хочу посмотреть" emoji="📺" items={tv.wishlist} columnKey="tv:wishlist" isExpanded={!!expandedColumns['tv:wishlist']} onToggleExpand={toggleColumnExpansion} onSelect={setSelectedMedia} onRemove={removeItem} onDragStart={onDragStart} onDragEnd={onDragEnd} isViewingFriend={!!viewingUser} />
+                        <Column title="Хочу посмотреть" emoji="📺" items={tv.wishlist} columnKey="tv:wishlist" isExpanded={!!expandedColumns['tv:wishlist']} onToggleExpand={toggleColumnExpansion} onSelect={setSelectedMedia} onRemove={removeItem} onDragStart={onDragStart} onDragEnd={onDragEnd} isViewingFriend={!!viewingUser} onAddItem={handleAddToColumn} />
                     </div>
                     <div onDrop={(e) => onDrop(e, 'tv:watched')} onDragEnter={onDragEnterColumn} onDragLeave={onDragLeaveColumn}>
-                        <Column title="Посмотрел" emoji="✅" items={tv.watched} columnKey="tv:watched" isExpanded={!!expandedColumns['tv:watched']} onToggleExpand={toggleColumnExpansion} onSelect={setSelectedMedia} onRemove={removeItem} onDragStart={onDragStart} onDragEnd={onDragEnd} isViewingFriend={!!viewingUser} />
+                        <Column title="Посмотрел" emoji="✅" items={tv.watched} columnKey="tv:watched" isExpanded={!!expandedColumns['tv:watched']} onToggleExpand={toggleColumnExpansion} onSelect={setSelectedMedia} onRemove={removeItem} onDragStart={onDragStart} onDragEnd={onDragEnd} isViewingFriend={!!viewingUser} onAddItem={handleAddToColumn} />
                     </div>
                 </div>
             </div>
@@ -1751,7 +1777,7 @@ function MovieApp() {
                       <p className="text-white font-semibold text-sm truncate">{it.title} ({it.year})</p>
                       <p className="text-xs text-gray-400 truncate">{it.overview}</p>
                     </div>
-                    <button onClick={() => addItem(it, 'wishlist')} className="p-2 bg-purple-500/80 hover:bg-purple-500 rounded-lg"><Icon name="plus" className="w-5 h-5 text-white" /></button>
+                    <button onClick={() => addItem(it, targetColumnForAdd ? targetColumnForAdd.split(':')[1] : 'wishlist')} className="p-2 bg-purple-500/80 hover:bg-purple-500 rounded-lg"><Icon name="plus" className="w-5 h-5 text-white" /></button>
                   </div>
                 ))
               ) : query.length >= 2 && <p className="text-gray-400 text-center py-4 text-sm">Ничего не найдено</p>}
