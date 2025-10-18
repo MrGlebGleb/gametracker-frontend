@@ -298,6 +298,15 @@
     const REACTION_EMOJIS = ['😍', '🔥', '👍', '😮', '😂', '👎', '❤️', '🤔', '😢', '🤯', '😴', '💯', '💀', '🤨', '🥳'];
     const GAMES_PER_COLUMN = 5;
 
+    // Функция группировки реакций
+    const groupReactions = (reactions) => {
+      if (!reactions || reactions.length === 0) return {};
+      return reactions.reduce((acc, r) => {
+        acc[r.emoji] = (acc[r.emoji] || 0) + 1;
+        return acc;
+      }, {});
+    };
+
     const Icon = ({ name, className = "w-5 h-5" }) => {
       const icons = {
         plus: <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" /></svg>,
@@ -328,6 +337,8 @@
         activity: <svg className={className} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>,
         info: <svg className={className} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>,
         chevronDown: <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" /></svg>,
+        menu: <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" /></svg>,
+        moreVertical: <svg className={className} fill="currentColor" viewBox="0 0 16 16"><circle cx="8" cy="3" r="1.5"/><circle cx="8" cy="8" r="1.5"/><circle cx="8" cy="13" r="1.5"/></svg>,
       };
       return icons[name] || null;
     };
@@ -2014,6 +2025,13 @@
       const [showTagsManager, setShowTagsManager] = useState(false);
       const [showHistoryLog, setShowHistoryLog] = useState(false);
       const [historyGame, setHistoryGame] = useState(null);
+      const [showMobileMenu, setShowMobileMenu] = useState(false);
+      const [showCardMenu, setShowCardMenu] = useState(null);
+      const [selectedCard, setSelectedCard] = useState(null);
+      const [expandedBoards, setExpandedBoards] = useState({});
+      const [showMobileActionMenu, setShowMobileActionMenu] = useState(false);
+      const [showMoveMenu, setShowMoveMenu] = useState(false);
+      const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
       
       // Toast уведомления
       const [toast, setToast] = useState({ message: '', type: 'info', isVisible: false });
@@ -2021,6 +2039,54 @@
       // Функции для toast уведомлений
       const showToast = (message, type = 'info') => {
         setToast({ message, type, isVisible: true });
+      };
+
+      // Функции для мобильного меню
+      const toggleExpand = (boardId) => {
+        setExpandedBoards(prev => ({ ...prev, [boardId]: !prev[boardId] }));
+      };
+
+      const openCardMenu = (card) => {
+        setSelectedCard(card);
+        setShowCardMenu(card.id);
+      };
+
+      const closeCardMenu = () => {
+        setShowCardMenu(null);
+        setSelectedCard(null);
+      };
+
+      // Обработчик изменения размера окна
+      useEffect(() => {
+        const handleResize = () => setIsMobile(window.innerWidth < 768);
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+      }, []);
+
+      // Функции для мобильного меню действий
+      const handleMobileCardClick = (card) => {
+        if (!isMobile || viewingUser) return;
+        setSelectedCard(card);
+        setShowMobileActionMenu(true);
+      };
+
+      const closeMobileActionMenu = () => {
+        setShowMobileActionMenu(false);
+        setShowMoveMenu(false);
+        setSelectedCard(null);
+      };
+
+      const handleMoveToBoard = (targetBoardId) => {
+        if (selectedCard && targetBoardId !== selectedCard.board_id) {
+          // TODO: Реализовать перемещение карточки
+          console.log(`Moving ${selectedCard.name} to board ${targetBoardId}`);
+          closeMobileActionMenu();
+        }
+      };
+
+      const openEditModal = () => {
+        setShowMobileActionMenu(false);
+        setSelectedGame(selectedCard);
       };
       
       const hideToast = () => {
@@ -2885,6 +2951,114 @@
             </div>
           </header>
 
+          {/* Мобильный Header */}
+          <header className="md:hidden bg-gray-900/50 backdrop-blur-xl border-b border-purple-500/30 sticky top-0 z-50">
+            <div className="flex items-center justify-between px-4 py-3">
+              {/* Левая часть */}
+              <div className="flex items-center gap-3">
+                <button 
+                  onClick={() => setShowMobileMenu(true)} 
+                  className="p-2 hover:bg-gray-800/50 rounded-lg"
+                >
+                  <Icon name="menu" className="w-6 h-6 text-white" />
+                </button>
+                <div className="flex items-center gap-2">
+                  <span className="text-2xl">🎮</span>
+                  <span className="text-lg font-bold text-white">GameTracker</span>
+                </div>
+              </div>
+
+              {/* Правая часть */}
+              <div className="flex items-center gap-2">
+                <button className="p-2 relative hover:bg-gray-800/50 rounded-lg">
+                  <Icon name="bell" className="w-5 h-5 text-purple-400" />
+                  {friendRequests.length > 0 && (
+                    <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
+                  )}
+                </button>
+                <button 
+                  onClick={() => setShowMobileMenu(true)} 
+                  className="p-1 hover:bg-gray-800/50 rounded-lg"
+                >
+                  <Avatar src={user?.avatar} size="sm" />
+                </button>
+              </div>
+            </div>
+          </header>
+
+          {/* Мобильное меню (Sidebar) */}
+          {showMobileMenu && (
+            <>
+              {/* Backdrop */}
+              <div 
+                className="fixed inset-0 bg-black/60 z-40"
+                onClick={() => setShowMobileMenu(false)}
+              />
+              
+              {/* Sidebar */}
+              <div className="fixed top-0 left-0 h-full w-72 bg-gray-900 z-50 p-6 overflow-y-auto transform transition-transform">
+                {/* Профиль */}
+                <div className="flex items-center gap-3 mb-6 pb-6 border-b border-gray-700">
+                  <Avatar src={user?.avatar} size="lg" />
+                  <div>
+                    <p className="text-white font-semibold">{user?.username}</p>
+                    <p className="text-sm text-gray-400">{user?.email}</p>
+                  </div>
+                </div>
+
+                {/* Переключение приложений */}
+                <div className="mb-6">
+                  <p className="text-xs text-gray-500 mb-2">ПРИЛОЖЕНИЯ</p>
+                  <button 
+                    onClick={() => {window.location.href = '/index.html'; setShowMobileMenu(false);}}
+                    className="w-full flex items-center gap-3 px-3 py-2 rounded-lg mb-2 bg-purple-500/20 text-purple-400"
+                  >
+                    🎮 <span>GameTracker</span>
+                  </button>
+                  <button 
+                    onClick={() => {window.location.href = '/movies.html'; setShowMobileMenu(false);}}
+                    className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-gray-400 hover:bg-gray-800"
+                  >
+                    🎬 <span>MovieTracker</span>
+                  </button>
+                </div>
+
+                {/* Навигация */}
+                <div className="space-y-2 mb-6">
+                  <button 
+                    onClick={() => {setShowUserHub(true); setShowMobileMenu(false);}} 
+                    className="w-full flex items-center gap-3 px-3 py-2 text-gray-300 hover:bg-gray-800 rounded-lg"
+                  >
+                    👥 <span>Друзья</span>
+                    {friendRequests.length > 0 && (
+                      <span className="ml-auto bg-red-500 text-white text-xs px-2 py-0.5 rounded-full">{friendRequests.length}</span>
+                    )}
+                  </button>
+                  <button 
+                    onClick={() => {setShowStatistics(true); setShowMobileMenu(false);}} 
+                    className="w-full flex items-center gap-3 px-3 py-2 text-gray-300 hover:bg-gray-800 rounded-lg"
+                  >
+                    📊 <span>Статистика</span>
+                  </button>
+                  <button 
+                    onClick={() => {setShowProfile(true); setShowMobileMenu(false);}} 
+                    className="w-full flex items-center gap-3 px-3 py-2 text-gray-300 hover:bg-gray-800 rounded-lg"
+                  >
+                    ⚙️ <span>Настройки</span>
+                  </button>
+                </div>
+
+                {/* Выход */}
+                <button 
+                  onClick={() => {handleLogout(); setShowMobileMenu(false);}} 
+                  className="w-full flex items-center gap-3 px-3 py-2 text-red-400 hover:bg-red-500/10 rounded-lg"
+                >
+                  🚪 <span>Выйти</span>
+                </button>
+              </div>
+            </>
+          )}
+
           <main className="flex-grow">
               {showProfile && (
                   <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-[100] p-4 modal-enter-active">
@@ -3109,10 +3283,11 @@
               {selectedGame && (() => {
                 const { touchOffset, isMobile, handleTouchStart, handleTouchMove, handleTouchEnd } = useSwipeToClose(() => setSelectedGame(null));
                 return (
-                  <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-[100] md:p-4">
+                  <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-[100] md:p-4" onClick={() => setSelectedGame(null)}>
                   <div 
                     className={`bg-gray-900 rounded-2xl p-6 w-full max-w-md border border-purple-500/30 max-h-[90vh] overflow-y-auto elevation-3 ${isMobile ? 'mobile-fullscreen-modal' : ''}`}
                     style={isMobile ? { transform: `translateY(${touchOffset}px)`, transition: touchOffset === 0 ? 'transform 0.3s ease' : 'none' } : {}}
+                    onClick={e => e.stopPropagation()}
                     onTouchStart={handleTouchStart}
                     onTouchMove={handleTouchMove}
                     onTouchEnd={handleTouchEnd}
@@ -3280,18 +3455,40 @@
 
                   {/* Поиск по своим играм */}
                   {!viewingUser && (
-                    <div className="mb-6">
-                      <div className="relative">
-                        <input
-                          type="text"
-                          placeholder="Найти в моих играх..."
-                          value={myGamesSearchQuery}
-                          onChange={(e) => {
-                            setMyGamesSearchQuery(e.target.value);
-                            debouncedSearchMyGames(e.target.value);
-                          }}
-                          className="w-full px-4 py-3 bg-gray-800/50 border border-gray-700 rounded-lg focus:border-purple-500 focus:outline-none text-white placeholder-gray-500 backdrop-blur-xl"
-                        />
+                    <>
+                      {/* Мобильный поиск */}
+                      <div className="md:hidden px-4 mb-4">
+                        <div className="relative">
+                          <Icon 
+                            name="search" 
+                            className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" 
+                          />
+                          <input
+                            type="text"
+                            placeholder="Найти в моих играх..."
+                            value={myGamesSearchQuery}
+                            onChange={(e) => {
+                              setMyGamesSearchQuery(e.target.value);
+                              debouncedSearchMyGames(e.target.value);
+                            }}
+                            className="w-full pl-10 pr-4 py-2.5 bg-gray-800/80 border border-gray-700 rounded-lg text-white text-sm placeholder-gray-500 focus:border-purple-500 focus:outline-none"
+                          />
+                        </div>
+                      </div>
+
+                      {/* Десктопный поиск */}
+                      <div className="hidden md:block mb-6">
+                        <div className="relative">
+                          <input
+                            type="text"
+                            placeholder="Найти в моих играх..."
+                            value={myGamesSearchQuery}
+                            onChange={(e) => {
+                              setMyGamesSearchQuery(e.target.value);
+                              debouncedSearchMyGames(e.target.value);
+                            }}
+                            className="w-full px-4 py-3 bg-gray-800/50 border border-gray-700 rounded-lg focus:border-purple-500 focus:outline-none text-white placeholder-gray-500 backdrop-blur-xl"
+                          />
                         {myGamesSearchQuery && (
                           <button
                             onClick={() => {
@@ -3311,9 +3508,10 @@
                         )}
                       </div>
                     </div>
+                    </>
                   )}
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                  <div className="hidden md:grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                   {boardsLoading ? (
                     // Показываем скелетоны во время загрузки
                     <>
@@ -3559,6 +3757,109 @@
                       <p className="text-2xl md:text-3xl font-bold text-white">{boards.backlog.cards.length}</p>
                   </div>
                   </div>
+
+                  {/* Мобильная версия с заголовками колонок */}
+                  <div className="md:hidden">
+                    {Object.values(boards).map(board => (
+                      <div key={board.id} className="mb-6">
+                        {/* ЗАГОЛОВОК КОЛОНКИ */}
+                        <div className="flex items-center justify-between px-4 mb-3">
+                          <div className="flex items-center gap-2">
+                            <span className="text-2xl">{board.emoji}</span>
+                            <h2 className="text-lg font-bold text-white">{board.title}</h2>
+                            <span className="bg-white/10 text-white px-2 py-0.5 rounded-full text-sm">
+                              {board.cards.length}
+                            </span>
+                          </div>
+                          {!viewingUser && (
+                            <button 
+                              onClick={() => {setTargetBoardForAdd(board.id); setShowSearch(true);}}
+                              className="p-1.5 bg-white/10 hover:bg-white/20 rounded-full"
+                            >
+                              <Icon name="plus" className="w-4 h-4 text-white" />
+                            </button>
+                          )}
+                        </div>
+
+                        {/* КАРТОЧКИ */}
+                        <div className="px-4 space-y-3">
+                          {board.cards.slice(0, expandedBoards[board.id] ? undefined : 3).map(card => (
+                            <div 
+                              key={card.id} 
+                              className="bg-gray-800/80 rounded-xl p-3 border-l-4 cursor-pointer hover:bg-gray-700/80 transition-colors" 
+                              style={{borderColor: board.accentColor}}
+                              onClick={() => handleMobileCardClick(card)}
+                            >
+                              <div className="flex gap-3">
+                                {/* Cover - меньше размером */}
+                                <img 
+                                  src={card.cover || 'https://placehold.co/64x96/1f2937/ffffff?text=🎮'} 
+                                  className="w-16 h-24 object-cover rounded-lg flex-shrink-0"
+                                  alt={card.name}
+                                />
+                                
+                                {/* Информация */}
+                                <div className="flex-1 min-w-0">
+                                  {/* Название */}
+                                  <h3 className="text-white font-semibold text-sm line-clamp-2 mb-1">
+                                    {card.name}
+                                  </h3>
+                                  
+                                  {/* Рейтинг */}
+                                  {card.rating && (
+                                    <div className="flex gap-0.5 mb-2">
+                                      {[...Array(5)].map((_, i) => (
+                                        <Icon 
+                                          key={i} 
+                                          name="star" 
+                                          className={`w-3 h-3 ${i < card.rating ? 'text-yellow-400' : 'text-gray-600'}`} 
+                                        />
+                                      ))}
+                                    </div>
+                                  )}
+                                  
+                                  {/* Реакции */}
+                                  {card.reactions?.length > 0 && (
+                                    <div className="flex gap-1 flex-wrap">
+                                      {Object.entries(groupReactions(card.reactions)).map(([emoji, count]) => (
+                                        <span key={emoji} className="text-base">
+                                          {emoji}{count > 1 && <span className="text-xs text-gray-400">×{count}</span>}
+                                        </span>
+                                      ))}
+                                    </div>
+                                  )}
+                                </div>
+                                
+                                {/* Кнопка меню (3 точки) */}
+                                <button 
+                                  onClick={(e) => {e.stopPropagation(); openCardMenu(card);}}
+                                  className="self-start p-1 hover:bg-white/10 rounded"
+                                >
+                                  <Icon name="moreVertical" className="w-5 h-5 text-gray-400" />
+                                </button>
+                              </div>
+                            </div>
+                          ))}
+                          
+                          {board.cards.length === 0 && (
+                            <div className="text-center py-8 text-gray-400">
+                              <span className="text-4xl mb-2 block">{board.emoji}</span>
+                              <p>Пока нет игр в этой категории</p>
+                            </div>
+                          )}
+                          
+                          {board.cards.length > 3 && !expandedBoards[board.id] && (
+                            <button 
+                              onClick={() => toggleExpand(board.id)}
+                              className="w-full py-2 text-sm text-purple-400 hover:text-purple-300"
+                            >
+                              Показать ещё {board.cards.length - 3} →
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                   
                   {!viewingUser && <ActivityFeed 
                     token={localStorage.getItem('token')} 
@@ -3606,6 +3907,179 @@
 
               </div>
           </main>
+
+          {/* Floating Action Button для мобильных */}
+          {!viewingUser && (
+            <button
+              onClick={() => setShowSearch(true)}
+              className="md:hidden fixed bottom-6 right-6 w-14 h-14 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full shadow-lg flex items-center justify-center z-30 active:scale-95 transition-transform"
+            >
+              <Icon name="plus" className="w-7 h-7 text-white" />
+            </button>
+          )}
+
+          {/* Bottom Sheet для меню карточки */}
+          {showCardMenu && selectedCard && (
+            <>
+              {/* Backdrop */}
+              <div 
+                className="fixed inset-0 bg-black/60 z-40"
+                onClick={closeCardMenu}
+              />
+              
+              {/* Bottom Sheet */}
+              <div className="fixed bottom-0 left-0 right-0 bg-gray-900 rounded-t-3xl z-50 p-6 transform transition-transform">
+                {/* Handle (полоска для drag) */}
+                <div className="w-12 h-1 bg-gray-600 rounded-full mx-auto mb-4"></div>
+                
+                {/* Название игры */}
+                <h3 className="text-white font-bold text-lg mb-4 text-center">
+                  {selectedCard.name}
+                </h3>
+                
+                {/* Действия */}
+                <div className="space-y-2">
+                  <button 
+                    onClick={() => {setSelectedGame(selectedCard); closeCardMenu();}}
+                    className="w-full flex items-center gap-3 px-4 py-3 text-left text-white hover:bg-gray-800 rounded-lg"
+                  >
+                    👁️ <span>Просмотреть</span>
+                  </button>
+                  
+                  <button 
+                    onClick={() => {/* TODO: open move menu */; closeCardMenu();}}
+                    className="w-full flex items-center gap-3 px-4 py-3 text-left text-white hover:bg-gray-800 rounded-lg"
+                  >
+                    ➡️ <span>Переместить в...</span>
+                  </button>
+                  
+                  <button 
+                    onClick={() => {/* TODO: deleteCard(selectedCard.id); */ closeCardMenu();}}
+                    className="w-full flex items-center gap-3 px-4 py-3 text-left text-red-400 hover:bg-red-500/10 rounded-lg"
+                  >
+                    🗑️ <span>Удалить</span>
+                  </button>
+                  
+                  <button 
+                    onClick={closeCardMenu}
+                    className="w-full py-3 text-gray-400 hover:text-white"
+                  >
+                    Отмена
+                  </button>
+                </div>
+              </div>
+            </>
+          )}
+
+          {/* Мобильное меню выбора действия */}
+          {showMobileActionMenu && selectedCard && (
+            <>
+              {/* Backdrop */}
+              <div 
+                className="fixed inset-0 bg-black/60 z-40"
+                onClick={closeMobileActionMenu}
+              />
+              
+              {/* Action Menu */}
+              <div className="fixed bottom-0 left-0 right-0 bg-gray-900 rounded-t-3xl z-50 p-6 transform transition-transform">
+                {/* Handle (полоска для drag) */}
+                <div className="w-12 h-1 bg-gray-600 rounded-full mx-auto mb-4"></div>
+                
+                {/* Название игры */}
+                <h3 className="text-white font-bold text-lg mb-4 text-center">
+                  {selectedCard.name}
+                </h3>
+                
+                {/* Действия */}
+                <div className="space-y-3">
+                  <button 
+                    onClick={openEditModal}
+                    className="w-full flex items-center gap-3 px-4 py-3 text-left text-white hover:bg-gray-800 rounded-lg border border-gray-700"
+                  >
+                    <div className="w-10 h-10 bg-purple-500/20 rounded-lg flex items-center justify-center">
+                      ✏️
+                    </div>
+                    <div>
+                      <p className="font-semibold">Редактировать</p>
+                      <p className="text-sm text-gray-400">Поставить рейтинг, написать отзыв</p>
+                    </div>
+                  </button>
+                  
+                  <button 
+                    onClick={() => {setShowMoveMenu(true); setShowMobileActionMenu(false);}}
+                    className="w-full flex items-center gap-3 px-4 py-3 text-left text-white hover:bg-gray-800 rounded-lg border border-gray-700"
+                  >
+                    <div className="w-10 h-10 bg-blue-500/20 rounded-lg flex items-center justify-center">
+                      ➡️
+                    </div>
+                    <div>
+                      <p className="font-semibold">Переместить</p>
+                      <p className="text-sm text-gray-400">Изменить статус игры</p>
+                    </div>
+                  </button>
+                  
+                  <button 
+                    onClick={closeMobileActionMenu}
+                    className="w-full py-3 text-gray-400 hover:text-white"
+                  >
+                    Отмена
+                  </button>
+                </div>
+              </div>
+            </>
+          )}
+
+          {/* Меню выбора колонки для перемещения */}
+          {showMoveMenu && selectedCard && (
+            <>
+              {/* Backdrop */}
+              <div 
+                className="fixed inset-0 bg-black/60 z-40"
+                onClick={() => {setShowMoveMenu(false); setSelectedCard(null);}}
+              />
+              
+              {/* Move Menu */}
+              <div className="fixed bottom-0 left-0 right-0 bg-gray-900 rounded-t-3xl z-50 p-6 transform transition-transform">
+                {/* Handle */}
+                <div className="w-12 h-1 bg-gray-600 rounded-full mx-auto mb-4"></div>
+                
+                <h3 className="text-white font-bold text-lg mb-4 text-center">
+                  Переместить "{selectedCard.name}"
+                </h3>
+                
+                <div className="space-y-2">
+                  {Object.values(boards).map(board => (
+                    <button 
+                      key={board.id}
+                      onClick={() => handleMoveToBoard(board.id)}
+                      disabled={board.id === selectedCard.board_id}
+                      className={`w-full flex items-center gap-3 px-4 py-3 text-left rounded-lg border transition-colors ${
+                        board.id === selectedCard.board_id 
+                          ? 'bg-gray-700/50 border-gray-600 text-gray-500 cursor-not-allowed' 
+                          : 'text-white hover:bg-gray-800 border-gray-700'
+                      }`}
+                    >
+                      <span className="text-2xl">{board.emoji}</span>
+                      <div>
+                        <p className="font-semibold">{board.title}</p>
+                        <p className="text-sm text-gray-400">{board.cards.length} игр</p>
+                      </div>
+                      {board.id === selectedCard.board_id && (
+                        <span className="ml-auto text-xs bg-gray-600 px-2 py-1 rounded">Текущая</span>
+                      )}
+                    </button>
+                  ))}
+                  
+                  <button 
+                    onClick={() => {setShowMoveMenu(false); setSelectedCard(null);}}
+                    className="w-full py-3 text-gray-400 hover:text-white mt-4"
+                  >
+                    Отмена
+                  </button>
+                </div>
+              </div>
+            </>
+          )}
         </div>
       );
     };
