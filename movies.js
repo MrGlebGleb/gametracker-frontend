@@ -161,6 +161,29 @@ function Column({ title, emoji, items, columnKey, isExpanded, onToggleExpand, is
         <div className="accordion-content">
           <div className="space-y-2 flex-grow min-h-[150px]">
               {visibleItems.map(it => <MediaCard key={it.id} item={it} isViewingFriend={isViewingFriend} boardId={boardId} boardKey={columnKey} onMobileClick={handlers.onMobileClick} {...handlers} />)}
+              
+              {items.length === 0 && (
+                <div className="flex flex-col items-center justify-center py-12 text-center">
+                  <div className="text-6xl mb-4">
+                    {columnKey.includes('movie') ? '🎬' : '📺'}
+                  </div>
+                  <p className="text-gray-400 text-lg mb-2">Здесь пока пусто</p>
+                  <p className="text-gray-500 text-sm mb-4">
+                    {columnKey === 'movie:wishlist' && 'Добавьте фильмы которые хотите посмотреть'}
+                    {columnKey === 'movie:watched' && 'Сюда попадут просмотренные фильмы 🍿'}
+                    {columnKey === 'tv:wishlist' && 'Добавьте сериалы которые хотите посмотреть'}
+                    {columnKey === 'tv:watched' && 'Сюда попадут просмотренные сериалы ✅'}
+                  </p>
+                  {!isViewingFriend && columnKey.includes('wishlist') && (
+                    <button 
+                      onClick={() => handlers.onSearch && handlers.onSearch()}
+                      className="px-4 py-2 bg-purple-500 hover:bg-purple-600 rounded-lg text-white text-sm transition-colors"
+                    >
+                      + Добавить первый {columnKey.includes('movie') ? 'фильм' : 'сериал'}
+                    </button>
+                  )}
+                </div>
+              )}
           </div>
           {items.length > MEDIA_PER_COLUMN && (
             <button onClick={() => onToggleExpand(columnKey)} className="w-full text-center mt-3 py-1.5 text-xs font-semibold text-purple-300 bg-purple-500/10 hover:bg-purple-500/20 rounded-lg flex items-center justify-center gap-1">
@@ -395,6 +418,7 @@ function MovieApp() {
   const [showMoveMenu, setShowMoveMenu] = useState(false);
   const [selectedCard, setSelectedCard] = useState(null);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+  const [showMobileMenu, setShowMobileMenu] = useState(false);
   const [userNickname, setUserNickname] = useState('');
   const [confirmingAddFriend, setConfirmingAddFriend] = useState(null);
   const [confirmingDeleteFriend, setConfirmingDeleteFriend] = useState(null);
@@ -684,6 +708,36 @@ function MovieApp() {
   
   return (
     <div className={`min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-blue-900 ${theme} flex flex-col`}>
+      {/* Мобильный header */}
+      <header className="md:hidden bg-gray-900/50 backdrop-blur-xl border-b border-purple-500/30 sticky top-0 z-50">
+        <div className="flex items-center justify-between px-4 py-3">
+          <div className="flex items-center gap-3">
+            <button onClick={() => setShowMobileMenu(true)} className="p-2 hover:bg-gray-800/50 rounded-lg">
+              <Icon name="menu" className="w-6 h-6 text-white" />
+            </button>
+            <div className="flex items-center gap-2">
+              <span className="text-2xl">🎬</span>
+              <span className="text-lg font-bold text-white">MovieTracker</span>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <button onClick={() => setShowSearch(true)} className="p-2 relative hover:bg-gray-800/50 rounded-lg">
+              <Icon name="search" className="w-5 h-5 text-purple-400" />
+            </button>
+            <button className="p-2 relative hover:bg-gray-800/50 rounded-lg">
+              <Icon name="bell" className="w-5 h-5 text-purple-400" />
+              {friendRequests.length > 0 && (
+                <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
+              )}
+            </button>
+            <button onClick={() => setShowMobileMenu(true)} className="p-1 hover:bg-gray-800/50 rounded-lg">
+              <Avatar src={user?.avatar} size="sm" />
+            </button>
+          </div>
+        </div>
+      </header>
+
+      {/* Desktop header */}
       <header className="hidden md:block bg-gray-900/50 backdrop-blur-xl border-b border-purple-500/30 sticky top-0 z-50 flex-shrink-0">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between flex-wrap gap-4">
@@ -760,13 +814,13 @@ function MovieApp() {
             
             {/* Desktop: 4 columns side by side, Tablet: 2x2 grid, Mobile: 1 column stack */}
             <div className="md:col-span-2 lg:col-span-1" onDrop={(e) => onDrop(e, 'movie:wishlist')} onDragEnter={onDragEnterColumn} onDragLeave={onDragLeaveColumn}>
-                <Column title="🎬 Хочу посмотреть" emoji="" items={movies.wishlist} columnKey="movie:wishlist" isExpanded={!!expandedColumns['movie:wishlist']} onToggleExpand={toggleColumnExpansion} onSelect={setSelectedMedia} onRemove={removeItem} onDragStart={onDragStart} onDragEnd={onDragEnd} onMobileClick={handleMobileCardClick} isViewingFriend={!!viewingUser} />
+                <Column title="🎬 Хочу посмотреть" emoji="" items={movies.wishlist} columnKey="movie:wishlist" isExpanded={!!expandedColumns['movie:wishlist']} onToggleExpand={toggleColumnExpansion} onSelect={setSelectedMedia} onRemove={removeItem} onDragStart={onDragStart} onDragEnd={onDragEnd} onMobileClick={handleMobileCardClick} onSearch={() => setShowSearch(true)} isViewingFriend={!!viewingUser} />
             </div>
             <div className="md:col-span-2 lg:col-span-1" onDrop={(e) => onDrop(e, 'movie:watched')} onDragEnter={onDragEnterColumn} onDragLeave={onDragLeaveColumn}>
                 <Column title="🍿 Посмотрел" emoji="" items={movies.watched} columnKey="movie:watched" isExpanded={!!expandedColumns['movie:watched']} onToggleExpand={toggleColumnExpansion} onSelect={setSelectedMedia} onRemove={removeItem} onDragStart={onDragStart} onDragEnd={onDragEnd} onMobileClick={handleMobileCardClick} isViewingFriend={!!viewingUser} />
             </div>
             <div className="md:col-span-2 lg:col-span-1" onDrop={(e) => onDrop(e, 'tv:wishlist')} onDragEnter={onDragEnterColumn} onDragLeave={onDragLeaveColumn}>
-                <Column title="📺 Хочу посмотреть" emoji="" items={tv.wishlist} columnKey="tv:wishlist" isExpanded={!!expandedColumns['tv:wishlist']} onToggleExpand={toggleColumnExpansion} onSelect={setSelectedMedia} onRemove={removeItem} onDragStart={onDragStart} onDragEnd={onDragEnd} onMobileClick={handleMobileCardClick} isViewingFriend={!!viewingUser} />
+                <Column title="📺 Хочу посмотреть" emoji="" items={tv.wishlist} columnKey="tv:wishlist" isExpanded={!!expandedColumns['tv:wishlist']} onToggleExpand={toggleColumnExpansion} onSelect={setSelectedMedia} onRemove={removeItem} onDragStart={onDragStart} onDragEnd={onDragEnd} onMobileClick={handleMobileCardClick} onSearch={() => setShowSearch(true)} isViewingFriend={!!viewingUser} />
             </div>
             <div className="md:col-span-2 lg:col-span-1" onDrop={(e) => onDrop(e, 'tv:watched')} onDragEnter={onDragEnterColumn} onDragLeave={onDragLeaveColumn}>
                 <Column title="✅ Посмотрел" emoji="" items={tv.watched} columnKey="tv:watched" isExpanded={!!expandedColumns['tv:watched']} onToggleExpand={toggleColumnExpansion} onSelect={setSelectedMedia} onRemove={removeItem} onDragStart={onDragStart} onDragEnd={onDragEnd} onMobileClick={handleMobileCardClick} isViewingFriend={!!viewingUser} />
@@ -1132,6 +1186,73 @@ function MovieApp() {
                 Отмена
               </button>
             </div>
+          </div>
+        </>
+      )}
+
+      {/* Мобильное меню */}
+      {showMobileMenu && (
+        <>
+          <div className="fixed inset-0 bg-black/60 z-40" onClick={() => setShowMobileMenu(false)} />
+          <div className="fixed top-0 left-0 h-full w-72 bg-gray-900 z-50 p-6 overflow-y-auto transform transition-transform">
+            {/* Профиль */}
+            <div className="flex items-center gap-3 mb-6 pb-6 border-b border-gray-700">
+              <Avatar src={user?.avatar} size="lg" />
+              <div>
+                <p className="text-white font-semibold">{user?.username}</p>
+                <p className="text-sm text-gray-400">{user?.email}</p>
+              </div>
+            </div>
+
+            {/* Переключение приложений */}
+            <div className="mb-6">
+              <p className="text-xs text-gray-500 mb-2">ПРИЛОЖЕНИЯ</p>
+              <button 
+                onClick={() => {window.location.href = '/index.html'; setShowMobileMenu(false);}}
+                className="w-full flex items-center gap-3 px-3 py-2 rounded-lg mb-2 text-gray-400 hover:bg-gray-800"
+              >
+                🎮 <span>GameTracker</span>
+              </button>
+              <button 
+                onClick={() => {window.location.href = '/movies.html'; setShowMobileMenu(false);}}
+                className="w-full flex items-center gap-3 px-3 py-2 rounded-lg bg-purple-500/20 text-purple-400"
+              >
+                🎬 <span>MovieTracker</span>
+              </button>
+            </div>
+
+            {/* Навигация */}
+            <div className="space-y-2 mb-6">
+              <button 
+                onClick={() => {setShowUserHub(true); setShowMobileMenu(false);}}
+                className="w-full flex items-center gap-3 px-3 py-2 text-gray-300 hover:bg-gray-800 rounded-lg"
+              >
+                👥 <span>Друзья</span>
+                {friendRequests.length > 0 && (
+                  <span className="ml-auto bg-red-500 text-white text-xs px-2 py-0.5 rounded-full">{friendRequests.length}</span>
+                )}
+              </button>
+              <button 
+                onClick={() => {/* Open Stats */; setShowMobileMenu(false);}}
+                className="w-full flex items-center gap-3 px-3 py-2 text-gray-300 hover:bg-gray-800 rounded-lg"
+              >
+                📊 <span>Статистика</span>
+              </button>
+              <button 
+                onClick={() => {setShowProfile(true); setShowMobileMenu(false);}}
+                className="w-full flex items-center gap-3 px-3 py-2 text-gray-300 hover:bg-gray-800 rounded-lg"
+              >
+                ⚙️ <span>Настройки</span>
+              </button>
+            </div>
+
+            {/* Выход */}
+            <button 
+              onClick={() => {/* handleLogout */; setShowMobileMenu(false);}}
+              className="w-full flex items-center gap-3 px-3 py-2 text-red-400 hover:bg-red-500/10 rounded-lg"
+            >
+              🚪 <span>Выйти</span>
+            </button>
           </div>
         </>
       )}

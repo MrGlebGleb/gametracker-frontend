@@ -3539,7 +3539,49 @@
                           Очистить поиск
                         </button>
                       </div>
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                      
+                      {/* Мобильная версия результатов поиска */}
+                      <div className="md:hidden space-y-3">
+                        {myGamesSearchResults.map(game => (
+                          <div key={game.id} className="bg-gray-800/80 rounded-xl p-3 border border-gray-700">
+                            <div className="flex gap-3">
+                              <img 
+                                src={game.cover} 
+                                alt={game.name}
+                                className="w-16 h-24 object-cover rounded-lg flex-shrink-0"
+                              />
+                              <div className="flex-1 min-w-0">
+                                <h3 className="text-white font-semibold text-sm line-clamp-2 mb-1">
+                                  {game.name}
+                                </h3>
+                                <p className="text-gray-400 text-xs mb-2">
+                                  {boards[game.board_id]?.title || 'Неизвестная колонка'}
+                                </p>
+                                <div className="flex gap-1">
+                                  <button
+                                    onClick={() => {
+                                      setSelectedGame(game);
+                                      setShowMyGamesSearch(false);
+                                    }}
+                                    className="px-3 py-1 bg-purple-500 hover:bg-purple-600 text-white text-xs rounded-lg transition-colors"
+                                  >
+                                    Открыть
+                                  </button>
+                                  <button
+                                    onClick={() => deleteCard(null, game.id)}
+                                    className="px-3 py-1 bg-red-500 hover:bg-red-600 text-white text-xs rounded-lg transition-colors"
+                                  >
+                                    Удалить
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+
+                      {/* Десктопная версия результатов поиска */}
+                      <div className="hidden md:grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                         {myGamesSearchResults.map(game => (
                           <div key={game.id} className="bg-gray-800/50 backdrop-blur-xl rounded-lg p-4 border border-gray-700 hover:border-purple-500/50 transition-colors">
                             <div className="flex items-start gap-3">
@@ -3722,6 +3764,27 @@
                                   )}
                               </div>
                           ))}
+                          
+                          {board.cards.length === 0 && (
+                            <div className="flex flex-col items-center justify-center py-12 text-center">
+                              <div className="text-6xl mb-4">{board.emoji}</div>
+                              <p className="text-gray-400 text-lg mb-2">Здесь пока пусто</p>
+                              <p className="text-gray-500 text-sm mb-4">
+                                {board.id === 'backlog' && 'Добавьте игры которые хотите пройти'}
+                                {board.id === 'playing' && 'Перетащите сюда игры в которые играете'}
+                                {board.id === 'completed' && 'Сюда попадут пройденные игры 🎉'}
+                                {board.id === 'dropped' && 'Игры которые не зашли'}
+                              </p>
+                              {!viewingUser && board.id === 'backlog' && (
+                                <button 
+                                  onClick={() => setShowSearch(true)}
+                                  className="px-4 py-2 bg-purple-500 hover:bg-purple-600 rounded-lg text-white text-sm transition-colors"
+                                >
+                                  + Добавить первую игру
+                                </button>
+                              )}
+                            </div>
+                          )}
                           </div>
 
                           {board.cards.length > GAMES_PER_COLUMN && (
@@ -3842,9 +3905,23 @@
                           ))}
                           
                           {board.cards.length === 0 && (
-                            <div className="text-center py-8 text-gray-400">
-                              <span className="text-4xl mb-2 block">{board.emoji}</span>
-                              <p>Пока нет игр в этой категории</p>
+                            <div className="flex flex-col items-center justify-center py-12 text-center">
+                              <div className="text-6xl mb-4">{board.emoji}</div>
+                              <p className="text-gray-400 text-lg mb-2">Здесь пока пусто</p>
+                              <p className="text-gray-500 text-sm mb-4">
+                                {board.id === 'backlog' && 'Добавьте игры которые хотите пройти'}
+                                {board.id === 'playing' && 'Перетащите сюда игры в которые играете'}
+                                {board.id === 'completed' && 'Сюда попадут пройденные игры 🎉'}
+                                {board.id === 'dropped' && 'Игры которые не зашли'}
+                              </p>
+                              {!viewingUser && board.id === 'backlog' && (
+                                <button 
+                                  onClick={() => setShowSearch(true)}
+                                  className="px-4 py-2 bg-purple-500 hover:bg-purple-600 rounded-lg text-white text-sm transition-colors"
+                                >
+                                  + Добавить первую игру
+                                </button>
+                              )}
                             </div>
                           )}
                           
