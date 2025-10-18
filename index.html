@@ -12,7 +12,7 @@
   <meta name="robots" content="index, follow">
   
   <!-- Security Headers -->
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.tailwindcss.com https://unpkg.com https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://cdnjs.cloudflare.com https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https: http:; connect-src 'self' https://gametracker-backend-production.up.railway.app https://api.themoviedb.org https://id.twitch.tv; frame-src 'none'; object-src 'none'; base-uri 'self';">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.tailwindcss.com https://unpkg.com https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://cdnjs.cloudflare.com https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https: http:; connect-src 'self' https://gametracker-backend-production.up.railway.app https://api.themoviedb.org https://id.twitch.tv https://unpkg.com; frame-src 'none'; object-src 'none'; base-uri 'self';">
   <meta http-equiv="X-Content-Type-Options" content="nosniff">
   <meta http-equiv="X-Frame-Options" content="DENY">
   <meta http-equiv="X-XSS-Protection" content="1; mode=block">
@@ -866,13 +866,12 @@
           {/* Кнопка с иконкой колокольчика */}
           <button
             onClick={() => setShowPanel(!showPanel)}
-            className="relative p-2 text-gray-300 hover:text-white transition-colors"
+            className="p-2 hover:bg-gray-800 rounded-lg border border-purple-500/30 relative"
+            title="Уведомления"
           >
-            <Icon name="bell" className="w-6 h-6" />
+            <Icon name="bell" className="w-4 h-4 md:w-5 md:h-5 text-purple-400" />
             {unreadCount > 0 && (
-              <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-bold">
-                {unreadCount > 99 ? '99+' : unreadCount}
-              </span>
+              <span className="absolute top-0 right-0 block h-2.5 w-2.5 rounded-full bg-red-500 ring-2 ring-white"></span>
             )}
           </button>
 

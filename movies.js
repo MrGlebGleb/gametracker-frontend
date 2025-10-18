@@ -222,7 +222,7 @@ const NotificationsPanel = ({ token, onNavigateToUser, onNavigateToGame }) => {
 };
 
 // Компонент страницы статистики
-const StatisticsPage = ({ isOpen, onClose, token, showMediaTab = true }) => {
+const StatisticsPage = ({ isOpen, onClose, token, boards, showMediaTab = true }) => {
   const [activeTab, setActiveTab] = useState('media');
   const [gamesStats, setGamesStats] = useState(null);
   const [mediaStats, setMediaStats] = useState(null);
@@ -1681,6 +1681,7 @@ function MovieApp() {
         isOpen={showStatistics} 
         onClose={() => setShowStatistics(false)} 
         token={localStorage.getItem('token')}
+        boards={boards}
         showMediaTab={true}
       />
       
