@@ -208,13 +208,57 @@
     }
     
     /* Swipe gesture styles */
-    .swipe-indicator {
-      width: 40px;
-      height: 4px;
-      background: rgba(255, 255, 255, 0.3);
-      border-radius: 2px;
-      margin: 8px auto;
-    }
+      .swipe-indicator {
+        width: 40px;
+        height: 4px;
+        background: rgba(255, 255, 255, 0.3);
+        border-radius: 2px;
+        margin: 8px auto;
+      }
+
+      @keyframes bounce {
+        0%, 20%, 53%, 80%, 100% {
+          transform: translate3d(0, 0, 0);
+        }
+        40%, 43% {
+          transform: translate3d(0, -10px, 0);
+        }
+        70% {
+          transform: translate3d(0, -5px, 0);
+        }
+        90% {
+          transform: translate3d(0, -2px, 0);
+        }
+      }
+
+      .animate-bounce {
+        animation: bounce 0.6s ease-in-out;
+      }
+
+      .reaction-highlight {
+        position: relative;
+        overflow: hidden;
+      }
+
+      .reaction-highlight::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(90deg, transparent, rgba(139, 92, 246, 0.3), transparent);
+        animation: shimmer 1.5s ease-in-out;
+      }
+
+      @keyframes shimmer {
+        0% {
+          left: -100%;
+        }
+        100% {
+          left: 100%;
+        }
+      }
     
     /* Liquid Eye Theme */
     .liquid-eye {
@@ -302,9 +346,56 @@
     const groupReactions = (reactions) => {
       if (!reactions || reactions.length === 0) return {};
       return reactions.reduce((acc, r) => {
-        acc[r.emoji] = (acc[r.emoji] || 0) + 1;
+        if (!acc[r.emoji]) {
+          acc[r.emoji] = { count: 0, users: [] };
+        }
+        acc[r.emoji].count++;
+        acc[r.emoji].users.push(r.username || r.user?.username || 'Аноним');
         return acc;
       }, {});
+    };
+
+    // Компонент для отображения группированных реакций
+    const ReactionGroup = ({ emoji, count, users, isUserReaction = false, onReactionClick }) => {
+      const [isAnimating, setIsAnimating] = useState(false);
+      const [showShimmer, setShowShimmer] = useState(false);
+      
+      const handleClick = () => {
+        if (onReactionClick) {
+          setIsAnimating(true);
+          setShowShimmer(true);
+          setTimeout(() => {
+            setIsAnimating(false);
+            setShowShimmer(false);
+          }, 600);
+          onReactionClick(emoji);
+        }
+      };
+
+      return (
+        <div className="relative group">
+          <button
+            onClick={handleClick}
+            className={`relative inline-flex items-center gap-1 px-2 py-1 rounded-full transition-all duration-200 hover:scale-105 ${
+              isUserReaction 
+                ? 'bg-purple-500/20 border border-purple-400/50 shadow-lg shadow-purple-500/25 reaction-highlight' 
+                : 'bg-gray-700/50 hover:bg-gray-600/50 border border-gray-600/30'
+            } ${isAnimating ? 'animate-bounce scale-110' : ''} ${showShimmer ? 'reaction-highlight' : ''}`}
+            title={`${users.join(', ')}`}
+          >
+            <span className="text-lg">{emoji}</span>
+            {count > 1 && (
+              <span className="text-xs text-gray-300 font-medium">{count}</span>
+            )}
+          </button>
+          
+          {/* Tooltip с именами пользователей */}
+          <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-800 rounded-lg text-sm text-white whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-50 shadow-lg">
+            {users.join(', ')}
+            <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-800"></div>
+          </div>
+        </div>
+      );
     };
 
     const Icon = ({ name, className = "w-5 h-5" }) => {
@@ -2042,16 +2133,23 @@
                   <div className="pt-2">
                     <p className="text-gray-400 text-sm mb-2">Ваша реакция:</p>
                     <div className="flex flex-wrap gap-2">
-                      {REACTION_EMOJIS.map(emoji => (
-                        <button
-                          key={emoji}
-                          onClick={() => onReact(game.id, emoji)}
-                          className={`text-2xl transform hover:scale-125 transition-transform p-1 rounded-full ${game.reactions?.find(r => r.user_id === user.id && r.emoji === emoji) ? 'bg-purple-500/30' : ''}`}
-                          title={`React with ${emoji}`}
-                        >
-                          {emoji}
-                        </button>
-                      ))}
+                      {REACTION_EMOJIS.map(emoji => {
+                        const userReaction = game.reactions?.find(r => r.user_id === user.id && r.emoji === emoji);
+                        return (
+                          <button
+                            key={emoji}
+                            onClick={() => onReact(game.id, emoji)}
+                            className={`text-2xl transform hover:scale-125 transition-all duration-200 p-2 rounded-full ${
+                              userReaction 
+                                ? 'bg-purple-500/30 border-2 border-purple-400/50 shadow-lg shadow-purple-500/25' 
+                                : 'hover:bg-gray-700/50 border border-transparent'
+                            }`}
+                            title={userReaction ? `Убрать реакцию ${emoji}` : `Добавить реакцию ${emoji}`}
+                          >
+                            {emoji}
+                          </button>
+                        );
+                      })}
                     </div>
                   </div>
                 </Fragment>
@@ -2061,12 +2159,25 @@
               
               {game.reactions && game.reactions.length > 0 && (
                 <div>
-                  <p className="text-gray-400 text-sm mb-2">Все реакции:</p>
-                  <div className="flex flex-wrap gap-2">
-                    {game.reactions.map((reaction, idx) => (
-                      <div key={idx} className="flex items-center gap-1 bg-gray-800 px-3 py-1 rounded-full">
-                        <span className="text-xl">{reaction.emoji}</span>
-                        <span className="text-xs text-gray-400">{reaction.username}</span>
+                  <p className="text-gray-400 text-sm mb-3">Все реакции:</p>
+                  <div className="space-y-2">
+                    {Object.entries(groupReactions(game.reactions)).map(([emoji, data]) => (
+                      <div key={emoji} className="bg-gray-800/50 rounded-lg p-3 border border-gray-700">
+                        <div className="flex items-center gap-3 mb-2">
+                          <span className="text-2xl">{emoji}</span>
+                          <span className="text-white font-medium">{data.count} {data.count === 1 ? 'реакция' : data.count < 5 ? 'реакции' : 'реакций'}</span>
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                          {data.users.map((username, idx) => (
+                            <div key={idx} className="flex items-center gap-2 bg-gray-700/50 px-2 py-1 rounded-full">
+                              <Avatar 
+                                src={game.reactions.find(r => r.username === username)?.user?.avatar} 
+                                size="xs" 
+                              />
+                              <span className="text-xs text-gray-300">{username}</span>
+                            </div>
+                          ))}
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -3706,8 +3817,16 @@
                                   <div className="flex items-end justify-between w-full">
                                     {card.reactions && card.reactions.length > 0 && (
                                         <div className="flex gap-1.5 mt-1 flex-wrap items-center">
-                                        {card.reactions.slice(0, 4).map((r, i) => <span key={i} className="text-lg">{r.emoji}</span>)}
-                                        {card.reactions.length > 4 && <span className="text-xs text-gray-400 self-center">+{card.reactions.length - 4}</span>}
+                                          {Object.entries(groupReactions(card.reactions)).map(([emoji, data]) => (
+                                            <ReactionGroup
+                                              key={emoji}
+                                              emoji={emoji}
+                                              count={data.count}
+                                              users={data.users}
+                                              isUserReaction={data.users.some(u => u === user?.username)}
+                                              onReactionClick={(emoji) => addReaction(card.id, emoji)}
+                                            />
+                                          ))}
                                         </div>
                                     )}
                                     {card.tags && card.tags.length > 0 && (
@@ -3930,10 +4049,15 @@
                                   {/* Реакции */}
                                   {card.reactions?.length > 0 && (
                                     <div className="flex gap-1 flex-wrap">
-                                      {Object.entries(groupReactions(card.reactions)).map(([emoji, count]) => (
-                                        <span key={emoji} className="text-base">
-                                          {emoji}{count > 1 && <span className="text-xs text-gray-400">×{count}</span>}
-                                        </span>
+                                      {Object.entries(groupReactions(card.reactions)).map(([emoji, data]) => (
+                                        <ReactionGroup
+                                          key={emoji}
+                                          emoji={emoji}
+                                          count={data.count}
+                                          users={data.users}
+                                          isUserReaction={data.users.some(u => u === user?.username)}
+                                          onReactionClick={(emoji) => addReaction(card.id, emoji)}
+                                        />
                                       ))}
                                     </div>
                                   )}
