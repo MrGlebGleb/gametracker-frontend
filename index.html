@@ -11,6 +11,13 @@
   <meta name="author" content="GameTracker">
   <meta name="robots" content="index, follow">
   
+  <!-- Security Headers -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.tailwindcss.com https://unpkg.com https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://cdnjs.cloudflare.com https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https: http:; connect-src 'self' https://gametracker-backend-production.up.railway.app https://api.themoviedb.org https://id.twitch.tv; frame-src 'none'; object-src 'none'; base-uri 'self';">
+  <meta http-equiv="X-Content-Type-Options" content="nosniff">
+  <meta http-equiv="X-Frame-Options" content="DENY">
+  <meta http-equiv="X-XSS-Protection" content="1; mode=block">
+  <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
+  
   <!-- Open Graph Meta Tags -->
   <meta property="og:title" content="GameTracker - Отслеживание игр и фильмов">
   <meta property="og:description" content="Современное приложение для отслеживания игр, фильмов и сериалов. Управляйте коллекцией, делитесь с друзьями.">
@@ -373,7 +380,13 @@
   <div id="root"></div>
   <script type="text/babel">
     const { useState, useEffect, useRef, Fragment, useCallback } = React;
-    const API_URL = 'https://gametracker-backend-production.up.railway.app';
+    
+    // Обфусцированный API URL для базовой защиты
+    const getApiUrl = () => {
+      const encoded = 'aHR0cHM6Ly9nYW1ldHJhY2tlci1iYWNrZW5kLXByb2R1Y3Rpb24udXAucmFpbHdheS5hcHA=';
+      return atob(encoded);
+    };
+    const API_URL = getApiUrl();
     const REACTION_EMOJIS = ['😍', '🔥', '👍', '😮', '😂', '👎', '❤️', '🤔', '😢', '🤯', '😴', '💯', '💀', '🤨', '🥳'];
     const GAMES_PER_COLUMN = 5;
 

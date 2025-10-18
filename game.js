@@ -11,7 +11,12 @@ window.GameRunner = (function() {
     let animationFrameId; // ID для управления игровым циклом
     let isMobile, scaleFactor, showTouchHint, touchHintTimer;
 
-    const API_URL = 'https://gametracker-backend-production.up.railway.app';
+    // Обфусцированный API URL для базовой защиты
+    const getApiUrl = () => {
+        const encoded = 'aHR0cHM6Ly9nYW1ldHJhY2tlci1iYWNrZW5kLXByb2R1Y3Rpb24udXAucmFpbHdheS5hcHA=';
+        return atob(encoded);
+    };
+    const API_URL = getApiUrl();
     let GAME_WIDTH = Math.min(900, window.innerWidth - 40);
     const GAME_HEIGHT = 250;
     const MIN_GAME_WIDTH = 320; // Минимальная ширина для очень маленьких экранов
