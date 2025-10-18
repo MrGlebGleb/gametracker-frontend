@@ -153,17 +153,25 @@ function MediaCard({ item, onSelect, onRemove, onDragStart, onDragEnd, isViewing
       ></div>
       <div className="relative flex-shrink-0">
         <img src={item.poster || 'https://placehold.co/96x128/1f2937/ffffff?text=?'} alt={item.title} className="w-20 h-28 md:w-16 md:h-24 object-cover rounded-lg flex-shrink-0" />
-        {/* Рейтинг звездами как overlay */}
-        {item.rating && (
-          <div className="absolute bottom-2 left-1/2 transform -translate-x-1/2 bg-black/70 backdrop-blur-sm rounded px-1.5 py-0.5 flex gap-0.5">
-            {[...Array(5)].map((_, i) => (<Icon key={i} name="star" className={`w-2 h-2 ${i < item.rating ? 'text-yellow-400' : 'text-gray-400'}`} />))}
-          </div>
-        )}
       </div>
       <div className="flex flex-col justify-between flex-grow min-w-0 py-1">
         <div>
           <h3 className="text-white font-semibold text-base md:text-sm line-clamp-2">{item.title}</h3>
         </div>
+        {/* Рейтинг внизу справа */}
+        {item.rating && (
+          <div className="flex justify-end mt-2">
+            <div className="flex gap-0.5">
+              {[...Array(5)].map((_, i) => (
+                <Icon 
+                  key={i} 
+                  name="star" 
+                  className={`w-3.5 h-3.5 ${i < item.rating ? 'text-yellow-400' : 'text-gray-500'}`} 
+                />
+              ))}
+            </div>
+          </div>
+        )}
       </div>
        {!isViewingFriend ? (
             <button onClick={(e) => onRemove(e, item)} className="absolute top-1 right-1 p-1.5 bg-red-600/80 hover:bg-red-500 rounded-full opacity-0 group-hover:opacity-100 transition-opacity self-start flex-shrink-0 z-10">
@@ -548,6 +556,22 @@ function MediaDetailsModal({ item, onClose, onUpdate, onReact, isViewingFriend, 
               </div>
             </div>
           )}
+          
+          {/* Кнопка добавления тега */}
+          {!isViewingFriend && (
+            <div className="flex justify-center">
+              <button
+                onClick={() => {
+                  setSelectedMediaForTag(item);
+                  setShowTagModal(true);
+                }}
+                className="flex items-center gap-2 px-4 py-2 bg-purple-500/20 hover:bg-purple-500/30 text-purple-400 rounded-lg transition-colors"
+              >
+                <Icon name="tag" className="w-4 h-4" />
+                Добавить тег
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </div>
@@ -743,7 +767,7 @@ function MovieApp() {
   const loadUserTags = useCallback(async () => {
     if (!token) return;
     try {
-      const response = await fetch(`${API_URL}/api/tags`, { headers: { 'Authorization': `Bearer ${token}` } });
+      const response = await fetch(`${API_URL}/api/tags?type=media`, { headers: { 'Authorization': `Bearer ${token}` } });
       if (response.ok) {
         const data = await response.json();
         setUserTags(data.tags || []);
@@ -964,7 +988,7 @@ function MovieApp() {
     const response = await fetch(`${API_URL}/api/tags`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-      body: JSON.stringify({ name, color })
+      body: JSON.stringify({ name, color, type: 'media' })
     });
     
     if (response.ok) {
