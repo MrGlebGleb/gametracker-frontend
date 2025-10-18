@@ -4316,6 +4316,22 @@
               </div>
             </>
           )}
+
+          {/* Модалка для добавления тегов */}
+          {showTagModal && selectedGameForTag && (
+            <TagModal
+              game={selectedGameForTag}
+              token={localStorage.getItem('token')}
+              onTagAdded={() => {
+                loadBoards(localStorage.getItem('token'));
+              }}
+              isOpen={showTagModal}
+              onClose={() => {
+                setShowTagModal(false);
+                setSelectedGameForTag(null);
+              }}
+            />
+          )}
         </div>
       );
     };
@@ -4529,22 +4545,6 @@
                     </button>
                 )}
             </div>
-
-            {/* Модалка для добавления тегов */}
-            {showTagModal && selectedGameForTag && (
-              <TagModal
-                game={selectedGameForTag}
-                token={localStorage.getItem('token')}
-                onTagAdded={() => {
-                  loadBoards(localStorage.getItem('token'));
-                }}
-                isOpen={showTagModal}
-                onClose={() => {
-                  setShowTagModal(false);
-                  setSelectedGameForTag(null);
-                }}
-              />
-            )}
         );
     };
 
