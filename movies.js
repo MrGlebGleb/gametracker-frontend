@@ -383,7 +383,7 @@ const StatisticsPage = ({ isOpen, onClose, token, boards, showMediaTab = true })
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <div className="modal-bg rounded-xl w-full max-w-4xl max-h-[70vh] flex flex-col">
+      <div className="bg-[#e5eaf5]/95 backdrop-blur-xl rounded-xl w-full max-w-4xl max-h-[70vh] flex flex-col">
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-gray-700 pt-8">
           <div>
@@ -455,22 +455,22 @@ const MediaStatsContent = ({ stats }) => {
     <div className="space-y-6">
       {/* Карточки с числами */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="stat-movies-watched backdrop-blur-xl rounded-xl p-6 border border-green-500/30">
+        <div className="bg-gradient-to-br from-[#a0d2eb] to-[#e5eaf5] backdrop-blur-xl rounded-xl p-6 border border-green-500/30">
           <div className="text-3xl mb-2">🎬</div>
           <h3 className="text-sm font-semibold text-gray-300 mb-1">Фильмов просмотрено</h3>
           <p className="text-3xl font-bold text-white">{stats.summary?.watchedMovies || 0}</p>
         </div>
-        <div className="stat-tv-watched backdrop-blur-xl rounded-xl p-6 border border-blue-500/30">
+        <div className="bg-gradient-to-br from-[#8458B3] to-[#a28089] backdrop-blur-xl rounded-xl p-6 border border-blue-500/30">
           <div className="text-3xl mb-2">📺</div>
           <h3 className="text-sm font-semibold text-gray-300 mb-1">Сериалов просмотрено</h3>
           <p className="text-3xl font-bold text-white">{stats.summary?.watchedTvShows || 0}</p>
         </div>
-        <div className="stat-movies-wishlist backdrop-blur-xl rounded-xl p-6 border border-orange-500/30">
+        <div className="bg-gradient-to-br from-[#d0bdf4] to-[#a28089] backdrop-blur-xl rounded-xl p-6 border border-orange-500/30">
           <div className="text-3xl mb-2">📋</div>
           <h3 className="text-sm font-semibold text-gray-300 mb-1">Фильмов отложено</h3>
           <p className="text-3xl font-bold text-white">{stats.summary?.wishlistMovies || 0}</p>
         </div>
-        <div className="stat-tv-wishlist backdrop-blur-xl rounded-xl p-6 border border-purple-500/30">
+        <div className="bg-gradient-to-br from-[#8458B3] to-[#d0bdf4] backdrop-blur-xl rounded-xl p-6 border border-purple-500/30">
           <div className="text-3xl mb-2">⏳</div>
           <h3 className="text-sm font-semibold text-gray-300 mb-1">Сериалов отложено</h3>
           <p className="text-3xl font-bold text-white">{stats.summary?.wishlistTvShows || 0}</p>
@@ -529,7 +529,7 @@ const MediaStatsContent = ({ stats }) => {
                   </div>
                   <div className="flex items-center gap-1">
                     {[...Array(5)].map((_, i) => (
-                      <Icon key={i} name="star" className={`w-4 h-4 ${i < (movie.rating || 0) ? 'star-active' : 'star-inactive'}`} />
+                      <Icon key={i} name="star" className={`w-4 h-4 ${i < (movie.rating || 0) ? 'text-[#8458B3]' : 'text-[#e5eaf5]'}`} />
                     ))}
                     <span className="ml-2 text-white font-medium">{movie.rating || 0}</span>
                   </div>
@@ -561,7 +561,7 @@ const MediaStatsContent = ({ stats }) => {
                   </div>
                   <div className="flex items-center gap-1">
                     {[...Array(5)].map((_, i) => (
-                      <Icon key={i} name="star" className={`w-4 h-4 ${i < (series.rating || 0) ? 'star-active' : 'star-inactive'}`} />
+                      <Icon key={i} name="star" className={`w-4 h-4 ${i < (series.rating || 0) ? 'text-[#8458B3]' : 'text-[#e5eaf5]'}`} />
                     ))}
                     <span className="ml-2 text-white font-medium">{series.rating || 0}</span>
                   </div>
@@ -852,7 +852,7 @@ function StarRating({ value = 0, onChange }) {
     <div className="flex items-center gap-1">
       {[1, 2, 3, 4, 5].map(star => (
         <button key={star} onClick={() => onChange(star)} className="transition-transform hover:scale-110">
-          <Icon name="star" className={`w-8 h-8 ${star <= value ? 'star-active' : 'star-inactive'}`} />
+          <Icon name="star" className={`w-8 h-8 ${star <= value ? 'text-[#8458B3]' : 'text-[#e5eaf5]'}`} />
         </button>
       ))}
     </div>
@@ -868,7 +868,7 @@ function MediaCard({ item, onSelect, onRemove, onDragStart, onDragEnd, isViewing
       onDragStart={(e) => !isViewingFriend && onDragStart(e, item)}
       onDragEnd={onDragEnd}
       onClick={() => onSelect(item)}
-          className="bg-gray-800/80 rounded-xl border border-gray-700 hover:border-purple-500 hover:-translate-y-1 transition-all duration-200 cursor-pointer flex gap-3 p-2 group relative elevation-1 hover:elevation-2 shadow-transition media-card card-hover"
+          className="bg-gray-800/80 rounded-xl border border-gray-700 hover:border-[#8458B3] hover:-translate-y-1 hover:shadow-[0_0_20px_#a0d2eb] transition-all duration-200 cursor-pointer flex gap-3 p-2 group relative elevation-1 hover:elevation-2 shadow-transition media-card"
     >
       {/* Цветная полоска слева */}
       <div 
@@ -889,7 +889,7 @@ function MediaCard({ item, onSelect, onRemove, onDragStart, onDragEnd, isViewing
                 <Icon 
                   key={i} 
                   name="star" 
-                  className={`w-3 h-3 ${i < item.rating ? 'star-active' : 'star-inactive'}`} 
+                  className={`w-3 h-3 ${i < item.rating ? 'text-[#8458B3]' : 'text-[#e5eaf5]'}`} 
                 />
               ))}
             </div>
@@ -950,7 +950,9 @@ function Column({ title, emoji, items, columnKey, isExpanded, onToggleExpand, is
   const boardId = columnKey.includes('wishlist') ? 'wishlist' : 'watched';
   const visibleItems = isExpanded ? items : items.slice(0, MEDIA_PER_COLUMN);
     
-  const cardClass = boardId === 'wishlist' ? 'card-wishlist' : 'card-watched';
+  const cardClass = boardId === 'wishlist' 
+    ? 'bg-gradient-to-br from-[#a0d2eb] to-[#e5eaf5] border-2 border-[#8458B3]' 
+    : 'bg-gradient-to-br from-[#d0bdf4] to-[#8458B3] border-2 border-[#8458B3]';
   
   return (
     <div className={`${cardClass} backdrop-blur-xl rounded-xl p-4 flex flex-col h-full elevation-1 board-column`}>
@@ -963,7 +965,7 @@ function Column({ title, emoji, items, columnKey, isExpanded, onToggleExpand, is
                 {!isViewingFriend && onAddItem && (
                     <button 
                         onClick={() => onAddItem(columnKey)}
-                        className="p-1.5 btn-add hover:bg-white/20 rounded-full transition-colors">
+                        className="p-1.5 bg-gradient-to-r from-[#8458B3] to-[#a28089] hover:bg-[#a0d2eb] rounded-full transition-colors">
                         <Icon name="plus" className="w-4 h-4 text-white"/>
                     </button>
                 )}
@@ -973,7 +975,7 @@ function Column({ title, emoji, items, columnKey, isExpanded, onToggleExpand, is
             {visibleItems.map(it => <MediaCard key={it.id} item={it} isViewingFriend={isViewingFriend} boardId={boardId} {...handlers} />)}
         </div>
         {items.length > MEDIA_PER_COLUMN && (
-          <button onClick={() => onToggleExpand(columnKey)} className="w-full text-center mt-3 py-1.5 text-xs font-semibold text-white btn-add hover:bg-white/20 rounded-lg flex items-center justify-center gap-1">
+          <button onClick={() => onToggleExpand(columnKey)} className="w-full text-center mt-3 py-1.5 text-xs font-semibold text-white bg-gradient-to-r from-[#8458B3] to-[#a28089] hover:bg-[#a0d2eb] rounded-lg flex items-center justify-center gap-1">
             {isExpanded ? 'Свернуть' : `Показать еще ${items.length - MEDIA_PER_COLUMN}`}
             <Icon name={isExpanded ? 'chevronUp' : 'chevronDown'} className="w-3 h-3" />
           </button>
@@ -988,7 +990,7 @@ function MediaDetailsModal({ item, onClose, onUpdate, onReact, isViewingFriend, 
 
   return (
     <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-[100] p-4" onClick={onClose}>
-      <div className="modal-bg rounded-2xl p-6 w-full max-w-md border border-purple-500/30 max-h-[90vh] overflow-y-auto elevation-3" onClick={e => e.stopPropagation()}>
+      <div className="bg-[#e5eaf5]/95 backdrop-blur-xl rounded-2xl p-6 w-full max-w-md border border-purple-500/30 max-h-[90vh] overflow-y-auto elevation-3" onClick={e => e.stopPropagation()}>
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-xl font-bold text-white">{item.title}</h2>
           <button onClick={onClose} className="p-2 hover:bg-gray-800 rounded-lg"><Icon name="x" className="w-5 h-5 text-gray-400" /></button>
@@ -1007,7 +1009,7 @@ function MediaDetailsModal({ item, onClose, onUpdate, onReact, isViewingFriend, 
               </Fragment>
           ) : (
              <Fragment>
-                {item.rating && <div><p className="text-gray-400 text-sm mb-2">Рейтинг от {item.owner.username}:</p><div className="flex gap-1">{[...Array(5)].map((_, i) => (<Icon key={i} name="star" className={`w-6 h-6 ${i < item.rating ? 'star-active' : 'star-inactive'}`} />))}</div></div>}
+                {item.rating && <div><p className="text-gray-400 text-sm mb-2">Рейтинг от {item.owner.username}:</p><div className="flex gap-1">{[...Array(5)].map((_, i) => (<Icon key={i} name="star" className={`w-6 h-6 ${i < item.rating ? 'text-[#8458B3]' : 'text-[#e5eaf5]'}`} />))}</div></div>}
                 {item.review && <div><p className="text-gray-400 text-sm mb-1">Отзыв от {item.owner.username}:</p><p className="text-white bg-gray-800 p-3 rounded-lg border border-gray-700">{item.review}</p></div>}
                 {!item.rating && !item.review && <p className="text-gray-400 italic">Пользователь не оставил отзыва.</p>}
              </Fragment>
@@ -1045,7 +1047,7 @@ function MediaDetailsModal({ item, onClose, onUpdate, onReact, isViewingFriend, 
                   return Object.entries(groupedReactions).map(([emoji, reactions]) => (
                     <div 
                       key={emoji} 
-                      className="flex items-center gap-1 reaction-bg px-3 py-1 rounded-full group cursor-pointer hover:bg-gray-700 transition-colors" 
+                      className="flex items-center gap-1 bg-[#e5eaf5] px-3 py-1 rounded-full group cursor-pointer hover:bg-gray-700 transition-colors" 
                       title={`${reactions.map(r => r.username).join(', ')}`}
                     >
                       <div className="flex -space-x-1">
@@ -1078,7 +1080,7 @@ function MediaDetailsModal({ item, onClose, onUpdate, onReact, isViewingFriend, 
               href={`https://www.youtube.com/results?search_query=${encodeURIComponent(item.title + ' trailer')}`} 
               target="_blank" 
               rel="noopener noreferrer"
-              className="flex-1 flex items-center justify-center gap-2 py-2 btn-trailer text-white font-bold rounded-lg hover:bg-red-700 transition-colors">
+              className="flex-1 flex items-center justify-center gap-2 py-2 bg-red-600 border-2 border-[#8458B3] text-white font-bold rounded-lg hover:bg-red-700 transition-colors">
               <Icon name="youtube" className="w-6 h-6" />
               Трейлер
             </a>
@@ -1147,7 +1149,7 @@ function ActivityFeed({ token, boardType = 'media', onNavigateToUser }) {
     };
     
     return (
-        <div className="dark-section backdrop-blur-xl rounded-xl border border-purple-500/30 p-6">
+        <div className="bg-gradient-to-br from-[#8458B3] to-[#a28089] backdrop-blur-xl rounded-xl border border-purple-500/30 p-6">
             <h3 className="text-xl font-bold text-white mb-4">Активность друзей</h3>
             {loading ? (
                 <div className="w-full flex items-center justify-center p-10"><Icon name="loader" className="w-8 h-8 text-purple-400"/></div>
@@ -1491,8 +1493,8 @@ function MovieApp() {
   const tv = boards.tv || { wishlist: [], watched: [] };
   
   return (
-    <div className={`min-h-screen movie-tracker-bg ${theme} flex flex-col`}>
-      <header className="bg-gray-900/50 backdrop-blur-xl border-b border-purple-500/30 sticky top-0 z-50 flex-shrink-0">
+    <div className={`min-h-screen bg-gradient-to-br from-[#e5eaf5] to-[#d0bdf4] ${theme} flex flex-col`}>
+      <header className="bg-[#e5eaf5]/50 backdrop-blur-xl border-b border-[#8458B3]/30 sticky top-0 z-50 flex-shrink-0">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between flex-wrap gap-4">
             <div className="flex items-center gap-4 flex-wrap">
@@ -1538,13 +1540,13 @@ function MovieApp() {
                     ) : (
                        <Fragment>
                            <button onClick={() => setShowStatistics(true)} className="p-2 hover:bg-gray-800 rounded-lg border border-purple-500/30" title="Статистика фильмов">
-                               <Icon name="barChart" className="w-4 h-4 md:w-5 md:h-5 header-icon" />
+                               <Icon name="barChart" className="w-4 h-4 md:w-5 md:h-5 text-[#8458B3] hover:text-[#a0d2eb]" />
                            </button>
                            <button onClick={() => setShowProfile(true)} className="p-2 hover:bg-gray-800 rounded-lg border border-purple-500/30">
-                               <Icon name="settings" className="w-4 h-4 md:w-5 md:h-5 header-icon" />
+                               <Icon name="settings" className="w-4 h-4 md:w-5 md:h-5 text-[#8458B3] hover:text-[#a0d2eb]" />
                            </button>
                            <button onClick={() => { setShowUserHub(true); loadAllUsers(); }} className="p-2 hover:bg-gray-800 rounded-lg border border-purple-500/30 relative">
-                               <Icon name="users" className="w-4 h-4 md:w-5 md:h-5 header-icon" />
+                               <Icon name="users" className="w-4 h-4 md:w-5 md:h-5 text-[#8458B3] hover:text-[#a0d2eb]" />
                                {friendRequests.length > 0 && <span className="absolute top-0 right-0 block h-2.5 w-2.5 rounded-full bg-red-500 ring-2 ring-white"></span>}
                            </button>
                        </Fragment>
@@ -1569,7 +1571,7 @@ function MovieApp() {
       <main className="flex-grow container mx-auto px-4 py-6 space-y-8">
         {!viewingUser && (
             <div className="bg-gray-900/50 backdrop-blur-xl rounded-xl border border-purple-500/30 p-4">
-                <button onClick={() => setShowSearch(true)} className="flex items-center gap-2 px-4 py-2 btn-add hover:from-purple-500/30 hover:to-pink-500/30 rounded-lg transition-all border border-purple-500/30">
+                <button onClick={() => setShowSearch(true)} className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-[#8458B3] to-[#a28089] hover:from-purple-500/30 hover:to-pink-500/30 rounded-lg transition-all border border-purple-500/30">
                     <Icon name="search" className="w-4 h-4 text-purple-400" />
                     <span className="text-gray-300 font-semibold text-sm md:text-base">Поиск фильмов/сериалов</span>
                 </button>
@@ -1579,7 +1581,7 @@ function MovieApp() {
         <div className="relative grid grid-cols-1 lg:grid-cols-2 gap-x-8 gap-y-8">
             <div className="hidden lg:block absolute left-1/2 -ml-px top-0 h-full bg-gradient-to-b from-transparent via-purple-500/20 to-transparent w-px"></div>
             <div className="space-y-4">
-                <h2 className="text-center text-3xl font-semibold tracking-wider title-movies mb-4">Фильмы</h2>
+                <h2 className="text-center text-3xl font-semibold tracking-wider text-[#8458B3] mb-4" style={{textShadow: '0 0 10px #a0d2eb'}}>Фильмы</h2>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-6" onDragOver={onDragOver}>
                     <div onDrop={(e) => onDrop(e, 'movie:wishlist')} onDragEnter={onDragEnterColumn} onDragLeave={onDragLeaveColumn}>
                         <Column title="Хочу посмотреть" emoji="🎬" items={movies.wishlist} columnKey="movie:wishlist" isExpanded={!!expandedColumns['movie:wishlist']} onToggleExpand={toggleColumnExpansion} onSelect={setSelectedMedia} onRemove={removeItem} onDragStart={onDragStart} onDragEnd={onDragEnd} isViewingFriend={!!viewingUser} onAddItem={handleAddToColumn} />
@@ -1615,13 +1617,13 @@ function MovieApp() {
 
       {showProfile && (
         <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-[100] p-4" onClick={() => setShowProfile(false)}>
-          <div className="modal-bg rounded-2xl p-6 w-full max-w-md border border-purple-500/30 max-h-[90vh] overflow-y-auto elevation-3" onClick={e => e.stopPropagation()}>
+          <div className="bg-[#e5eaf5]/95 backdrop-blur-xl rounded-2xl p-6 w-full max-w-md border border-purple-500/30 max-h-[90vh] overflow-y-auto elevation-3" onClick={e => e.stopPropagation()}>
             <h2 className="text-2xl font-bold text-white mb-4">Настройки профиля</h2>
             <div className="space-y-4">
               <div className="flex flex-col items-center gap-3">
                 <Avatar src={user?.avatar} size="xl" />
                 <input type="file" ref={fileInputRef} onChange={handleFileSelect} accept="image/*" className="hidden" />
-                <button onClick={() => fileInputRef.current?.click()} disabled={uploadingAvatar} className="flex items-center gap-2 px-4 py-2 btn-upload hover:bg-purple-600 text-white rounded-lg transition-all disabled:opacity-50">
+                <button onClick={() => fileInputRef.current?.click()} disabled={uploadingAvatar} className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-[#d0bdf4] to-[#8458B3] hover:bg-purple-600 text-white rounded-lg transition-all disabled:opacity-50">
                   {uploadingAvatar ? <Icon name="loader" className="w-4 h-4" /> : <Icon name="upload" className="w-4 h-4" />} {uploadingAvatar ? 'Загрузка...' : 'Загрузить аватар'}
                 </button>
               </div>
@@ -1649,13 +1651,13 @@ function MovieApp() {
                 <input type="password" value={profileData.newPassword} onChange={(e) => setProfileData({ ...profileData, newPassword: e.target.value })} className="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg focus:border-purple-500 focus:outline-none text-white mt-1" />
               </div>
               <div className="mt-4 pt-4 border-t border-gray-700">
-                <button onClick={handleLogout} className="w-full py-2 btn-logout hover:bg-red-700 text-white font-bold rounded-lg flex items-center justify-center gap-2">
+                <button onClick={handleLogout} className="w-full py-2 bg-red-600 border-2 border-[#a28089] hover:bg-red-700 text-white font-bold rounded-lg flex items-center justify-center gap-2">
                   <Icon name="logout" className="w-4 h-4" />
                   Выйти из аккаунта
                 </button>
               </div>
               <div className="flex gap-2 mt-6">
-                <button onClick={updateProfile} className="flex-1 py-2 btn-save text-white font-bold rounded-lg hover:from-purple-600 hover:to-pink-600">Сохранить</button>
+                <button onClick={updateProfile} className="flex-1 py-2 bg-gradient-to-r from-[#8458B3] to-[#d0bdf4] text-white font-bold rounded-lg hover:from-purple-600 hover:to-pink-600">Сохранить</button>
                 <button onClick={() => setShowProfile(false)} className="flex-1 py-2 bg-gray-800 text-white font-bold rounded-lg hover:bg-gray-700">Отмена</button>
               </div>
             </div>
@@ -1665,7 +1667,7 @@ function MovieApp() {
 
       {showUserHub && (
         <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-[100] p-4" onClick={() => setShowUserHub(false)}>
-          <div className="modal-bg rounded-2xl p-6 w-full max-w-3xl border border-purple-500/30 max-h-[80vh] flex flex-col" onClick={e => e.stopPropagation()}>
+          <div className="bg-[#e5eaf5]/95 backdrop-blur-xl rounded-2xl p-6 w-full max-w-3xl border border-purple-500/30 max-h-[80vh] flex flex-col" onClick={e => e.stopPropagation()}>
             <div className="flex justify-between items-center mb-4 flex-shrink-0">
               <h2 className="text-2xl font-bold text-white">Сообщество</h2>
               <button onClick={() => setShowUserHub(false)} className="p-2 hover:bg-gray-800 rounded-lg"><Icon name="x" className="w-5 h-5 text-gray-400" /></button>
@@ -1769,9 +1771,9 @@ function MovieApp() {
 
       {showSearch && (
         <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-[100] p-4">
-          <div className="modal-bg rounded-lg shadow-2xl border border-purple-500/30 p-4 z-50 w-full max-w-3xl">
+          <div className="bg-[#e5eaf5]/95 backdrop-blur-xl rounded-lg shadow-2xl border border-purple-500/30 p-4 z-50 w-full max-w-3xl">
             <div className="flex items-center gap-2 mb-3">
-              <input type="text" value={query} onChange={e => handleSearch(e.target.value)} placeholder="Поиск TMDB..." className="flex-1 px-4 py-2 search-input rounded-lg focus:outline-none text-white text-sm" autoFocus />
+              <input type="text" value={query} onChange={e => handleSearch(e.target.value)} placeholder="Поиск TMDB..." className="flex-1 px-4 py-2 bg-[#e5eaf5] border-2 border-[#8458B3] rounded-lg focus:outline-none focus:shadow-[0_0_15px_#a0d2eb] text-white text-sm" autoFocus />
               <select className="px-3 py-2 bg-gray-900 border border-gray-700 rounded-lg text-sm text-white" value={type} onChange={e => {setType(e.target.value); handleSearch(query)}}>
                 <option value="movie">Фильмы</option>
                 <option value="tv">Сериалы</option>
@@ -1791,7 +1793,7 @@ function MovieApp() {
                       <p className="text-white font-semibold text-sm truncate">{it.title} ({it.year})</p>
                       <p className="text-xs text-gray-400 truncate">{it.overview}</p>
                     </div>
-                    <button onClick={() => addItem(it, targetColumnForAdd ? targetColumnForAdd.split(':')[1] : 'wishlist')} className="p-2 btn-add hover:bg-purple-500 rounded-lg"><Icon name="plus" className="w-5 h-5 text-white" /></button>
+                    <button onClick={() => addItem(it, targetColumnForAdd ? targetColumnForAdd.split(':')[1] : 'wishlist')} className="p-2 bg-gradient-to-r from-[#8458B3] to-[#a28089] hover:bg-purple-500 rounded-lg"><Icon name="plus" className="w-5 h-5 text-white" /></button>
                   </div>
                 ))
               ) : query.length >= 2 && <p className="text-gray-400 text-center py-4 text-sm">Ничего не найдено</p>}
