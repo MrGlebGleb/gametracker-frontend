@@ -1218,6 +1218,10 @@ function MovieApp() {
   const fileInputRef = useRef(null);
   const token = localStorage.getItem('token');
   
+  // Состояния для drag & drop
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragOverColumn, setDragOverColumn] = useState(null);
+  
   const loadBoards = useCallback(async (userId = null) => {
     if (!token) return;
     try {
@@ -1455,6 +1459,7 @@ function MovieApp() {
   const onDragStart = (e, item) => {
     if(viewingUser) return;
     dragItem.current = { item };
+    setIsDragging(true);
     e.dataTransfer.effectAllowed = 'move';
     e.dataTransfer.setData('text/html', e.currentTarget.outerHTML);
     setTimeout(() => {
@@ -1466,6 +1471,8 @@ function MovieApp() {
     // Убираем класс dragging-card с перетаскиваемой карточки
     document.querySelectorAll('.dragging-card').forEach(el => el.classList.remove('dragging-card'));
     dragItem.current = null;
+    setIsDragging(false);
+    setDragOverColumn(null);
     
     // Убираем все drag-over-column классы и data-атрибуты
     document.querySelectorAll('.drag-over-column').forEach(el => el.classList.remove('drag-over-column'));
@@ -1481,8 +1488,11 @@ function MovieApp() {
   const onDragOver = (e) => e.preventDefault();
   const onDragEnterColumn = (e) => {
     e.preventDefault();
+    if (!isDragging) return;
+    
     const column = e.currentTarget;
     column.classList.add('drag-over-column');
+    setDragOverColumn(column);
     
     // Добавляем data-атрибуты соседним доскам
     const allColumns = document.querySelectorAll('.board-column');
@@ -1514,18 +1524,26 @@ function MovieApp() {
   };
 
   const onDragLeaveColumn = (e) => {
-    e.currentTarget.classList.remove('drag-over-column');
-    
-    // Убираем data-атрибуты
-    const allColumns = document.querySelectorAll('.board-column');
-    allColumns.forEach(col => {
-      col.removeAttribute('data-position');
-    });
+    // НЕ удаляем класс drag-over-column здесь!
+    // Он должен оставаться до завершения перетаскивания
+    // Только убираем data-атрибуты если это не активная колонка
+    if (e.currentTarget !== dragOverColumn) {
+      const allColumns = document.querySelectorAll('.board-column');
+      allColumns.forEach(col => {
+        if (col !== dragOverColumn) {
+          col.removeAttribute('data-position');
+        }
+      });
+    }
   };
   
   const onDrop = async (e, targetColumnKey) => {
     e.preventDefault();
     if (!dragItem.current || viewingUser) return;
+    
+    // Очищаем состояние drag & drop
+    setIsDragging(false);
+    setDragOverColumn(null);
     
     const { item } = dragItem.current;
     const [targetMedia, targetBoard] = targetColumnKey.split(':');
@@ -1534,6 +1552,12 @@ function MovieApp() {
     if (item.board === targetBoard) return;
     
     await updateItem(item, { board: targetBoard });
+    
+    // Очищаем все классы и атрибуты после успешного drop
+    document.querySelectorAll('.drag-over-column').forEach(el => el.classList.remove('drag-over-column'));
+    document.querySelectorAll('.board-column').forEach(col => {
+      col.removeAttribute('data-position');
+    });
   };
   
   const movies = boards.movies || { wishlist: [], watched: [] };
