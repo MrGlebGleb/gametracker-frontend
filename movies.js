@@ -383,7 +383,7 @@ const StatisticsPage = ({ isOpen, onClose, token, boards, showMediaTab = true })
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <div className="bg-[#1a0f2e]/95 backdrop-blur-xl border border-[#8458B3]/50 rounded-xl w-full max-w-4xl max-h-[70vh] flex flex-col">
+      <div className="bg-[#1a0f2e]/95 backdrop-blur-xl border border-[#8458B3]/50 modal-bg rounded-xl w-full max-w-4xl max-h-[70vh] flex flex-col">
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-gray-700 pt-8">
           <div>
@@ -849,7 +849,7 @@ const Avatar = ({ src, size = 'md', className = '' }) => {
 
 function StarRating({ value = 0, onChange }) {
   return (
-    <div className="flex items-center gap-1">
+    <div className="flex items-center gap-1 star-rating">
       {[1, 2, 3, 4, 5].map(star => (
         <button key={star} onClick={() => onChange(star)} className="transition-transform hover:scale-110">
           <Icon name="star" className={`w-8 h-8 ${star <= value ? 'text-[#a0d2eb]' : 'text-[#8458B3]/30'}`} style={star <= value ? {filter: 'drop-shadow(0 0 4px rgba(160, 210, 235, 0.5))'} : {}} />
@@ -957,7 +957,7 @@ function Column({ title, emoji, items, columnKey, isExpanded, onToggleExpand, is
   return (
     <div className={`${cardClass} backdrop-blur-xl rounded-xl p-4 flex flex-col h-full elevation-1 board-column`}>
         <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-extrabold text-white flex items-center gap-2 tracking-wide whitespace-nowrap" style={{textShadow: '0 2px 8px rgba(160, 210, 235, 0.5)', fontWeight: '800'}}>
+            <h3 className="text-lg font-extrabold text-white flex items-center gap-2 tracking-wide whitespace-nowrap" style={{textShadow: '0 1px 4px rgba(160, 210, 235, 0.25)', fontWeight: '800'}}>
                 <span className="text-xl">{emoji}</span>
                 <span>{title}</span>
             </h3>
@@ -990,7 +990,7 @@ function MediaDetailsModal({ item, onClose, onUpdate, onReact, isViewingFriend, 
 
   return (
     <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-[100] p-4" onClick={onClose}>
-      <div className="bg-[#1a0f2e]/95 backdrop-blur-xl border border-[#8458B3]/50 rounded-2xl p-6 w-full max-w-md border border-purple-500/30 max-h-[90vh] overflow-y-auto elevation-3" onClick={e => e.stopPropagation()}>
+      <div className="bg-[#1a0f2e]/95 backdrop-blur-xl border border-[#8458B3]/50 modal-bg rounded-2xl p-6 w-full max-w-md border border-purple-500/30 max-h-[90vh] overflow-y-auto elevation-3" onClick={e => e.stopPropagation()}>
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-xl font-bold text-white">{item.title}</h2>
           <button onClick={onClose} className="p-2 hover:bg-gray-800 rounded-lg"><Icon name="x" className="w-5 h-5 text-gray-400" /></button>
@@ -1047,7 +1047,7 @@ function MediaDetailsModal({ item, onClose, onUpdate, onReact, isViewingFriend, 
                   return Object.entries(groupedReactions).map(([emoji, reactions]) => (
                     <div 
                       key={emoji} 
-                      className="flex items-center gap-1 bg-[#e5eaf5]/20 px-3 py-1 rounded-full group cursor-pointer hover:bg-gray-700 transition-colors" 
+                      className="flex items-center gap-1 bg-[#e5eaf5]/20 px-3 py-1 rounded-full group cursor-pointer hover:bg-gray-700 transition-colors reaction-button" 
                       title={`${reactions.map(r => r.username).join(', ')}`}
                     >
                       <div className="flex -space-x-1">
@@ -1540,14 +1540,14 @@ function MovieApp() {
                     ) : (
                        <Fragment>
                            <button onClick={() => setShowStatistics(true)} className="p-2 hover:bg-gray-800 rounded-lg border border-purple-500/30" title="Статистика фильмов">
-                               <Icon name="barChart" className="w-4 h-4 md:w-5 md:h-5 text-[#d0bdf4] hover:text-[#a0d2eb] hover:scale-110 transition-all" />
+                               <Icon name="barChart" className="w-4 h-4 md:w-5 md:h-5 text-[#d0bdf4] hover:text-[#a0d2eb] hover:scale-110 transition-all header-icon" />
                            </button>
                            <button onClick={() => setShowProfile(true)} className="p-2 hover:bg-gray-800 rounded-lg border border-purple-500/30">
-                               <Icon name="settings" className="w-4 h-4 md:w-5 md:h-5 text-[#d0bdf4] hover:text-[#a0d2eb] hover:scale-110 transition-all" />
+                               <Icon name="settings" className="w-4 h-4 md:w-5 md:h-5 text-[#d0bdf4] hover:text-[#a0d2eb] hover:scale-110 transition-all header-icon" />
                            </button>
                            <button onClick={() => { setShowUserHub(true); loadAllUsers(); }} className="p-2 hover:bg-gray-800 rounded-lg border border-purple-500/30 relative">
-                               <Icon name="users" className="w-4 h-4 md:w-5 md:h-5 text-[#d0bdf4] hover:text-[#a0d2eb] hover:scale-110 transition-all" />
-                               {friendRequests.length > 0 && <span className="absolute top-0 right-0 block h-2.5 w-2.5 rounded-full bg-red-500 ring-2 ring-white"></span>}
+                               <Icon name="users" className="w-4 h-4 md:w-5 md:h-5 text-[#d0bdf4] hover:text-[#a0d2eb] hover:scale-110 transition-all header-icon" />
+                               {friendRequests.length > 0 && <span className="absolute top-0 right-0 block h-2.5 w-2.5 rounded-full bg-red-500 ring-2 ring-white badge-notification"></span>}
                            </button>
                        </Fragment>
                     )}
@@ -1573,7 +1573,7 @@ function MovieApp() {
             <div className="bg-gray-900/50 backdrop-blur-xl rounded-xl border border-purple-500/30 p-4">
                 <button onClick={() => setShowSearch(true)} className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-[#8458B3] to-[#a0d2eb] hover:from-[#a0d2eb] hover:to-[#8458B3] rounded-lg transition-all border border-[#a0d2eb]/30 shadow-lg hover:scale-105" style={{boxShadow: '0 4px 12px rgba(132, 88, 179, 0.3)'}}>
                     <Icon name="search" className="w-4 h-4 text-purple-400" />
-                    <span className="text-white font-semibold text-sm md:text-base">Поиск фильмов/сериалов</span>
+                    <span className="text-white font-semibold text-sm md:text-base" style={{textShadow: 'none'}}>Поиск фильмов/сериалов</span>
                 </button>
             </div>
         )}
@@ -1581,7 +1581,7 @@ function MovieApp() {
         <div className="relative grid grid-cols-1 lg:grid-cols-2 gap-x-8 gap-y-8">
             <div className="hidden lg:block absolute left-1/2 -ml-px top-0 h-full bg-gradient-to-b from-transparent via-[#a0d2eb]/30 to-transparent w-px"></div>
             <div className="space-y-4">
-                <h2 className="text-center text-3xl font-semibold tracking-wider text-white mb-4" style={{textShadow: '0 0 20px rgba(160, 210, 235, 0.6), 0 0 40px rgba(132, 88, 179, 0.4)', fontWeight: '700', letterSpacing: '0.05em'}}>Фильмы</h2>
+                <h2 className="text-center text-3xl font-semibold tracking-wider text-white mb-4" style={{textShadow: '0 0 15px rgba(160, 210, 235, 0.3), 0 0 30px rgba(132, 88, 179, 0.2)', fontWeight: '700', letterSpacing: '0.05em'}}>Фильмы</h2>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-6" onDragOver={onDragOver}>
                     <div onDrop={(e) => onDrop(e, 'movie:wishlist')} onDragEnter={onDragEnterColumn} onDragLeave={onDragLeaveColumn}>
                         <Column title="Хочу посмотреть" emoji="🎬" items={movies.wishlist} columnKey="movie:wishlist" isExpanded={!!expandedColumns['movie:wishlist']} onToggleExpand={toggleColumnExpansion} onSelect={setSelectedMedia} onRemove={removeItem} onDragStart={onDragStart} onDragEnd={onDragEnd} isViewingFriend={!!viewingUser} onAddItem={handleAddToColumn} />
@@ -1592,7 +1592,7 @@ function MovieApp() {
                 </div>
             </div>
              <div className="space-y-4">
-                <h2 className="text-center text-3xl font-semibold tracking-wider text-white mb-4" style={{textShadow: '0 0 20px rgba(160, 210, 235, 0.6), 0 0 40px rgba(132, 88, 179, 0.4)', fontWeight: '700', letterSpacing: '0.05em'}}>Сериалы</h2>
+                <h2 className="text-center text-3xl font-semibold tracking-wider text-white mb-4" style={{textShadow: '0 0 15px rgba(160, 210, 235, 0.3), 0 0 30px rgba(132, 88, 179, 0.2)', fontWeight: '700', letterSpacing: '0.05em'}}>Сериалы</h2>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-6" onDragOver={onDragOver}>
                     <div onDrop={(e) => onDrop(e, 'tv:wishlist')} onDragEnter={onDragEnterColumn} onDragLeave={onDragLeaveColumn}>
                         <Column title="Хочу посмотреть" emoji="📺" items={tv.wishlist} columnKey="tv:wishlist" isExpanded={!!expandedColumns['tv:wishlist']} onToggleExpand={toggleColumnExpansion} onSelect={setSelectedMedia} onRemove={removeItem} onDragStart={onDragStart} onDragEnd={onDragEnd} isViewingFriend={!!viewingUser} onAddItem={handleAddToColumn} />
@@ -1617,7 +1617,7 @@ function MovieApp() {
 
       {showProfile && (
         <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-[100] p-4" onClick={() => setShowProfile(false)}>
-          <div className="bg-[#1a0f2e]/95 backdrop-blur-xl border border-[#8458B3]/50 rounded-2xl p-6 w-full max-w-md border border-purple-500/30 max-h-[90vh] overflow-y-auto elevation-3" onClick={e => e.stopPropagation()}>
+          <div className="bg-[#1a0f2e]/95 backdrop-blur-xl border border-[#8458B3]/50 modal-bg rounded-2xl p-6 w-full max-w-md border border-purple-500/30 max-h-[90vh] overflow-y-auto elevation-3 modal-bg" onClick={e => e.stopPropagation()}>
             <h2 className="text-2xl font-bold text-white mb-4" style={{textShadow: '0 2px 4px rgba(160, 210, 235, 0.3)'}}>Настройки профиля</h2>
             <div className="space-y-4">
               <div className="flex flex-col items-center gap-3">
@@ -1667,7 +1667,7 @@ function MovieApp() {
 
       {showUserHub && (
         <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-[100] p-4" onClick={() => setShowUserHub(false)}>
-          <div className="bg-[#1a0f2e]/95 backdrop-blur-xl border border-[#8458B3]/50 rounded-2xl p-6 w-full max-w-3xl border border-purple-500/30 max-h-[80vh] flex flex-col" onClick={e => e.stopPropagation()}>
+          <div className="bg-[#1a0f2e]/95 backdrop-blur-xl border border-[#8458B3]/50 modal-bg rounded-2xl p-6 w-full max-w-3xl border border-purple-500/30 max-h-[80vh] flex flex-col" onClick={e => e.stopPropagation()}>
             <div className="flex justify-between items-center mb-4 flex-shrink-0">
               <h2 className="text-2xl font-bold text-white">Сообщество</h2>
               <button onClick={() => setShowUserHub(false)} className="p-2 hover:bg-gray-800 rounded-lg"><Icon name="x" className="w-5 h-5 text-gray-400" /></button>
@@ -1771,7 +1771,7 @@ function MovieApp() {
 
       {showSearch && (
         <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-[100] p-4">
-          <div className="bg-[#1a0f2e]/95 backdrop-blur-xl border border-[#8458B3]/50 rounded-lg shadow-2xl border border-purple-500/30 p-4 z-50 w-full max-w-3xl">
+          <div className="bg-[#1a0f2e]/95 backdrop-blur-xl border border-[#8458B3]/50 modal-bg rounded-lg shadow-2xl border border-purple-500/30 p-4 z-50 w-full max-w-3xl">
             <div className="flex items-center gap-2 mb-3">
               <input type="text" value={query} onChange={e => handleSearch(e.target.value)} placeholder="Поиск TMDB..." className="flex-1 px-4 py-2 bg-[#8458B3]/20 border-2 border-[#a0d2eb]/40 rounded-lg focus:outline-none focus:shadow-[0_0_20px_rgba(160,210,235,0.5)] focus:border-[#a0d2eb] text-white text-sm" autoFocus />
               <select className="px-3 py-2 bg-gray-900 border border-gray-700 rounded-lg text-sm text-white" value={type} onChange={e => {setType(e.target.value); handleSearch(query)}}>
