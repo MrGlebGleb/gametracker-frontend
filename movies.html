@@ -43,12 +43,46 @@
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
   <style>
-    /* Копируем все стили со страницы игр для единообразия */
+    /* Новая минималистичная цветовая схема для MovieTracker */
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
-    body { font-family: 'Inter', sans-serif; margin: 0; padding: 0; }
+    
+    /* CSS переменные для новой палитры */
+    :root {
+      --ice-cold: #a0d2eb;
+      --freeze-purple: #e5eaf5;
+      --medium-purple: #d0bdf4;
+      --purple-pain: #8458B3;
+      --heavy-purple: #a28089;
+    }
+    
+    body { 
+      font-family: 'Inter', sans-serif; 
+      margin: 0; 
+      padding: 0;
+      background: radial-gradient(ellipse at center, var(--freeze-purple) 0%, var(--medium-purple) 100%);
+      background-attachment: fixed;
+      min-height: 100vh;
+    }
+    
+    /* Добавляем текстуру фона */
+    body::before {
+      content: '';
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-image: 
+        radial-gradient(circle at 20% 80%, rgba(160, 210, 235, 0.1) 0%, transparent 50%),
+        radial-gradient(circle at 80% 20%, rgba(208, 189, 244, 0.1) 0%, transparent 50%),
+        radial-gradient(circle at 40% 40%, rgba(132, 88, 179, 0.05) 0%, transparent 50%);
+      pointer-events: none;
+      z-index: -1;
+    }
+    
     .avatar-circle { border-radius: 50%; object-fit: cover; }
-    .dragging { opacity: 0.5; border: 2px dashed #8b5cf6; transform: rotate(2deg); }
-    .drag-over-column { background-color: rgba(139, 92, 246, 0.1); }
+    .dragging { opacity: 0.5; border: 2px dashed var(--purple-pain); transform: rotate(2deg); }
+    .drag-over-column { background-color: rgba(132, 88, 179, 0.1); }
     .drag-over-card { transform: scale(1.05); }
     
     /* Line clamp utilities */
@@ -96,10 +130,485 @@
       transition: all 200ms ease;
     }
     
+    /* Стили для карточек фильмов с новой цветовой схемой */
     .media-card {
       will-change: transform, opacity;
-      backface-visibility: hidden;
-      transform-style: preserve-3d;
+      border: 2px solid var(--purple-pain);
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(132, 88, 179, 0.3), 0 0 8px rgba(132, 88, 179, 0.2);
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      background: linear-gradient(135deg, var(--ice-cold) 0%, var(--freeze-purple) 100%);
+    }
+    
+    .media-card:hover {
+      transform: scale(1.03);
+      box-shadow: 0 8px 24px rgba(160, 210, 235, 0.4), 0 0 16px rgba(132, 88, 179, 0.3);
+      border-color: var(--ice-cold);
+    }
+    
+    /* Карточки для столбца "Посмотрел" */
+    .media-card.watched {
+      background: linear-gradient(135deg, var(--medium-purple) 0%, var(--purple-pain) 100%);
+      box-shadow: 0 4px 12px rgba(132, 88, 179, 0.3);
+    }
+    
+    .media-card.watched:hover {
+      box-shadow: 0 8px 24px rgba(132, 88, 179, 0.4);
+    }
+    
+    /* Постеры фильмов */
+    .media-poster {
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      transition: transform 0.3s ease;
+    }
+    
+    .media-poster:hover {
+      transform: scale(1.05);
+    }
+    
+    /* Кнопки добавления (+) */
+    .add-button {
+      background: linear-gradient(135deg, var(--purple-pain) 0%, var(--heavy-purple) 100%);
+      border: none;
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      color: white;
+      font-size: 18px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      box-shadow: 0 2px 8px rgba(132, 88, 179, 0.3);
+    }
+    
+    .add-button:hover {
+      transform: rotate(90deg) scale(1.1);
+      background: linear-gradient(135deg, var(--ice-cold) 0%, var(--medium-purple) 100%);
+      box-shadow: 0 4px 16px rgba(160, 210, 235, 0.4);
+    }
+    
+    .add-button:active {
+      transform: rotate(90deg) scale(0.95);
+      box-shadow: 0 2px 4px rgba(132, 88, 179, 0.5);
+    }
+    
+    /* Кнопка "Трейлер" */
+    .trailer-button {
+      background: linear-gradient(135deg, #ff4444 0%, #cc0000 100%);
+      border: 2px solid var(--purple-pain);
+      border-radius: 8px;
+      color: white;
+      padding: 8px 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      box-shadow: 0 2px 8px rgba(255, 68, 68, 0.3);
+    }
+    
+    .trailer-button:hover {
+      transform: scale(1.05);
+      box-shadow: 0 4px 16px rgba(255, 68, 68, 0.4), 0 0 8px rgba(132, 88, 179, 0.3);
+      animation: pulse 1s infinite;
+    }
+    
+    @keyframes pulse {
+      0%, 100% { transform: scale(1.05); }
+      50% { transform: scale(1.08); }
+    }
+    
+    /* Кнопка "Сохранить" */
+    .save-button {
+      background: linear-gradient(135deg, var(--purple-pain) 0%, var(--medium-purple) 100%);
+      border: none;
+      border-radius: 8px;
+      color: white;
+      padding: 10px 20px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      box-shadow: 0 2px 8px rgba(132, 88, 179, 0.3);
+    }
+    
+    .save-button:hover {
+      background: linear-gradient(135deg, var(--medium-purple) 0%, var(--purple-pain) 100%);
+      box-shadow: 0 4px 16px rgba(132, 88, 179, 0.4);
+      transform: translateY(-2px);
+    }
+    
+    /* Кнопка "Выйти из аккаунта" */
+    .logout-button {
+      background: linear-gradient(135deg, #ff4444 0%, #cc0000 100%);
+      border: 2px solid var(--heavy-purple);
+      border-radius: 8px;
+      color: white;
+      padding: 8px 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+    
+    .logout-button:hover {
+      animation: shake 0.5s ease-in-out;
+      box-shadow: 0 4px 16px rgba(255, 68, 68, 0.4);
+    }
+    
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      25% { transform: translateX(-2px); }
+      75% { transform: translateX(2px); }
+    }
+    
+    /* Кнопка "Загрузить аватар" */
+    .upload-avatar-button {
+      background: linear-gradient(135deg, var(--medium-purple) 0%, var(--purple-pain) 100%);
+      border: none;
+      border-radius: 8px;
+      color: white;
+      padding: 8px 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .upload-avatar-button:hover::before {
+      content: '📁';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      animation: spin 1s linear infinite;
+    }
+    
+    @keyframes spin {
+      from { transform: translate(-50%, -50%) rotate(0deg); }
+      to { transform: translate(-50%, -50%) rotate(360deg); }
+    }
+    
+    /* Заголовки и текст */
+    .movie-title {
+      color: var(--purple-pain);
+      font-weight: 700;
+      letter-spacing: -0.5px;
+      text-shadow: 2px 2px 4px rgba(160, 210, 235, 0.3);
+      animation: fadeInDown 0.6s ease-out;
+    }
+    
+    .series-title {
+      color: var(--purple-pain);
+      font-weight: 700;
+      letter-spacing: -0.5px;
+      text-shadow: 2px 2px 4px rgba(160, 210, 235, 0.3);
+      animation: fadeInDown 0.6s ease-out;
+    }
+    
+    @keyframes fadeInDown {
+      from {
+        opacity: 0;
+        transform: translateY(-20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+    
+    .main-text {
+      color: var(--heavy-purple);
+      line-height: 1.6;
+    }
+    
+    .secondary-text {
+      color: var(--heavy-purple);
+      opacity: 0.7;
+      font-size: 0.9em;
+    }
+    
+    .link-text {
+      color: var(--purple-pain);
+      text-decoration: none;
+      transition: all 0.3s ease;
+    }
+    
+    .link-text:hover {
+      color: var(--ice-cold);
+      text-decoration: underline;
+      text-decoration-color: var(--ice-cold);
+    }
+    
+    /* Разделители */
+    .section-divider {
+      height: 1px;
+      background: linear-gradient(90deg, 
+        transparent 0%, 
+        var(--ice-cold) 20%, 
+        var(--medium-purple) 50%, 
+        var(--purple-pain) 80%, 
+        transparent 100%);
+      margin: 20px 0;
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .section-divider::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, 
+        transparent 0%, 
+        rgba(160, 210, 235, 0.6) 50%, 
+        transparent 100%);
+      animation: shimmer 3s infinite;
+    }
+    
+    @keyframes shimmer {
+      0% { left: -100%; }
+      100% { left: 100%; }
+    }
+    
+    /* Поле поиска */
+    .search-input {
+      background: var(--freeze-purple);
+      border: 2px solid var(--purple-pain);
+      border-radius: 12px;
+      padding: 12px 16px;
+      font-size: 16px;
+      color: var(--heavy-purple);
+      transition: all 0.3s ease;
+    }
+    
+    .search-input:focus {
+      outline: none;
+      box-shadow: 0 0 0 3px rgba(160, 210, 235, 0.3);
+      transform: scale(1.02);
+      border-color: var(--ice-cold);
+    }
+    
+    .search-input::placeholder {
+      color: var(--heavy-purple);
+      opacity: 0.6;
+    }
+    
+    /* Иконки в шапке */
+    .header-icon {
+      color: var(--purple-pain);
+      transition: all 0.3s ease;
+      cursor: pointer;
+    }
+    
+    .header-icon:hover {
+      color: var(--ice-cold);
+      transform: rotate(10deg) scale(1.1);
+    }
+    
+    /* Аватар пользователя */
+    .user-avatar {
+      border: 3px solid transparent;
+      background: linear-gradient(var(--freeze-purple), var(--freeze-purple)) padding-box,
+                  linear-gradient(45deg, var(--ice-cold), var(--medium-purple), var(--purple-pain)) border-box;
+      transition: all 0.3s ease;
+    }
+    
+    .user-avatar:hover {
+      animation: pulse-border 2s infinite;
+    }
+    
+    @keyframes pulse-border {
+      0%, 100% { 
+        border-color: transparent;
+      }
+      50% { 
+        border-color: var(--ice-cold);
+      }
+    }
+    
+    /* Модальные окна */
+    .modal-overlay {
+      background: rgba(132, 88, 179, 0.4);
+      backdrop-filter: blur(8px);
+    }
+    
+    .modal-content {
+      background: var(--freeze-purple);
+      backdrop-filter: blur(12px);
+      border-radius: 16px;
+      box-shadow: 0 20px 40px rgba(132, 88, 179, 0.3);
+      animation: modalAppear 0.3s ease-out;
+    }
+    
+    @keyframes modalAppear {
+      from {
+        opacity: 0;
+        transform: scale(0.9);
+      }
+      to {
+        opacity: 1;
+        transform: scale(1);
+      }
+    }
+    
+    .modal-close-button {
+      color: var(--purple-pain);
+      transition: all 0.3s ease;
+    }
+    
+    .modal-close-button:hover {
+      transform: rotate(90deg);
+      color: var(--ice-cold);
+    }
+    
+    /* Статистика */
+    .stats-card {
+      border-radius: 16px;
+      box-shadow: 0 6px 16px rgba(0, 0, 0, 0.1);
+      transition: all 0.3s ease;
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .stats-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 12px 24px rgba(0, 0, 0, 0.15);
+    }
+    
+    .stats-card.movies-watched {
+      background: linear-gradient(45deg, var(--ice-cold) 0%, var(--freeze-purple) 100%);
+    }
+    
+    .stats-card.series-watched {
+      background: linear-gradient(45deg, var(--purple-pain) 0%, var(--heavy-purple) 100%);
+    }
+    
+    .stats-card.movies-wishlist {
+      background: linear-gradient(45deg, var(--medium-purple) 0%, var(--heavy-purple) 100%);
+    }
+    
+    .stats-card.series-wishlist {
+      background: linear-gradient(45deg, var(--purple-pain) 0%, var(--medium-purple) 100%);
+    }
+    
+    .stats-card::before {
+      content: '';
+      position: absolute;
+      top: -50%;
+      right: -50%;
+      width: 100%;
+      height: 100%;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 50%;
+      opacity: 0.15;
+    }
+    
+    /* График активности */
+    .chart-bar {
+      transition: all 0.3s ease;
+      animation: barGrow 0.8s ease-out;
+    }
+    
+    .chart-bar.added {
+      background: linear-gradient(180deg, var(--medium-purple) 0%, var(--purple-pain) 100%);
+    }
+    
+    .chart-bar.watched {
+      background: linear-gradient(180deg, var(--ice-cold) 0%, var(--freeze-purple) 100%);
+    }
+    
+    .chart-bar:hover {
+      transform: scaleY(1.1);
+      box-shadow: 0 4px 12px rgba(132, 88, 179, 0.3);
+    }
+    
+    @keyframes barGrow {
+      from {
+        transform: scaleY(0);
+        transform-origin: bottom;
+      }
+      to {
+        transform: scaleY(1);
+      }
+    }
+    
+    .chart-tooltip {
+      background: var(--purple-pain);
+      color: white;
+      padding: 8px 12px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 600;
+      box-shadow: 0 4px 12px rgba(132, 88, 179, 0.4);
+    }
+    
+    /* Рейтинги звезды */
+    .rating-star {
+      transition: all 0.3s ease;
+      cursor: pointer;
+    }
+    
+    .rating-star.active {
+      background: linear-gradient(45deg, var(--purple-pain) 0%, #FFD700 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    
+    .rating-star.inactive {
+      color: var(--freeze-purple);
+      border: 1px solid var(--freeze-purple);
+      border-radius: 2px;
+    }
+    
+    .rating-star:hover {
+      transform: scale(1.2);
+      animation: bounce 0.6s ease;
+    }
+    
+    @keyframes bounce {
+      0%, 20%, 50%, 80%, 100% {
+        transform: scale(1.2) translateY(0);
+      }
+      40% {
+        transform: scale(1.2) translateY(-10px);
+      }
+      60% {
+        transform: scale(1.2) translateY(-5px);
+      }
+    }
+    
+    /* Эмодзи реакции */
+    .emoji-reaction {
+      background: var(--freeze-purple);
+      border-radius: 50%;
+      padding: 8px;
+      transition: all 0.3s ease;
+      cursor: pointer;
+    }
+    
+    .emoji-reaction:hover {
+      transform: scale(1.3) rotate(5deg);
+      background: var(--ice-cold);
+    }
+    
+    .emoji-reaction:active {
+      animation: pop 0.3s ease;
+    }
+    
+    @keyframes pop {
+      0% { transform: scale(1.3) rotate(5deg); }
+      50% { transform: scale(1.5) rotate(10deg); }
+      100% { transform: scale(1.3) rotate(5deg); }
+    }
+    
+    /* Темные секции */
+    .dark-section {
+      background: linear-gradient(135deg, var(--purple-pain) 0%, var(--heavy-purple) 100%);
+      border-radius: 12px;
+      padding: 20px;
+      color: white;
     }
     
     /* Tooltip styles */

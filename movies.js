@@ -126,7 +126,7 @@ const NotificationsPanel = ({ token, onNavigateToUser, onNavigateToGame }) => {
         className="p-2 hover:bg-gray-800 rounded-lg border border-purple-500/30 relative"
         title="Уведомления"
       >
-        <Icon name="bell" className="w-4 h-4 md:w-5 md:h-5 text-purple-400" />
+        <Icon name="bell" className="header-icon w-4 h-4 md:w-5 md:h-5" />
         {unreadCount > 0 && (
           <span className="absolute top-0 right-0 block h-2.5 w-2.5 rounded-full bg-red-500 ring-2 ring-white"></span>
         )}
@@ -382,12 +382,12 @@ const StatisticsPage = ({ isOpen, onClose, token, boards, showMediaTab = true })
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <div className="bg-gray-900 rounded-xl w-full max-w-4xl max-h-[70vh] flex flex-col">
+    <div className="fixed inset-0 modal-overlay z-50 flex items-center justify-center p-4">
+      <div className="modal-content w-full max-w-4xl max-h-[70vh] flex flex-col">
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-gray-700 pt-8">
           <div>
-            <h2 className="text-2xl font-bold text-white">📊 Статистика фильмов</h2>
+            <h2 className="movie-title text-2xl font-bold">📊 Статистика фильмов</h2>
             {exportMessage && (
               <p className="text-sm text-green-400 mt-1">{exportMessage}</p>
             )}
@@ -455,31 +455,31 @@ const MediaStatsContent = ({ stats }) => {
     <div className="space-y-6">
       {/* Карточки с числами */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-gradient-to-br from-green-500/20 to-emerald-500/20 backdrop-blur-xl rounded-xl p-6 border border-green-500/30">
+        <div className="stats-card movies-watched p-6">
           <div className="text-3xl mb-2">🎬</div>
-          <h3 className="text-sm font-semibold text-gray-300 mb-1">Фильмов просмотрено</h3>
-          <p className="text-3xl font-bold text-white">{stats.summary?.watchedMovies || 0}</p>
+          <h3 className="text-sm font-semibold main-text mb-1">Фильмов просмотрено</h3>
+          <p className="text-3xl font-bold main-text">{stats.summary?.watchedMovies || 0}</p>
         </div>
-        <div className="bg-gradient-to-br from-blue-500/20 to-cyan-500/20 backdrop-blur-xl rounded-xl p-6 border border-blue-500/30">
+        <div className="stats-card series-watched p-6">
           <div className="text-3xl mb-2">📺</div>
-          <h3 className="text-sm font-semibold text-gray-300 mb-1">Сериалов просмотрено</h3>
+          <h3 className="text-sm font-semibold text-white mb-1">Сериалов просмотрено</h3>
           <p className="text-3xl font-bold text-white">{stats.summary?.watchedTvShows || 0}</p>
         </div>
-        <div className="bg-gradient-to-br from-orange-500/20 to-amber-500/20 backdrop-blur-xl rounded-xl p-6 border border-orange-500/30">
+        <div className="stats-card movies-wishlist p-6">
           <div className="text-3xl mb-2">📋</div>
-          <h3 className="text-sm font-semibold text-gray-300 mb-1">Фильмов отложено</h3>
+          <h3 className="text-sm font-semibold text-white mb-1">Фильмов отложено</h3>
           <p className="text-3xl font-bold text-white">{stats.summary?.wishlistMovies || 0}</p>
         </div>
-        <div className="bg-gradient-to-br from-purple-500/20 to-pink-500/20 backdrop-blur-xl rounded-xl p-6 border border-purple-500/30">
+        <div className="stats-card series-wishlist p-6">
           <div className="text-3xl mb-2">⏳</div>
-          <h3 className="text-sm font-semibold text-gray-300 mb-1">Сериалов отложено</h3>
+          <h3 className="text-sm font-semibold text-white mb-1">Сериалов отложено</h3>
           <p className="text-3xl font-bold text-white">{stats.summary?.wishlistTvShows || 0}</p>
         </div>
       </div>
 
       {/* График по месяцам */}
-      <div className="bg-gray-800/50 rounded-xl p-6 border border-gray-700">
-        <h3 className="text-lg font-semibold text-white mb-4">📈 Активность по месяцам</h3>
+      <div className="stats-card p-6">
+        <h3 className="movie-title text-lg font-semibold mb-4">📈 Активность по месяцам</h3>
         <div className="relative" onMouseMove={handleMouseMove}>
           {chartData.length > 0 ? (
             <>
@@ -510,10 +510,10 @@ const MediaStatsContent = ({ stats }) => {
       {/* Топ фильмов и сериалов */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Топ фильмов */}
-        <div className="bg-gray-800/50 rounded-xl p-6 border border-gray-700">
+        <div className="stats-card p-6">
           <div className="flex items-center gap-2 mb-4">
-            <Icon name="film" className="w-5 h-5 text-blue-400" />
-            <h3 className="text-lg font-semibold text-white">Топ-10 фильмов</h3>
+            <Icon name="film" className="header-icon w-5 h-5" />
+            <h3 className="movie-title text-lg font-semibold">Топ-10 фильмов</h3>
           </div>
           <div className="space-y-3">
             {stats.topMovies && stats.topMovies.length > 0 ? (
@@ -542,10 +542,10 @@ const MediaStatsContent = ({ stats }) => {
         </div>
 
         {/* Топ сериалов */}
-        <div className="bg-gray-800/50 rounded-xl p-6 border border-gray-700">
+        <div className="stats-card p-6">
           <div className="flex items-center gap-2 mb-4">
-            <Icon name="tv" className="w-5 h-5 text-purple-400" />
-            <h3 className="text-lg font-semibold text-white">Топ-10 сериалов</h3>
+            <Icon name="tv" className="header-icon w-5 h-5" />
+            <h3 className="series-title text-lg font-semibold">Топ-10 сериалов</h3>
           </div>
           <div className="space-y-3">
             {stats.topTv && stats.topTv.length > 0 ? (
@@ -861,6 +861,7 @@ function StarRating({ value = 0, onChange }) {
 
 function MediaCard({ item, onSelect, onRemove, onDragStart, onDragEnd, isViewingFriend, boardId }) {
   const type = item.media_type || 'movie'; // Определяем тип медиа
+  const isWatched = boardId === 'watched';
   
   return (
     <div
@@ -868,7 +869,7 @@ function MediaCard({ item, onSelect, onRemove, onDragStart, onDragEnd, isViewing
       onDragStart={(e) => !isViewingFriend && onDragStart(e, item)}
       onDragEnd={onDragEnd}
       onClick={() => onSelect(item)}
-          className="bg-gray-800/80 rounded-xl border border-gray-700 hover:border-purple-500 hover:-translate-y-1 transition-all duration-200 cursor-pointer flex gap-3 p-2 group relative elevation-1 hover:elevation-2 shadow-transition media-card"
+      className={`media-card ${isWatched ? 'watched' : ''} cursor-pointer flex gap-3 p-2 group relative`}
     >
       {/* Цветная полоска слева */}
       <div 
@@ -876,12 +877,12 @@ function MediaCard({ item, onSelect, onRemove, onDragStart, onDragEnd, isViewing
         style={{ backgroundColor: boardId === 'wishlist' ? '#3B82F6' : '#10B981' }}
       ></div>
       <div className="relative flex-shrink-0">
-        <img src={item.poster || 'https://placehold.coputed/96x128/1f2937/ffffff?text=?'} alt={item.title} className="w-16 h-24 object-cover rounded-lg flex-shrink-0" />
+        <img src={item.poster || 'https://placehold.co/96x128/1f2937/ffffff?text=?'} alt={item.title} className="media-poster w-16 h-24 object-cover flex-shrink-0" />
       </div>
       <div className="flex flex-col justify-between flex-grow min-w-0 py-1">
         <div>
-          <h3 className="text-white font-semibold text-sm line-clamp-2 mb-1">{item.title}</h3>
-          {item.year && <p className="text-xs text-gray-400">{item.year}</p>}
+          <h3 className={`font-semibold text-sm line-clamp-2 mb-1 ${type === 'movie' ? 'movie-title' : 'series-title'}`}>{item.title}</h3>
+          {item.year && <p className="text-xs secondary-text">{item.year}</p>}
           {/* Рейтинг под названием */}
           {item.rating && (
             <div className="flex gap-0.5 mt-1">
@@ -889,7 +890,7 @@ function MediaCard({ item, onSelect, onRemove, onDragStart, onDragEnd, isViewing
                 <Icon 
                   key={i} 
                   name="star" 
-                  className={`w-3 h-3 ${i < item.rating ? 'text-yellow-400' : 'text-gray-500'}`} 
+                  className={`rating-star w-3 h-3 ${i < item.rating ? 'active' : 'inactive'}`} 
                 />
               ))}
             </div>
@@ -961,7 +962,7 @@ function Column({ title, emoji, items, columnKey, isExpanded, onToggleExpand, is
                 {!isViewingFriend && onAddItem && (
                     <button 
                         onClick={() => onAddItem(columnKey)}
-                        className="p-1.5 bg-white/10 hover:bg-white/20 rounded-full transition-colors">
+                        className="add-button">
                         <Icon name="plus" className="w-4 h-4 text-white"/>
                     </button>
                 )}
@@ -1076,7 +1077,7 @@ function MediaDetailsModal({ item, onClose, onUpdate, onReact, isViewingFriend, 
               href={`https://www.youtube.com/results?search_query=${encodeURIComponent(item.title + ' trailer')}`} 
               target="_blank" 
               rel="noopener noreferrer"
-              className="flex-1 flex items-center justify-center gap-2 py-2 bg-red-600 text-white font-bold rounded-lg hover:bg-red-700 transition-colors">
+              className="trailer-button flex-1 flex items-center justify-center gap-2 py-2 font-bold rounded-lg">
               <Icon name="youtube" className="w-6 h-6" />
               Трейлер
             </a>
@@ -1502,7 +1503,7 @@ function MovieApp() {
                   <defs><linearGradient id="camGradHeaderReact" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stopColor="#a78bfa"/><stop offset="100%" stopColor="#8b5cf6"/></linearGradient></defs>
                   <path fill="url(#camGradHeaderReact)" d="M4 7a3 3 0 0 0-3 3v4a3 3 0 0 0 3 3h10a3 3 0 0 0 3-3v-.764l3.553 2.132A1 1 0 0 0 22 14.5v-5a1 1 0 0 0-1.447-.868L17 10.764V10a3 3 0 0 0-3-3H11l-.553-1.106A2 2 0 0 0 8.658 5H6a2 2 0 0 0-1.789 1.106L4 7Zm7 9a4 4 0 1 1 0-8 4 4 0 0 1 0 8Zm0-2.5a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3Z"/>
                 </svg>
-                <span className="text-2xl md:text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 via-pink-400 to-blue-400">MovieTracker</span>
+                <span className="movie-title text-2xl md:text-3xl font-bold">MovieTracker</span>
               </a>
             </div>
             {user && (
@@ -1536,13 +1537,13 @@ function MovieApp() {
                     ) : (
                        <Fragment>
                            <button onClick={() => setShowStatistics(true)} className="p-2 hover:bg-gray-800 rounded-lg border border-purple-500/30" title="Статистика фильмов">
-                               <Icon name="barChart" className="w-4 h-4 md:w-5 md:h-5 text-purple-400" />
+                               <Icon name="barChart" className="header-icon w-4 h-4 md:w-5 md:h-5" />
                            </button>
                            <button onClick={() => setShowProfile(true)} className="p-2 hover:bg-gray-800 rounded-lg border border-purple-500/30">
-                               <Icon name="settings" className="w-4 h-4 md:w-5 md:h-5 text-purple-400" />
+                               <Icon name="settings" className="header-icon w-4 h-4 md:w-5 md:h-5" />
                            </button>
                            <button onClick={() => { setShowUserHub(true); loadAllUsers(); }} className="p-2 hover:bg-gray-800 rounded-lg border border-purple-500/30 relative">
-                               <Icon name="users" className="w-4 h-4 md:w-5 md:h-5 text-purple-400" />
+                               <Icon name="users" className="header-icon w-4 h-4 md:w-5 md:h-5" />
                                {friendRequests.length > 0 && <span className="absolute top-0 right-0 block h-2.5 w-2.5 rounded-full bg-red-500 ring-2 ring-white"></span>}
                            </button>
                        </Fragment>
@@ -1619,7 +1620,7 @@ function MovieApp() {
               <div className="flex flex-col items-center gap-3">
                 <Avatar src={user?.avatar} size="xl" />
                 <input type="file" ref={fileInputRef} onChange={handleFileSelect} accept="image/*" className="hidden" />
-                <button onClick={() => fileInputRef.current?.click()} disabled={uploadingAvatar} className="flex items-center gap-2 px-4 py-2 bg-purple-500 hover:bg-purple-600 text-white rounded-lg transition-all disabled:opacity-50">
+                <button onClick={() => fileInputRef.current?.click()} disabled={uploadingAvatar} className="upload-avatar-button flex items-center gap-2 px-4 py-2 font-bold rounded-lg transition-all disabled:opacity-50">
                   {uploadingAvatar ? <Icon name="loader" className="w-4 h-4" /> : <Icon name="upload" className="w-4 h-4" />} {uploadingAvatar ? 'Загрузка...' : 'Загрузить аватар'}
                 </button>
               </div>
@@ -1647,13 +1648,13 @@ function MovieApp() {
                 <input type="password" value={profileData.newPassword} onChange={(e) => setProfileData({ ...profileData, newPassword: e.target.value })} className="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg focus:border-purple-500 focus:outline-none text-white mt-1" />
               </div>
               <div className="mt-4 pt-4 border-t border-gray-700">
-                <button onClick={handleLogout} className="w-full py-2 bg-red-600 hover:bg-red-700 text-white font-bold rounded-lg flex items-center justify-center gap-2">
+                <button onClick={handleLogout} className="logout-button w-full py-2 font-bold rounded-lg flex items-center justify-center gap-2">
                   <Icon name="logout" className="w-4 h-4" />
                   Выйти из аккаунта
                 </button>
               </div>
               <div className="flex gap-2 mt-6">
-                <button onClick={updateProfile} className="flex-1 py-2 bg-gradient-to-r from-purple-500 to-pink-500 text-white font-bold rounded-lg hover:from-purple-600 hover:to-pink-600">Сохранить</button>
+                <button onClick={updateProfile} className="save-button flex-1 py-2 font-bold rounded-lg">Сохранить</button>
                 <button onClick={() => setShowProfile(false)} className="flex-1 py-2 bg-gray-800 text-white font-bold rounded-lg hover:bg-gray-700">Отмена</button>
               </div>
             </div>
