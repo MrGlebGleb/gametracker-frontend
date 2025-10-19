@@ -1647,7 +1647,8 @@
       // Предустановленные цвета
       const presetColors = [
         '#3B82F6', '#EF4444', '#10B981', '#F59E0B', 
-        '#8B5CF6', '#EC4899', '#06B6D4', '#84CC16'
+        '#8B5CF6', '#EC4899', '#06B6D4', '#84CC16',
+        '#F97316', '#6366F1', '#14B8A6', '#EAB308'
       ];
 
       // Загрузка тегов
@@ -1682,7 +1683,8 @@
             },
             body: JSON.stringify({
               name: newTagName.trim(),
-              color: newTagColor
+              color: newTagColor,
+              type: 'game'
             })
           });
           if (response.ok) {
@@ -1690,6 +1692,9 @@
             setNewTagName('');
             setShowCreateForm(false);
             if (onTagsUpdate) onTagsUpdate();
+          } else {
+            const errorData = await response.json();
+            alert(errorData.error || 'Ошибка создания тега');
           }
         } catch (error) {
           console.error('Ошибка создания тега:', error);
@@ -1885,8 +1890,9 @@
       const [isCreating, setIsCreating] = useState(false);
 
       const predefinedColors = [
-        '#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', 
-        '#06B6D4', '#84CC16', '#F97316', '#EC4899', '#6B7280'
+        '#3B82F6', '#EF4444', '#10B981', '#F59E0B', 
+        '#8B5CF6', '#EC4899', '#06B6D4', '#84CC16',
+        '#F97316', '#6366F1', '#14B8A6', '#EAB308'
       ];
 
       // Загрузка тегов
@@ -2249,7 +2255,7 @@
     };
 
     // Компонент модалки игры
-    const GameModal = ({ game, onClose, onUpdate, onReact, isViewingFriend, user, token, onRemoveTag }) => {
+    const GameModal = ({ game, onClose, onUpdate, onReact, isViewingFriend, user, token, onRemoveTag, onFilterByTag }) => {
       const { touchOffset, isMobile, handleTouchStart, handleTouchMove, handleTouchEnd } = useSwipeToClose(onClose);
       const [removingTag, setRemovingTag] = useState(null);
       
@@ -2386,15 +2392,19 @@
                     {game.tags.map((tag, i) => (
                       <div 
                         key={tag.id} 
-                        className={`flex items-center gap-2 text-sm px-3 py-1 rounded-full text-white font-medium transition-all duration-300 ${
+                        className={`flex items-center gap-2 text-sm px-3 py-1 rounded-full text-white font-medium transition-all duration-300 cursor-pointer hover:opacity-80 ${
                           removingTag === tag.id ? 'opacity-0 scale-0 transform rotate-12' : 'opacity-100 scale-100'
                         }`}
                         style={{ backgroundColor: tag.color + '40', border: `1px solid ${tag.color}` }}
+                        onClick={() => onFilterByTag && onFilterByTag(tag.id, tag.name)}
                       >
                         <span>{tag.name}</span>
                         {!isViewingFriend && onRemoveTag && (
                           <button
-                            onClick={() => handleRemoveTag(tag.id, game.id)}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleRemoveTag(tag.id, game.id);
+                            }}
                             className="text-red-400 hover:text-red-300 transition-colors"
                             title="Удалить тег"
                             disabled={removingTag === tag.id}
@@ -2467,6 +2477,7 @@
       const [showCardMenu, setShowCardMenu] = useState(null);
       const [selectedCard, setSelectedCard] = useState(null);
       const [expandedBoards, setExpandedBoards] = useState({});
+      const [selectedTag, setSelectedTag] = useState(null);
       const [showMobileActionMenu, setShowMobileActionMenu] = useState(false);
       const [showMoveMenu, setShowMoveMenu] = useState(false);
       const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
@@ -2607,10 +2618,13 @@
         };
       }, [showAuth, viewingUser]);
 
-      const loadBoards = useCallback(async (token, userId = null) => {
+      const loadBoards = useCallback(async (token, userId = null, tagId = null) => {
         setBoardsLoading(true);
         try {
-          const url = userId ? `${API_URL}/api/user/${userId}/boards` : `${API_URL}/api/user/boards`;
+          let url = userId ? `${API_URL}/api/user/${userId}/boards` : `${API_URL}/api/user/boards`;
+          if (tagId) {
+            url = `${API_URL}/api/user/games/by-tag/${tagId}`;
+          }
           const response = await fetch(url, { headers: { 'Authorization': `Bearer ${token}` } });
           if (response.ok) {
             const data = await response.json();
@@ -2627,6 +2641,18 @@
                 playing: { ...prev.playing, cards: data.boards.playing || [] },
                 completed: { ...prev.completed, cards: data.boards.completed || [] },
                 dropped: { ...prev.dropped, cards: data.boards.dropped || [] }
+              }));
+            } else if (data.games) {
+              // Если загружаем игры по тегу, распределяем их по доскам
+              const boards = { backlog: [], playing: [], completed: [], dropped: [] };
+              data.games.forEach(game => {
+                if (boards[game.board]) boards[game.board].push(game);
+              });
+              setBoards(prev => ({
+                backlog: { ...prev.backlog, cards: boards.backlog },
+                playing: { ...prev.playing, cards: boards.playing },
+                completed: { ...prev.completed, cards: boards.completed },
+                dropped: { ...prev.dropped, cards: boards.dropped }
               }));
             }
           }
@@ -3040,6 +3066,19 @@
         }
       };
 
+      // Фильтрация игр по тегу
+      const filterGamesByTag = async (tagId, tagName) => {
+        if (selectedTag && selectedTag.id === tagId) {
+          // Если уже выбран этот тег, сбрасываем фильтр
+          setSelectedTag(null);
+          loadBoards(localStorage.getItem('token'));
+        } else {
+          // Фильтруем по тегу
+          setSelectedTag({ id: tagId, name: tagName });
+          loadBoards(localStorage.getItem('token'), null, tagId);
+        }
+      };
+
       const friendAction = async (friendId, action) => {
         const token = localStorage.getItem('token');
         let endpoint = '';
@@ -3341,6 +3380,22 @@
               <div className="flex items-center justify-between flex-wrap gap-4">
                 <div className="flex items-center gap-4 flex-wrap">
                   <button onClick={() => { window.location.href = './index.html'; }} className="text-2xl md:text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 via-pink-400 to-blue-400 active:scale-95 transition-transform cursor-pointer">🎮 GameTracker</button>
+                  {selectedTag && (
+                    <div className="flex items-center gap-2">
+                      <span className="text-gray-400">|</span>
+                      <div className="flex items-center gap-2 px-3 py-1 bg-purple-500/20 border border-purple-500/30 rounded-full">
+                        <span className="text-sm text-purple-400">Фильтр:</span>
+                        <span className="text-sm text-white font-medium">{selectedTag.name}</span>
+                        <button
+                          onClick={() => filterGamesByTag(selectedTag.id, selectedTag.name)}
+                          className="text-purple-400 hover:text-purple-300 transition-colors"
+                          title="Сбросить фильтр"
+                        >
+                          <Icon name="x" className="w-3 h-3" />
+                        </button>
+                      </div>
+                    </div>
+                  )}
                   {!viewingUser && (
                     <div className="relative flex items-center gap-2">
                       {/* Красивая разделительная линия */}
@@ -3794,6 +3849,7 @@
                   user={user}
                   token={localStorage.getItem('token')}
                   onRemoveTag={removeTagFromGame}
+                  onFilterByTag={filterGamesByTag}
                 />
               )}
               
