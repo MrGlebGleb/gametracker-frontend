@@ -955,7 +955,7 @@ function Column({ title, emoji, items, columnKey, isExpanded, onToggleExpand, is
     : 'bg-gradient-to-br from-[#8458B3]/25 to-[#d0bdf4]/15 border-2 border-[#8458B3]/50 backdrop-blur-xl';
   
   return (
-    <div className={`${cardClass} backdrop-blur-xl rounded-xl p-4 flex flex-col h-full elevation-1 board-column`}>
+    <div className={`${cardClass} backdrop-blur-xl rounded-xl p-4 flex flex-col h-full elevation-1 board-column`} data-column-key={columnKey}>
         <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-extrabold text-white flex items-center gap-2 tracking-wide whitespace-nowrap" style={{textShadow: '0 1px 4px rgba(160, 210, 235, 0.25)', fontWeight: '800'}}>
                 <span className="text-xl">{emoji}</span>
@@ -1462,6 +1462,24 @@ function MovieApp() {
     setIsDragging(true);
     e.dataTransfer.effectAllowed = 'move';
     e.dataTransfer.setData('text/html', e.currentTarget.outerHTML);
+    
+    // Определяем целевую колонку на основе mediaType и текущей board
+    let targetColumnKey = '';
+    if (item.mediaType === 'movie') {
+      targetColumnKey = item.board === 'wishlist' ? 'movie:watched' : 'movie:wishlist';
+    } else if (item.mediaType === 'tv') {
+      targetColumnKey = item.board === 'wishlist' ? 'tv:watched' : 'tv:wishlist';
+    }
+    
+    // Добавляем класс к ЦЕЛЕВОЙ колонке
+    if (targetColumnKey) {
+      const targetColumn = document.querySelector(`[data-column-key="${targetColumnKey}"]`);
+      if (targetColumn) {
+        targetColumn.classList.add('drag-over-column');
+        setDragOverColumn(targetColumn);
+      }
+    }
+    
     setTimeout(() => {
       e.currentTarget.classList.add('dragging-card');
     }, 0);
@@ -1488,53 +1506,13 @@ function MovieApp() {
   const onDragOver = (e) => e.preventDefault();
   const onDragEnterColumn = (e) => {
     e.preventDefault();
-    if (!isDragging) return;
-    
-    const column = e.currentTarget;
-    column.classList.add('drag-over-column');
-    setDragOverColumn(column);
-    
-    // Добавляем data-атрибуты соседним доскам
-    const allColumns = document.querySelectorAll('.board-column');
-    const currentIndex = Array.from(allColumns).indexOf(column);
-    
-    allColumns.forEach((col, index) => {
-      col.removeAttribute('data-position');
-      
-      if (index === currentIndex - 1) {
-        col.setAttribute('data-position', 'before-target');
-      } else if (index === currentIndex + 1) {
-        col.setAttribute('data-position', 'after-target');
-      } else if (index < currentIndex - 1) {
-        col.setAttribute('data-position', 'far-left');
-      } else if (index > currentIndex + 1) {
-        col.setAttribute('data-position', 'far-right');
-      }
-    });
-    
-    // Добавляем ripple эффект в точке входа
-    const ripple = document.createElement('div');
-    ripple.className = 'ripple';
-    const rect = column.getBoundingClientRect();
-    ripple.style.left = e.clientX - rect.left + 'px';
-    ripple.style.top = e.clientY - rect.top + 'px';
-    column.appendChild(ripple);
-    
-    setTimeout(() => ripple.remove(), 800);
+    // Просто предотвращаем стандартное поведение
+    // Анимация управляется через onDragStart
   };
 
   const onDragLeaveColumn = (e) => {
-    // НЕ удаляем класс drag-over-column здесь!
-    // Он должен оставаться до завершения перетаскивания
-    // Только убираем data-атрибуты если это не активная колонка
-    if (e.currentTarget !== dragOverColumn) {
-      const allColumns = document.querySelectorAll('.board-column');
-      allColumns.forEach(col => {
-        if (col !== dragOverColumn) {
-          col.removeAttribute('data-position');
-        }
-      });
-    }
+    // Просто предотвращаем стандартное поведение
+    // Анимация управляется через onDragStart
   };
   
   const onDrop = async (e, targetColumnKey) => {

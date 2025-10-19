@@ -367,82 +367,21 @@
       transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
     }
 
-    /* Пульсация границы */
-    @keyframes borderPulse {
-      0%, 100% {
-        box-shadow: 
-          0 0 0 3px rgba(160, 210, 235, 0.3),
-          0 0 30px rgba(160, 210, 235, 0.4) inset,
-          0 20px 60px rgba(160, 210, 235, 0.3);
-      }
-      50% {
-        box-shadow: 
-          0 0 0 5px rgba(160, 210, 235, 0.5),
-          0 0 40px rgba(160, 210, 235, 0.6) inset,
-          0 25px 70px rgba(160, 210, 235, 0.4);
-      }
-    }
-
-    .drag-over-column {
-      animation: borderPulse 1.5s ease-in-out infinite;
-    }
+    /* УДАЛЕНО: Пульсация границы */
 
     /* Эффект "дыхания" для целевой доски */
     @keyframes breathe {
       0%, 100% {
-        transform: scale(1.06) translateZ(20px);
+        transform: scale(1.06);
       }
       50% {
-        transform: scale(1.08) translateZ(25px);
+        transform: scale(1.08);
       }
     }
 
-    .drag-over-column {
-      animation: 
-        borderPulse 1.5s ease-in-out infinite,
-        breathe 2s ease-in-out infinite;
-    }
+    /* УДАЛЕНО: Дублирующиеся анимации */
 
-    /* Анимация соседних досок (эффект "разъезжания") */
-    .grid.grid-cols-1.sm\:grid-cols-2 {
-      perspective: 1000px;
-      perspective-origin: center center;
-    }
-
-    /* Доски слева от целевой - смещаются влево */
-    .drag-over-column ~ .board-column,
-    .board-column:has(~ .drag-over-column) {
-      transform: translateX(-15px) scale(0.97) translateZ(-10px) !important;
-      opacity: 0.7 !important;
-      filter: blur(1px) !important;
-      transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
-    }
-
-    /* Для более точного контроля используем data-атрибуты */
-    .board-column[data-position="before-target"] {
-      transform: translateX(-20px) scale(0.96) translateZ(-15px) !important;
-      opacity: 0.65 !important;
-      filter: blur(1.5px) !important;
-    }
-
-    .board-column[data-position="after-target"] {
-      transform: translateX(20px) scale(0.96) translateZ(-15px) !important;
-      opacity: 0.65 !important;
-      filter: blur(1.5px) !important;
-    }
-
-    /* Доски на значительном расстоянии - еще больше отодвигаются */
-    .board-column[data-position="far-left"] {
-      transform: translateX(-30px) scale(0.94) translateZ(-20px) !important;
-      opacity: 0.5 !important;
-      filter: blur(2px) !important;
-    }
-
-    .board-column[data-position="far-right"] {
-      transform: translateX(30px) scale(0.94) translateZ(-20px) !important;
-      opacity: 0.5 !important;
-      filter: blur(2px) !important;
-    }
+    /* УДАЛЕНО: Анимация соседних досок (эффект "разъезжания") */
 
     /* Плавный возврат всех досок */
     .board-column:not(.drag-over-column) {
@@ -492,36 +431,7 @@
       animation: trail 0.6s ease-out infinite;
     }
 
-    /* Визуальный индикатор "бросьте здесь" */
-    .drag-over-column::before {
-      content: '↓ Бросьте здесь';
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      padding: 12px 24px;
-      background: rgba(160, 210, 235, 0.95);
-      color: #1a0f2e;
-      font-weight: 700;
-      font-size: 14px;
-      border-radius: 12px;
-      box-shadow: 0 4px 20px rgba(160, 210, 235, 0.4);
-      pointer-events: none;
-      z-index: 100;
-      opacity: 0;
-      animation: dropHereAppear 0.3s ease-out 0.2s forwards;
-    }
-
-    @keyframes dropHereAppear {
-      from {
-        opacity: 0;
-        transform: translate(-50%, -50%) scale(0.8);
-      }
-      to {
-        opacity: 1;
-        transform: translate(-50%, -50%) scale(1);
-      }
-    }
+    /* УДАЛЕНО: Визуальный индикатор "бросьте здесь" */
 
     /* Стрелки указатели по краям */
     .drag-over-column::after {
@@ -596,28 +506,20 @@
         z-index 0s linear 0s;
     }
 
-    /* ИСПРАВЛЕНИЕ: Убеждаемся что анимации остаются активными */
+    /* УПРОЩЕННАЯ АНИМАЦИЯ ЦЕЛЕВОЙ КОЛОНКИ */
     .drag-over-column {
-      /* Принудительно применяем стили даже при быстрых переходах */
-      transform: scale(1.06) translateZ(20px) !important;
+      /* Увеличение с легким bounce */
+      transform: scale(1.06) !important;
       z-index: 10 !important;
+      
+      /* Подсветка границы */
       border-color: rgba(160, 210, 235, 0.8) !important;
       box-shadow: 
-        0 0 0 3px rgba(160, 210, 235, 0.3),
-        0 0 30px rgba(160, 210, 235, 0.4) inset,
-        0 20px 60px rgba(160, 210, 235, 0.3) !important;
-      background: linear-gradient(
-        135deg,
-        rgba(160, 210, 235, 0.2) 0%,
-        rgba(132, 88, 179, 0.25) 100%
-      ) !important;
-    }
-
-    /* Усиливаем анимацию пульсации */
-    .drag-over-column {
-      animation: 
-        borderPulse 1.5s ease-in-out infinite,
-        breathe 2s ease-in-out infinite !important;
+        0 0 0 2px rgba(160, 210, 235, 0.3),
+        0 0 20px rgba(160, 210, 235, 0.4) !important;
+      
+      /* Легкая анимация дыхания */
+      animation: breathe 2s ease-in-out infinite !important;
     }
 
     /* Responsive поведение */
