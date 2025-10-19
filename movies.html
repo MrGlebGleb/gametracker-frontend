@@ -43,13 +43,171 @@
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
   <style>
-    /* Копируем все стили со страницы игр для единообразия */
+    /* Новая цветовая палитра для MovieTracker */
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
-    body { font-family: 'Inter', sans-serif; margin: 0; padding: 0; }
+    
+    /* CSS переменные для новой цветовой палитры */
+    :root {
+      --ice-cold: #a0d2eb;
+      --freeze-purple: #e5eaf5;
+      --medium-purple: #d0bdf4;
+      --purple-pain: #8458B3;
+      --heavy-purple: #a28089;
+    }
+    
+    body { 
+      font-family: 'Inter', sans-serif; 
+      margin: 0; 
+      padding: 0; 
+      background: linear-gradient(135deg, var(--freeze-purple) 0%, var(--medium-purple) 100%);
+      min-height: 100vh;
+    }
+    
     .avatar-circle { border-radius: 50%; object-fit: cover; }
-    .dragging { opacity: 0.5; border: 2px dashed #8b5cf6; transform: rotate(2deg); }
-    .drag-over-column { background-color: rgba(139, 92, 246, 0.1); }
+    .dragging { opacity: 0.5; border: 2px dashed var(--purple-pain); transform: rotate(2deg); }
+    .drag-over-column { background-color: rgba(132, 88, 179, 0.1); }
     .drag-over-card { transform: scale(1.05); }
+    
+    /* Стили для новой цветовой палитры MovieTracker */
+    
+    /* Основной фон страницы */
+    .movie-tracker-bg {
+      background: linear-gradient(135deg, var(--freeze-purple) 0%, var(--medium-purple) 100%);
+    }
+    
+    /* Фон модальных окон и панелей */
+    .modal-bg {
+      background-color: rgba(229, 234, 245, 0.95);
+      backdrop-filter: blur(10px);
+    }
+    
+    /* Темные секции */
+    .dark-section {
+      background: linear-gradient(135deg, var(--purple-pain) 0%, var(--heavy-purple) 100%);
+    }
+    
+    /* Карточки фильмов/сериалов */
+    .card-wishlist {
+      background: linear-gradient(135deg, var(--ice-cold) 0%, var(--freeze-purple) 100%);
+      border: 2px solid var(--purple-pain);
+    }
+    
+    .card-watched {
+      background: linear-gradient(135deg, var(--medium-purple) 0%, var(--purple-pain) 100%);
+      border: 2px solid var(--purple-pain);
+    }
+    
+    .card-hover {
+      box-shadow: 0 0 20px var(--ice-cold);
+      transform: translateY(-2px);
+    }
+    
+    /* Кнопки */
+    .btn-add {
+      background: linear-gradient(135deg, var(--purple-pain) 0%, var(--heavy-purple) 100%);
+    }
+    
+    .btn-add:hover {
+      background: var(--ice-cold);
+    }
+    
+    .btn-trailer {
+      background: #dc2626;
+      border: 2px solid var(--purple-pain);
+    }
+    
+    .btn-save {
+      background: linear-gradient(135deg, var(--purple-pain) 0%, var(--medium-purple) 100%);
+    }
+    
+    .btn-logout {
+      background: #dc2626;
+      border: 2px solid var(--heavy-purple);
+    }
+    
+    .btn-upload {
+      background: linear-gradient(135deg, var(--medium-purple) 0%, var(--purple-pain) 100%);
+    }
+    
+    /* Заголовки */
+    .title-movies, .title-tv {
+      color: var(--purple-pain);
+      text-shadow: 0 0 10px var(--ice-cold);
+    }
+    
+    /* Разделители */
+    .divider {
+      background: linear-gradient(90deg, var(--ice-cold) 0%, var(--medium-purple) 50%, var(--purple-pain) 100%);
+      height: 2px;
+    }
+    
+    /* Статистика */
+    .stat-movies-watched {
+      background: linear-gradient(135deg, var(--ice-cold) 0%, var(--freeze-purple) 100%);
+    }
+    
+    .stat-tv-watched {
+      background: linear-gradient(135deg, var(--purple-pain) 0%, var(--heavy-purple) 100%);
+    }
+    
+    .stat-movies-wishlist {
+      background: linear-gradient(135deg, var(--medium-purple) 0%, var(--heavy-purple) 100%);
+    }
+    
+    .stat-tv-wishlist {
+      background: linear-gradient(135deg, var(--purple-pain) 0%, var(--medium-purple) 100%);
+    }
+    
+    /* Навигация и поиск */
+    .search-input {
+      background-color: var(--freeze-purple);
+      border: 2px solid var(--purple-pain);
+    }
+    
+    .search-input:focus {
+      box-shadow: 0 0 15px var(--ice-cold);
+    }
+    
+    .header-icon {
+      color: var(--purple-pain);
+    }
+    
+    .header-icon:hover {
+      color: var(--ice-cold);
+    }
+    
+    /* Аватар пользователя */
+    .avatar-border {
+      border: 3px solid;
+      border-image: linear-gradient(45deg, var(--ice-cold), var(--purple-pain)) 1;
+    }
+    
+    /* Рейтинги */
+    .star-active {
+      color: var(--purple-pain);
+    }
+    
+    .star-inactive {
+      color: var(--freeze-purple);
+    }
+    
+    /* Эмодзи реакции */
+    .reaction-bg {
+      background-color: var(--freeze-purple);
+    }
+    
+    /* Текст */
+    .text-primary {
+      color: var(--heavy-purple);
+    }
+    
+    .text-heading {
+      color: var(--purple-pain);
+    }
+    
+    .text-secondary {
+      color: rgba(162, 128, 137, 0.8);
+    }
     
     /* Line clamp utilities */
     .line-clamp-2 {
