@@ -1656,15 +1656,24 @@
         if (!token) return;
         setLoading(true);
         try {
+          console.log('TagsManager: Loading tags from:', `${API_URL}/api/tags?type=game`);
           const response = await fetch(`${API_URL}/api/tags?type=game`, {
             headers: { 'Authorization': `Bearer ${token}` }
           });
+          console.log('TagsManager: Tags response status:', response.status);
           if (response.ok) {
             const data = await response.json();
+            console.log('TagsManager: Tags data:', data);
             setTags(data.tags || []);
+          } else {
+            const errorData = await response.json().catch(() => ({}));
+            console.error('TagsManager: Error loading tags:', response.status, errorData);
+            setTags([]);
           }
         } catch (error) {
-          console.error('Ошибка загрузки тегов:', error);
+          console.error('TagsManager: Ошибка загрузки тегов:', error);
+          // Fallback: показываем пустой список тегов
+          setTags([]);
         } finally {
           setLoading(false);
         }
@@ -1900,15 +1909,24 @@
         if (!token) return;
         setLoading(true);
         try {
+          console.log('Loading tags from:', `${API_URL}/api/tags?type=game`);
           const response = await fetch(`${API_URL}/api/tags?type=game`, {
             headers: { 'Authorization': `Bearer ${token}` }
           });
+          console.log('Tags response status:', response.status);
           if (response.ok) {
             const data = await response.json();
+            console.log('Tags data:', data);
             setTags(data.tags || []);
+          } else {
+            const errorData = await response.json().catch(() => ({}));
+            console.error('Error loading tags:', response.status, errorData);
+            setTags([]);
           }
         } catch (error) {
           console.error('Ошибка загрузки тегов:', error);
+          // Fallback: показываем пустой список тегов
+          setTags([]);
         } finally {
           setLoading(false);
         }
@@ -2255,7 +2273,7 @@
     };
 
     // Компонент модалки игры
-    const GameModal = ({ game, onClose, onUpdate, onReact, isViewingFriend, user, token, onRemoveTag, onFilterByTag }) => {
+    const GameModal = ({ game, onClose, onUpdate, onReact, isViewingFriend, user, token, onRemoveTag, onFilterByTag, onOpenTagModal }) => {
       const { touchOffset, isMobile, handleTouchStart, handleTouchMove, handleTouchEnd } = useSwipeToClose(onClose);
       const [removingTag, setRemovingTag] = useState(null);
       
@@ -2423,8 +2441,7 @@
                 <div className="flex justify-center">
                   <button
                     onClick={() => {
-                      setSelectedGameForTag(game);
-                      setShowTagModal(true);
+                      onOpenTagModal(game);
                     }}
                     className="flex items-center gap-2 px-4 py-2 bg-purple-500/20 hover:bg-purple-500/30 text-purple-400 rounded-lg transition-colors"
                   >
@@ -3077,6 +3094,12 @@
           setSelectedTag({ id: tagId, name: tagName });
           loadBoards(localStorage.getItem('token'), null, tagId);
         }
+      };
+
+      // Открытие модального окна добавления тега
+      const openTagModal = (game) => {
+        setSelectedGameForTag(game);
+        setShowTagModal(true);
       };
 
       const friendAction = async (friendId, action) => {
@@ -3850,6 +3873,7 @@
                   token={localStorage.getItem('token')}
                   onRemoveTag={removeTagFromGame}
                   onFilterByTag={filterGamesByTag}
+                  onOpenTagModal={openTagModal}
                 />
               )}
               
