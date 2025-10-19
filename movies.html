@@ -329,25 +329,290 @@
       box-shadow: 0 0 10px rgba(160, 210, 235, 0.5);
     }
 
-    /* Улучшенная анимация при перетаскивании */
-    .dragging-card {
-      opacity: 0.7;
-      transform: rotate(3deg) scale(1.08);
-      box-shadow: 0 20px 60px rgba(160, 210, 235, 0.4);
-      cursor: grabbing;
-      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    /* ПРОДВИНУТАЯ АНИМАЦИЯ DRAG & DROP С ЭФФЕКТОМ "МАГНИТНОГО ФОКУСА" */
+    
+    /* Базовое состояние доски */
+    .board-column {
+      min-height: 200px;
+      transform: scale(1) translateZ(0);
+      transform-origin: center center;
+      transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+      position: relative;
+      z-index: 1;
+    }
+
+    /* Состояние при наведении карточки (drag over) */
+    .drag-over-column {
+      /* Увеличение размера на 6% */
+      transform: scale(1.06) translateZ(20px);
+      
+      /* Визуальное "выдвижение вперед" */
+      z-index: 10;
+      
+      /* Светящаяся граница с пульсацией */
+      border-color: rgba(160, 210, 235, 0.8) !important;
+      box-shadow: 
+        0 0 0 3px rgba(160, 210, 235, 0.3),
+        0 0 30px rgba(160, 210, 235, 0.4) inset,
+        0 20px 60px rgba(160, 210, 235, 0.3);
+      
+      /* Подсветка фона */
+      background: linear-gradient(
+        135deg,
+        rgba(160, 210, 235, 0.2) 0%,
+        rgba(132, 88, 179, 0.25) 100%
+      ) !important;
+      
+      /* Плавная анимация */
+      transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    /* Пульсация границы */
+    @keyframes borderPulse {
+      0%, 100% {
+        box-shadow: 
+          0 0 0 3px rgba(160, 210, 235, 0.3),
+          0 0 30px rgba(160, 210, 235, 0.4) inset,
+          0 20px 60px rgba(160, 210, 235, 0.3);
+      }
+      50% {
+        box-shadow: 
+          0 0 0 5px rgba(160, 210, 235, 0.5),
+          0 0 40px rgba(160, 210, 235, 0.6) inset,
+          0 25px 70px rgba(160, 210, 235, 0.4);
+      }
     }
 
     .drag-over-column {
-      background: linear-gradient(
-        135deg,
-        rgba(160, 210, 235, 0.15) 0%,
-        rgba(132, 88, 179, 0.15) 100%
-      );
-      transform: scale(1.02);
-      border-color: rgba(160, 210, 235, 0.5) !important;
-      box-shadow: 0 0 30px rgba(160, 210, 235, 0.3) inset;
-      transition: all 0.2s ease;
+      animation: borderPulse 1.5s ease-in-out infinite;
+    }
+
+    /* Эффект "дыхания" для целевой доски */
+    @keyframes breathe {
+      0%, 100% {
+        transform: scale(1.06) translateZ(20px);
+      }
+      50% {
+        transform: scale(1.08) translateZ(25px);
+      }
+    }
+
+    .drag-over-column {
+      animation: 
+        borderPulse 1.5s ease-in-out infinite,
+        breathe 2s ease-in-out infinite;
+    }
+
+    /* Анимация соседних досок (эффект "разъезжания") */
+    .grid.grid-cols-1.sm\:grid-cols-2 {
+      perspective: 1000px;
+      perspective-origin: center center;
+    }
+
+    /* Доски слева от целевой - смещаются влево */
+    .drag-over-column ~ .board-column,
+    .board-column:has(~ .drag-over-column) {
+      transform: translateX(-15px) scale(0.97) translateZ(-10px);
+      opacity: 0.7;
+      filter: blur(1px);
+      transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    /* Для более точного контроля используем data-атрибуты */
+    .board-column[data-position="before-target"] {
+      transform: translateX(-20px) scale(0.96) translateZ(-15px);
+      opacity: 0.65;
+      filter: blur(1.5px);
+    }
+
+    .board-column[data-position="after-target"] {
+      transform: translateX(20px) scale(0.96) translateZ(-15px);
+      opacity: 0.65;
+      filter: blur(1.5px);
+    }
+
+    /* Доски на значительном расстоянии - еще больше отодвигаются */
+    .board-column[data-position="far-left"] {
+      transform: translateX(-30px) scale(0.94) translateZ(-20px);
+      opacity: 0.5;
+      filter: blur(2px);
+    }
+
+    .board-column[data-position="far-right"] {
+      transform: translateX(30px) scale(0.94) translateZ(-20px);
+      opacity: 0.5;
+      filter: blur(2px);
+    }
+
+    /* Плавный возврат всех досок */
+    .board-column:not(.drag-over-column) {
+      transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    /* Когда drag заканчивается, все доски возвращаются */
+    .board-column {
+      transform: scale(1) translateX(0) translateZ(0);
+      opacity: 1;
+      filter: blur(0);
+      z-index: 1;
+    }
+
+    /* Улучшенная анимация перетаскиваемой карточки */
+    .dragging-card {
+      opacity: 0.9;
+      transform: rotate(5deg) scale(1.15) translateZ(50px);
+      box-shadow: 
+        0 30px 80px rgba(160, 210, 235, 0.5),
+        0 0 0 2px rgba(160, 210, 235, 0.6);
+      cursor: grabbing !important;
+      z-index: 9999;
+      filter: brightness(1.1);
+      transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    /* Трейл эффект за карточкой */
+    @keyframes trail {
+      0% {
+        opacity: 0.5;
+        transform: scale(1);
+      }
+      100% {
+        opacity: 0;
+        transform: scale(0.8);
+      }
+    }
+
+    .dragging-card::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: inherit;
+      border-radius: inherit;
+      z-index: -1;
+      animation: trail 0.6s ease-out infinite;
+    }
+
+    /* Визуальный индикатор "бросьте здесь" */
+    .drag-over-column::before {
+      content: '↓ Бросьте здесь';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      padding: 12px 24px;
+      background: rgba(160, 210, 235, 0.95);
+      color: #1a0f2e;
+      font-weight: 700;
+      font-size: 14px;
+      border-radius: 12px;
+      box-shadow: 0 4px 20px rgba(160, 210, 235, 0.4);
+      pointer-events: none;
+      z-index: 100;
+      opacity: 0;
+      animation: dropHereAppear 0.3s ease-out 0.2s forwards;
+    }
+
+    @keyframes dropHereAppear {
+      from {
+        opacity: 0;
+        transform: translate(-50%, -50%) scale(0.8);
+      }
+      to {
+        opacity: 1;
+        transform: translate(-50%, -50%) scale(1);
+      }
+    }
+
+    /* Стрелки указатели по краям */
+    .drag-over-column::after {
+      content: '→';
+      position: absolute;
+      top: 50%;
+      right: -30px;
+      font-size: 32px;
+      color: rgba(160, 210, 235, 0.8);
+      transform: translateY(-50%);
+      animation: arrowBounce 0.6s ease-in-out infinite;
+    }
+
+    @keyframes arrowBounce {
+      0%, 100% {
+        transform: translateY(-50%) translateX(0);
+      }
+      50% {
+        transform: translateY(-50%) translateX(-10px);
+      }
+    }
+
+    /* Эффект "магнитного притяжения" */
+    .drag-over-column {
+      /* Дополнительное увеличение при близости */
+      transform: scale(1.08) translateZ(25px);
+    }
+
+    /* Ripple эффект от точки входа */
+    @keyframes rippleEffect {
+      0% {
+        width: 0;
+        height: 0;
+        opacity: 0.5;
+      }
+      100% {
+        width: 300px;
+        height: 300px;
+        opacity: 0;
+      }
+    }
+
+    .drag-over-column .ripple {
+      position: absolute;
+      border-radius: 50%;
+      background: rgba(160, 210, 235, 0.3);
+      transform: translate(-50%, -50%);
+      pointer-events: none;
+      animation: rippleEffect 0.8s ease-out;
+    }
+
+    /* Плавный переход между досками */
+    .board-column {
+      transition: 
+        transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1),
+        opacity 0.3s ease,
+        filter 0.3s ease,
+        box-shadow 0.4s ease,
+        background 0.3s ease,
+        border-color 0.3s ease,
+        z-index 0s linear 0.4s;
+    }
+
+    .drag-over-column {
+      transition: 
+        transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1),
+        opacity 0.3s ease,
+        filter 0.3s ease,
+        box-shadow 0.4s ease,
+        background 0.3s ease,
+        border-color 0.3s ease,
+        z-index 0s linear 0s;
+    }
+
+    /* Responsive поведение */
+    @media (max-width: 768px) {
+      .drag-over-column {
+        transform: scale(1.03) translateZ(10px);
+      }
+      
+      .board-column[data-position="before-target"],
+      .board-column[data-position="after-target"] {
+        transform: translateY(10px) scale(0.98);
+        opacity: 0.8;
+      }
+      
+      /* Вертикальное смещение вместо горизонтального */
+      .board-column[data-position="far-left"],
+      .board-column[data-position="far-right"] {
+        transform: translateY(15px) scale(0.96);
+      }
     }
 
     /* Пульсация цветной полоски */

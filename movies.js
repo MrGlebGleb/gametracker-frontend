@@ -1461,11 +1461,17 @@ function MovieApp() {
       e.currentTarget.classList.add('dragging-card');
     }, 0);
   };
-  
+
   const onDragEnd = (e) => {
+    // Убираем класс dragging-card с перетаскиваемой карточки
     document.querySelectorAll('.dragging-card').forEach(el => el.classList.remove('dragging-card'));
     dragItem.current = null;
+    
+    // Убираем все drag-over-column классы и data-атрибуты
     document.querySelectorAll('.drag-over-column').forEach(el => el.classList.remove('drag-over-column'));
+    document.querySelectorAll('.board-column').forEach(col => {
+      col.removeAttribute('data-position');
+    });
   };
 
   const toggleColumnExpansion = (columnKey) => {
@@ -1473,8 +1479,49 @@ function MovieApp() {
   };
 
   const onDragOver = (e) => e.preventDefault();
-  const onDragEnterColumn = (e) => e.currentTarget.classList.add('drag-over-column');
-  const onDragLeaveColumn = (e) => e.currentTarget.classList.remove('drag-over-column');
+  const onDragEnterColumn = (e) => {
+    e.preventDefault();
+    const column = e.currentTarget;
+    column.classList.add('drag-over-column');
+    
+    // Добавляем data-атрибуты соседним доскам
+    const allColumns = document.querySelectorAll('.board-column');
+    const currentIndex = Array.from(allColumns).indexOf(column);
+    
+    allColumns.forEach((col, index) => {
+      col.removeAttribute('data-position');
+      
+      if (index === currentIndex - 1) {
+        col.setAttribute('data-position', 'before-target');
+      } else if (index === currentIndex + 1) {
+        col.setAttribute('data-position', 'after-target');
+      } else if (index < currentIndex - 1) {
+        col.setAttribute('data-position', 'far-left');
+      } else if (index > currentIndex + 1) {
+        col.setAttribute('data-position', 'far-right');
+      }
+    });
+    
+    // Добавляем ripple эффект в точке входа
+    const ripple = document.createElement('div');
+    ripple.className = 'ripple';
+    const rect = column.getBoundingClientRect();
+    ripple.style.left = e.clientX - rect.left + 'px';
+    ripple.style.top = e.clientY - rect.top + 'px';
+    column.appendChild(ripple);
+    
+    setTimeout(() => ripple.remove(), 800);
+  };
+
+  const onDragLeaveColumn = (e) => {
+    e.currentTarget.classList.remove('drag-over-column');
+    
+    // Убираем data-атрибуты
+    const allColumns = document.querySelectorAll('.board-column');
+    allColumns.forEach(col => {
+      col.removeAttribute('data-position');
+    });
+  };
   
   const onDrop = async (e, targetColumnKey) => {
     e.preventDefault();
